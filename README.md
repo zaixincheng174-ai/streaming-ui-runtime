@@ -114,3 +114,14 @@ See [docs/portfolio/privacy-and-data.md](docs/portfolio/privacy-and-data.md).
 ## Public Release Status
 
 Public-facing documentation has been added, but final publication still requires human review of tracked trace-derived CSV files under `bench/p0/`. Do not publish raw product-derived trace data without confirming it contains no private session context.
+
+<!-- PORTFOLIO_EVIDENCE_START -->
+## Portfolio Evidence
+
+- [Portfolio overview](docs/portfolio/README.md)
+- [Evidence map](docs/portfolio/evidence-map.md)
+- [Results summary](docs/portfolio/results-summary.md)
+- [Privacy and data boundary](docs/portfolio/privacy-and-data.md)
+
+This public repo is a sanitized portfolio snapshot. Raw trace-derived CSVs and trace-specific research notes are excluded from public history.
+<!-- PORTFOLIO_EVIDENCE_END -->
