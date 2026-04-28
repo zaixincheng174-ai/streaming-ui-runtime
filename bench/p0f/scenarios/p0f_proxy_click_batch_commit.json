@@ -1,0 +1,33 @@
+{
+  "id": "p0f_proxy_click_batch_commit",
+  "title": "P0-F proxy click-triggered batch commit baseline",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "settle_ms": 5000,
+  "capture_ms": 8000,
+  "phases": [
+    {
+      "id": "batch_commit",
+      "label": "Trigger the programmed click and batch/microtask operation",
+      "duration_ms": 3000
+    },
+    {
+      "id": "post_commit_observe",
+      "label": "Keep the page foreground-active after the batch",
+      "duration_ms": 5000
+    }
+  ],
+  "sop": [
+    "Load the target and confirm the button and audit status are visible before the run starts.",
+    "Confirm batch_has_run=false before pressing Enter.",
+    "Press Enter only when the target has completed pre-generation and is ready.",
+    "Do not click the button manually during capture; the target programmatically clicks the visible button when it observes p0:capture:start.",
+    "Keep the Chrome window foreground-active for the full run."
+  ],
+  "notes_template": [
+    "anchor_movement=none|minor|major",
+    "one_sentence_observation"
+  ]
+}

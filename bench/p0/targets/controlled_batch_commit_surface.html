@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Controlled Batch Commit Surface</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        line-height: 1.4;
+      }
+
+      html, body {
+        margin: 0;
+        padding: 0;
+        background: #f7f7f2;
+        color: #141414;
+      }
+
+      #status {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        padding: 12px 16px;
+        border-bottom: 1px solid #d8d5cb;
+        background: rgba(247, 247, 242, 0.96);
+        backdrop-filter: blur(2px);
+        font-size: 12px;
+      }
+
+      #controls {
+        position: sticky;
+        top: 41px;
+        z-index: 1;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        padding: 12px 16px;
+        border-bottom: 1px solid #e3dfd4;
+        background: #f7f7f2;
+      }
+
+      button {
+        padding: 8px 12px;
+        border: 1px solid #6f6a5c;
+        border-radius: 4px;
+        background: #25231e;
+        color: #ffffff;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+
+      #surface {
+        padding: 8px 16px 32px;
+      }
+
+      .block {
+        display: grid;
+        grid-template-columns: 112px 1fr;
+        gap: 16px;
+        padding: 4px 0;
+        border-bottom: 1px solid #ebe8de;
+        white-space: pre-wrap;
+      }
+
+      .block-id {
+        color: #6d6757;
+      }
+
+      .block-body {
+        color: #181818;
+      }
+
+      .batch-toggled {
+        background: #f1efe5;
+      }
+
+      .config-error {
+        max-width: 760px;
+        margin: 32px auto;
+        padding: 16px;
+        border: 1px solid #b91c1c;
+        background: #fef2f2;
+        color: #7f1d1d;
+      }
+
+      .config-error h1 {
+        margin: 0 0 12px;
+        font-size: 16px;
+      }
+
+      .config-error pre {
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="status">
+      <span id="block-count">block_count=0</span>
+      <span id="chars-per-block">chars_per_block=0</span>
+      <span id="operation-type">operation_type=unknown</span>
+      <span id="microtask-mode">microtask_mode=unknown</span>
+      <span id="mutation-mode">mutation_mode=unknown</span>
+      <span id="trigger-mode">trigger_mode=programmatic-click-on-p0-capture-start</span>
+      <span id="batch-state">batch_has_run=false</span>
+      <span id="total-batches-run">total_batches_run=0</span>
+      <span id="last-capture-index">last_capture_index=0</span>
+      <span id="last-batch-duration">last_batch_duration_ms=0</span>
+      <span id="checksum">checksum=0</span>
+    </div>
+    <div id="controls">
+      <button id="batch-button" type="button">Run batch commit</button>
+      <span id="button-note">P0-E v1 measures post-click batch and microtask processing, not native pointer dispatch.</span>
+    </div>
+    <main id="surface" aria-label="Controlled batch commit surface"></main>
+    <script>
+      const OPERATION_TYPES = new Set(["dom-text-scan"]);
+      const MUTATION_MODES = new Set(["read-only", "class-toggle", "data-attribute-update"]);
+
+      function parsePositiveIntegerParam(params, name, errors) {
+        if (!params.has(name)) {
+          errors.push(`missing ${name}`);
+          return null;
+        }
+
+        const rawValue = params.get(name) || "";
+        if (!/^[1-9][0-9]*$/.test(rawValue)) {
+          errors.push(`${name} must be a positive integer`);
+          return null;
+        }
+
+        const value = Number(rawValue);
+        if (!Number.isSafeInteger(value)) {
+          errors.push(`${name} exceeds the safe integer range`);
+          return null;
+        }
+
+        return value;
+      }
+
+      function parseBooleanParam(params, name, errors) {
+        if (!params.has(name)) {
+          errors.push(`missing ${name}`);
+          return null;
+        }
+
+        const rawValue = params.get(name);
+        if (rawValue === "true") {
+          return true;
+        }
+        if (rawValue === "false") {
+          return false;
+        }
+
+        errors.push(`${name} must be true or false`);
+        return null;
+      }
+
+      function resolveConfig() {
+        const params = new URLSearchParams(window.location.search);
+        const errors = [];
+        const blockCount = parsePositiveIntegerParam(params, "block_count", errors);
+        const charsPerBlock = parsePositiveIntegerParam(params, "chars_per_block", errors);
+        const microtaskMode = parseBooleanParam(params, "microtask_mode", errors);
+        const operationType = params.get("operation_type");
+        const mutationMode = params.get("mutation_mode");
+
+        if (!params.has("operation_type")) {
+          errors.push("missing operation_type");
+        } else if (!OPERATION_TYPES.has(operationType)) {
+          errors.push("operation_type must be dom-text-scan");
+        }
+
+        if (!params.has("mutation_mode")) {
+          errors.push("missing mutation_mode");
+        } else if (!MUTATION_MODES.has(mutationMode)) {
+          errors.push("mutation_mode must be read-only, class-toggle, or data-attribute-update");
+        }
+
+        if (errors.length > 0) {
+          return {
+            error: [
+              "Invalid P0-E controlled batch commit query.",
+              ...errors.map((error) => `- ${error}`),
+              "",
+              "Required P0-E params:",
+              "block_count, chars_per_block, operation_type=dom-text-scan, microtask_mode=true|false, mutation_mode=read-only|class-toggle|data-attribute-update"
+            ].join("\n")
+          };
+        }
+
+        return {
+          config: {
+            blockCount,
+            charsPerBlock,
+            operationType,
+            microtaskMode,
+            mutationMode,
+            triggerMode: "programmatic-click-on-p0-capture-start"
+          }
+        };
+      }
+
+      function renderConfigError(message) {
+        const panel = document.createElement("main");
+        panel.className = "config-error";
+
+        const heading = document.createElement("h1");
+        heading.textContent = "Controlled batch commit configuration error";
+
+        const details = document.createElement("pre");
+        details.textContent = message;
+
+        panel.append(heading, details);
+        document.body.replaceChildren(panel);
+      }
+
+      const resolved = resolveConfig();
+      if (resolved.error) {
+        renderConfigError(resolved.error);
+        throw new Error(resolved.error);
+      }
+
+      const config = resolved.config;
+      const surface = document.getElementById("surface");
+      const button = document.getElementById("batch-button");
+      const blockCountNode = document.getElementById("block-count");
+      const charsPerBlockNode = document.getElementById("chars-per-block");
+      const operationTypeNode = document.getElementById("operation-type");
+      const microtaskModeNode = document.getElementById("microtask-mode");
+      const mutationModeNode = document.getElementById("mutation-mode");
+      const triggerModeNode = document.getElementById("trigger-mode");
+      const batchStateNode = document.getElementById("batch-state");
+      const totalBatchesRunNode = document.getElementById("total-batches-run");
+      const lastCaptureIndexNode = document.getElementById("last-capture-index");
+      const lastBatchDurationNode = document.getElementById("last-batch-duration");
+      const checksumNode = document.getElementById("checksum");
+      let captureSequence = 0;
+      let currentCaptureBatchHasRun = false;
+      let totalBatchesRun = 0;
+      let lastCaptureIndex = 0;
+      let lastBatchDurationMs = 0;
+      let lastChecksum = 0;
+      let pendingTriggerCaptureIndex = null;
+      const requestedCaptures = new Set();
+      const runningCaptures = new Set();
+      const completedCaptures = new Set();
+
+      function updateStatus() {
+        blockCountNode.textContent = `block_count=${config.blockCount}`;
+        charsPerBlockNode.textContent = `chars_per_block=${config.charsPerBlock}`;
+        operationTypeNode.textContent = `operation_type=${config.operationType}`;
+        microtaskModeNode.textContent = `microtask_mode=${config.microtaskMode}`;
+        mutationModeNode.textContent = `mutation_mode=${config.mutationMode}`;
+        triggerModeNode.textContent = `trigger_mode=${config.triggerMode}`;
+        batchStateNode.textContent = `batch_has_run=${currentCaptureBatchHasRun}`;
+        totalBatchesRunNode.textContent = `total_batches_run=${totalBatchesRun}`;
+        lastCaptureIndexNode.textContent = `last_capture_index=${lastCaptureIndex}`;
+        lastBatchDurationNode.textContent = `last_batch_duration_ms=${lastBatchDurationMs.toFixed(3)}`;
+        checksumNode.textContent = `checksum=${lastChecksum}`;
+      }
+
+      function blockTextFor(sequence) {
+        const targetLength = config.charsPerBlock;
+        let text = `batch commit controlled block ${sequence} | bucket=${sequence % 17} | phase=${sequence % 5}`;
+        let token = 0;
+
+        while (text.length < targetLength) {
+          text += ` | unit=${(sequence + token) % 997}:${String(token).padStart(3, "0")}`;
+          token += 1;
+        }
+
+        return text.slice(0, targetLength);
+      }
+
+      function seedBlocks() {
+        const fragment = document.createDocumentFragment();
+
+        for (let sequence = 1; sequence <= config.blockCount; sequence += 1) {
+          const block = document.createElement("div");
+          block.className = "block";
+          block.dataset.sequence = String(sequence);
+
+          const id = document.createElement("span");
+          id.className = "block-id";
+          id.textContent = String(sequence).padStart(6, "0");
+
+          const body = document.createElement("span");
+          body.className = "block-body";
+          body.textContent = blockTextFor(sequence);
+
+          block.append(id, body);
+          fragment.appendChild(block);
+        }
+
+        surface.appendChild(fragment);
+      }
+
+      function scanText(text, seed) {
+        let checksum = seed;
+        for (let index = 0; index < text.length; index += 1) {
+          checksum = (checksum + text.charCodeAt(index) * (index + 1)) >>> 0;
+        }
+        return checksum;
+      }
+
+      function markP0e(name, captureIndex) {
+        performance.mark(`${name}:capture-${captureIndex}`);
+      }
+
+      function runBatchCommit(captureIndex) {
+        if (runningCaptures.has(captureIndex) || completedCaptures.has(captureIndex)) {
+          return;
+        }
+
+        runningCaptures.add(captureIndex);
+        markP0e("p0e:batch:start", captureIndex);
+
+        const batchStartMs = performance.now();
+        const blocks = surface.children;
+        let checksum = 0;
+
+        for (let index = 0; index < blocks.length; index += 1) {
+          const block = blocks[index];
+          checksum = scanText(block.textContent || "", checksum);
+
+          if (config.mutationMode === "class-toggle") {
+            block.classList.toggle("batch-toggled", ((checksum + captureIndex) & 1) === 0);
+          } else if (config.mutationMode === "data-attribute-update") {
+            block.dataset.batchChecksum = `${captureIndex}:${checksum}`;
+          }
+        }
+
+        const batchEndMs = performance.now();
+        lastChecksum = checksum;
+        lastCaptureIndex = captureIndex;
+        lastBatchDurationMs = batchEndMs - batchStartMs;
+        totalBatchesRun += 1;
+        currentCaptureBatchHasRun = captureIndex === captureSequence;
+        completedCaptures.add(captureIndex);
+        runningCaptures.delete(captureIndex);
+        button.disabled = true;
+        updateStatus();
+        markP0e("p0e:batch:end", captureIndex);
+      }
+
+      function triggerBatchCommit() {
+        const captureIndex = pendingTriggerCaptureIndex ?? captureSequence;
+        if (
+          captureIndex <= 0 ||
+          requestedCaptures.has(captureIndex) ||
+          runningCaptures.has(captureIndex) ||
+          completedCaptures.has(captureIndex)
+        ) {
+          return;
+        }
+
+        requestedCaptures.add(captureIndex);
+        markP0e("p0e:click", captureIndex);
+        if (config.microtaskMode) {
+          Promise.resolve().then(() => runBatchCommit(captureIndex));
+        } else {
+          runBatchCommit(captureIndex);
+        }
+      }
+
+      button.addEventListener("click", triggerBatchCommit);
+
+      function scheduleBatchForCapture(captureIndex) {
+        if (
+          requestedCaptures.has(captureIndex) ||
+          runningCaptures.has(captureIndex) ||
+          completedCaptures.has(captureIndex)
+        ) {
+          return;
+        }
+
+        lastCaptureIndex = captureIndex;
+        currentCaptureBatchHasRun = false;
+        button.disabled = false;
+        updateStatus();
+
+        pendingTriggerCaptureIndex = captureIndex;
+        button.click();
+        pendingTriggerCaptureIndex = null;
+      }
+
+      const observer = new PerformanceObserver((entries) => {
+        for (const entry of entries.getEntries()) {
+          if (entry.name === "p0:capture:start") {
+            captureSequence += 1;
+            scheduleBatchForCapture(captureSequence);
+          }
+        }
+      });
+
+      observer.observe({ entryTypes: ["mark"] });
+      seedBlocks();
+      updateStatus();
+    </script>
+  </body>
+</html>

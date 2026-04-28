@@ -1,0 +1,48 @@
+{
+  "id": "p1_f2_worker_scheduler_projection",
+  "title": "P1-F2 worker transaction scheduler and projection protocol",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "settle_ms": 5000,
+  "capture_ms": 12000,
+  "phases": [
+    {
+      "id": "worker_scheduler_projection",
+      "label": "Dispatch heavy worker transaction and urgent visible projection request",
+      "duration_ms": 7000
+    },
+    {
+      "id": "post_projection_observe",
+      "label": "Keep the page foreground-active after scheduler/projection work completes",
+      "duration_ms": 5000
+    }
+  ],
+  "sop": [
+    "F2 is transaction scheduler / worker projection protocol support.",
+    "F2 is not P2.",
+    "F2 is not Canvas/WebGPU.",
+    "F2 is not product trace replay.",
+    "F2 is not a renderer benchmark.",
+    "F2 compares monolithic worker transaction behavior against scheduled worker transaction behavior.",
+    "F2 must use the same F0-D/F1 structural workload and synthetic_pressure_multiplier=1.",
+    "No Chrome capture is allowed until no-capture and simulated audits pass.",
+    "Load the P1-F2 target and confirm visible audit state shows config_valid=true and capture_allowed=true.",
+    "Confirm baseline_id=p1-worker-scheduler-projection and scenario_mode=p1-f2-worker-scheduler-projection.",
+    "Confirm scheduler_mode is monolithic for F2-A or scheduled for F2-B.",
+    "Confirm urgent_projection_enabled=true, stale_result_policy=reject, version_check_enabled=true, and no_precompute_before_click=true.",
+    "Confirm all F0-D/F1 structural workload fields match the approved baseline.",
+    "Press Enter only after the page is loaded and Chrome is foreground-active.",
+    "Do not interact with the page during capture; the target dispatches synthetic DOM pointerup/click on p0:capture:start.",
+    "The main thread must not synchronously wait for Worker completion.",
+    "Worker counters and checksum must prove equivalent heavy work before any performance interpretation."
+  ],
+  "notes_template": [
+    "f2_scheduler_projection=yes|no",
+    "scheduler_mode=monolithic|scheduled",
+    "config_valid=yes|no",
+    "foreground_visible=yes|no",
+    "one_sentence_observation"
+  ]
+}

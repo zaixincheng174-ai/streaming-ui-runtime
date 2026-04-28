@@ -1,0 +1,1498 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>P1-F2 Worker Scheduler Projection Baseline</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f5f3;
+      color: #181a1f;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #f5f5f3;
+    }
+
+    .shell {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: 100vh;
+    }
+
+    header {
+      border-bottom: 1px solid #d9d9d2;
+      background: #ffffff;
+      padding: 14px 20px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 650;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin-top: 4px;
+      color: #5a5f69;
+      font-size: 13px;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(380px, 560px) 1fr;
+      gap: 16px;
+      padding: 16px;
+      min-height: 0;
+    }
+
+    .panel {
+      background: #ffffff;
+      border: 1px solid #d9d9d2;
+      border-radius: 8px;
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    .panel h2 {
+      margin: 0;
+      padding: 12px 14px;
+      border-bottom: 1px solid #e7e7e1;
+      font-size: 14px;
+      font-weight: 650;
+    }
+
+    .audit-grid,
+    .metric-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 6px;
+      padding: 12px 14px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .audit-grid span,
+    .metric-grid span {
+      display: block;
+      overflow-wrap: anywhere;
+    }
+
+    .error {
+      color: #a5281b;
+      font-weight: 650;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-rows: minmax(0, 1fr) auto;
+      min-height: 0;
+    }
+
+    .history {
+      overflow: auto;
+      padding: 16px;
+    }
+
+    .message {
+      border-bottom: 1px solid #ecece6;
+      padding: 10px 0;
+    }
+
+    .message-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #4b5563;
+      margin-bottom: 4px;
+    }
+
+    .message-body {
+      font-size: 13px;
+      line-height: 1.45;
+      color: #22252c;
+      white-space: pre-wrap;
+    }
+
+    .composer {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      border-top: 1px solid #d9d9d2;
+      background: #ffffff;
+      padding: 12px;
+    }
+
+    .composer input {
+      flex: 1;
+      min-width: 0;
+      border: 1px solid #c8c9c1;
+      border-radius: 6px;
+      padding: 10px 12px;
+      font: inherit;
+    }
+
+    .composer button {
+      border: 1px solid #1f2937;
+      border-radius: 6px;
+      background: #1f2937;
+      color: #ffffff;
+      font: inherit;
+      font-weight: 650;
+      padding: 10px 14px;
+      cursor: pointer;
+    }
+
+    .composer button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <h1>P1-F2 Worker Scheduler Projection Baseline</h1>
+      <div class="subtitle">Transaction scheduler / worker projection protocol support target.</div>
+    </header>
+    <main>
+      <section class="panel">
+        <h2>Audit</h2>
+        <div class="audit-grid" id="readiness-status">
+          <span id="ready-state">ready=false</span>
+          <span id="idle-state">idle_ms=0</span>
+          <span id="stream-state">stream_state=idle</span>
+          <span id="token-count">token_count=0</span>
+        </div>
+        <div class="audit-grid" id="audit-status"></div>
+        <h2>Runtime Metrics</h2>
+        <div class="metric-grid" id="metric-status"></div>
+      </section>
+      <section class="panel workspace">
+        <div class="history" id="history-scroll">
+          <div id="root"></div>
+        </div>
+        <form class="composer" id="composer">
+          <input id="send-input" value="Run scheduler projection protocol" aria-label="Message">
+          <button type="submit" id="send-button">Run F2</button>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <script src="/vendor/react18/react.production.min.js"></script>
+  <script src="/vendor/react18/react-dom.production.min.js"></script>
+  <script>
+    (() => {
+      "use strict";
+
+      const React = window.React;
+      const ReactDOM = window.ReactDOM;
+
+      const STRUCTURAL_EXPECTED = Object.freeze({
+        baseline_id: "p1-worker-scheduler-projection",
+        scenario_mode: "p1-f2-worker-scheduler-projection",
+        session_size: 2500,
+        module_count: 20,
+        subscribers_per_module: 96,
+        fanout_width: 192,
+        queued_effect_count: 2048,
+        state_nodes_touched: 32768,
+        flush_batch_size: 2048,
+        commit_update_count: 4,
+        microtask_chain_length: 8,
+        payload_shape: "derived-json",
+        history_mount_size: 2500,
+        content_richness: "derived",
+        synthetic_pressure_multiplier: 1,
+        derived_work_enabled: true,
+        selector_passes_per_subscriber: 8,
+        queue_drain_steps_per_module: 256,
+        state_read_stride: 7,
+        derived_hash_rounds: 4,
+        projection_update_count: 6,
+        urgent_projection_enabled: true,
+        urgent_projection_delay_ms: 10,
+        stale_result_policy: "reject",
+        version_check_enabled: true,
+        urgent_priority: "visible-projection",
+        precompute_before_click: false,
+        stable_keys: true,
+        react_memo_enabled: true,
+        deferred_rendering: false,
+        token_coalescing: false,
+        future_output_pre_rendered: false
+      });
+
+      const MODE_DEFAULTS = Object.freeze({
+        monolithic: {
+          scheduler_mode: "monolithic",
+          worker_chunk_size: "all",
+          worker_chunk_budget_ms: 0,
+          worker_yield_strategy: "none",
+          preemption_enabled: false
+        },
+        scheduled: {
+          scheduler_mode: "scheduled",
+          worker_chunk_size: 128,
+          worker_chunk_budget_ms: 4,
+          worker_yield_strategy: "message-channel",
+          preemption_enabled: true
+        }
+      });
+
+      const PRIORITY_ORDER = Object.freeze([
+        "urgent-input",
+        "visible-projection",
+        "stream-update",
+        "background-indexing"
+      ]);
+      const TRANSACTION_MODEL_FIELDS = Object.freeze([
+        "txn_id",
+        "parent_action_id",
+        "priority",
+        "deadline_ms",
+        "budget_ms",
+        "session_version",
+        "visible_range",
+        "dirty_ranges",
+        "required_work_units",
+        "cancellation_policy",
+        "result_version",
+        "checksum"
+      ]);
+
+      const auditContainer = document.getElementById("audit-status");
+      const metricContainer = document.getElementById("metric-status");
+      const readinessNodes = {
+        readyState: document.getElementById("ready-state"),
+        idleState: document.getElementById("idle-state"),
+        streamState: document.getElementById("stream-state"),
+        tokenCount: document.getElementById("token-count")
+      };
+      const sendButton = document.getElementById("send-button");
+      const composer = document.getElementById("composer");
+      const mountedAt = performance.now();
+
+      function hashString(value) {
+        let hash = 2166136261;
+        for (let index = 0; index < value.length; index += 1) {
+          hash ^= value.charCodeAt(index);
+          hash = Math.imul(hash, 16777619);
+        }
+        return hash >>> 0;
+      }
+
+      function rounded(value) {
+        return Number.isFinite(value) ? Number(value.toFixed(3)) : value;
+      }
+
+      function parseBooleanParam(params, key, defaultValue, errors) {
+        if (!params.has(key)) {
+          return defaultValue;
+        }
+        const value = params.get(key);
+        if (value === "true") {
+          return true;
+        }
+        if (value === "false") {
+          return false;
+        }
+        errors.push(`${key}:invalid-boolean`);
+        return defaultValue;
+      }
+
+      function parseIntegerParam(params, key, defaultValue, errors) {
+        if (!params.has(key)) {
+          return defaultValue;
+        }
+        const raw = params.get(key);
+        if (raw === null || raw.trim() === "") {
+          errors.push(`${key}:missing`);
+          return defaultValue;
+        }
+        const parsed = Number(raw);
+        if (!Number.isInteger(parsed) || parsed < 0) {
+          errors.push(`${key}:invalid-number`);
+          return defaultValue;
+        }
+        return parsed;
+      }
+
+      function parseChunkSizeParam(params, defaultValue, errors) {
+        if (!params.has("worker_chunk_size")) {
+          return defaultValue;
+        }
+        const raw = params.get("worker_chunk_size");
+        if (raw === "all") {
+          return raw;
+        }
+        const parsed = Number(raw);
+        if (!Number.isInteger(parsed) || parsed <= 0) {
+          errors.push("worker_chunk_size:invalid");
+          return defaultValue;
+        }
+        return parsed;
+      }
+
+      function parseStringParam(params, key, defaultValue, errors) {
+        if (!params.has(key)) {
+          return defaultValue;
+        }
+        const value = params.get(key);
+        if (value === null || value.trim() === "") {
+          errors.push(`${key}:missing`);
+          return defaultValue;
+        }
+        return value;
+      }
+
+      function assertEqual(config, errors, key, expected) {
+        if (config[key] !== expected) {
+          errors.push(`${key}:must-equal:${expected}`);
+        }
+      }
+
+      function buildConfig() {
+        const params = new URLSearchParams(window.location.search);
+        const errors = [];
+        const requestedMode = parseStringParam(params, "scheduler_mode", "scheduled", errors);
+        const modeDefaults = MODE_DEFAULTS[requestedMode] || MODE_DEFAULTS.scheduled;
+        const config = {
+          baseline_id: parseStringParam(params, "baseline_id", STRUCTURAL_EXPECTED.baseline_id, errors),
+          scenario_mode: parseStringParam(params, "scenario_mode", STRUCTURAL_EXPECTED.scenario_mode, errors),
+          scheduler_mode: requestedMode,
+          session_size: parseIntegerParam(params, "session_size", STRUCTURAL_EXPECTED.session_size, errors),
+          module_count: parseIntegerParam(params, "module_count", STRUCTURAL_EXPECTED.module_count, errors),
+          subscribers_per_module: parseIntegerParam(params, "subscribers_per_module", STRUCTURAL_EXPECTED.subscribers_per_module, errors),
+          fanout_width: parseIntegerParam(params, "fanout_width", STRUCTURAL_EXPECTED.fanout_width, errors),
+          queued_effect_count: parseIntegerParam(params, "queued_effect_count", STRUCTURAL_EXPECTED.queued_effect_count, errors),
+          state_nodes_touched: parseIntegerParam(params, "state_nodes_touched", STRUCTURAL_EXPECTED.state_nodes_touched, errors),
+          flush_batch_size: parseIntegerParam(params, "flush_batch_size", STRUCTURAL_EXPECTED.flush_batch_size, errors),
+          commit_update_count: parseIntegerParam(params, "commit_update_count", STRUCTURAL_EXPECTED.commit_update_count, errors),
+          microtask_chain_length: parseIntegerParam(params, "microtask_chain_length", STRUCTURAL_EXPECTED.microtask_chain_length, errors),
+          payload_shape: parseStringParam(params, "payload_shape", STRUCTURAL_EXPECTED.payload_shape, errors),
+          history_mount_size: parseIntegerParam(params, "history_mount_size", STRUCTURAL_EXPECTED.history_mount_size, errors),
+          content_richness: parseStringParam(params, "content_richness", STRUCTURAL_EXPECTED.content_richness, errors),
+          synthetic_pressure_multiplier: parseIntegerParam(params, "synthetic_pressure_multiplier", STRUCTURAL_EXPECTED.synthetic_pressure_multiplier, errors),
+          derived_work_enabled: parseBooleanParam(params, "derived_work_enabled", STRUCTURAL_EXPECTED.derived_work_enabled, errors),
+          selector_passes_per_subscriber: parseIntegerParam(params, "selector_passes_per_subscriber", STRUCTURAL_EXPECTED.selector_passes_per_subscriber, errors),
+          queue_drain_steps_per_module: parseIntegerParam(params, "queue_drain_steps_per_module", STRUCTURAL_EXPECTED.queue_drain_steps_per_module, errors),
+          state_read_stride: parseIntegerParam(params, "state_read_stride", STRUCTURAL_EXPECTED.state_read_stride, errors),
+          derived_hash_rounds: parseIntegerParam(params, "derived_hash_rounds", STRUCTURAL_EXPECTED.derived_hash_rounds, errors),
+          projection_update_count: parseIntegerParam(params, "projection_update_count", STRUCTURAL_EXPECTED.projection_update_count, errors),
+          urgent_projection_enabled: parseBooleanParam(params, "urgent_projection_enabled", STRUCTURAL_EXPECTED.urgent_projection_enabled, errors),
+          urgent_projection_delay_ms: parseIntegerParam(params, "urgent_projection_delay_ms", STRUCTURAL_EXPECTED.urgent_projection_delay_ms, errors),
+          worker_chunk_size: parseChunkSizeParam(params, modeDefaults.worker_chunk_size, errors),
+          worker_chunk_budget_ms: parseIntegerParam(params, "worker_chunk_budget_ms", modeDefaults.worker_chunk_budget_ms, errors),
+          worker_yield_strategy: parseStringParam(params, "worker_yield_strategy", modeDefaults.worker_yield_strategy, errors),
+          stale_result_policy: parseStringParam(params, "stale_result_policy", STRUCTURAL_EXPECTED.stale_result_policy, errors),
+          version_check_enabled: parseBooleanParam(params, "version_check_enabled", STRUCTURAL_EXPECTED.version_check_enabled, errors),
+          urgent_priority: parseStringParam(params, "urgent_priority", STRUCTURAL_EXPECTED.urgent_priority, errors),
+          preemption_enabled: parseBooleanParam(params, "preemption_enabled", modeDefaults.preemption_enabled, errors),
+          precompute_before_click: parseBooleanParam(params, "precompute_before_click", STRUCTURAL_EXPECTED.precompute_before_click, errors),
+          stable_keys: parseBooleanParam(params, "stable_keys", STRUCTURAL_EXPECTED.stable_keys, errors),
+          react_memo_enabled: parseBooleanParam(params, "react_memo_enabled", STRUCTURAL_EXPECTED.react_memo_enabled, errors),
+          deferred_rendering: parseBooleanParam(params, "deferred_rendering", STRUCTURAL_EXPECTED.deferred_rendering, errors),
+          token_coalescing: parseBooleanParam(params, "token_coalescing", STRUCTURAL_EXPECTED.token_coalescing, errors),
+          future_output_pre_rendered: false
+        };
+
+        if (!Object.hasOwn(MODE_DEFAULTS, config.scheduler_mode)) {
+          errors.push("scheduler_mode:unsupported");
+        }
+        for (const [key, value] of Object.entries(STRUCTURAL_EXPECTED)) {
+          assertEqual(config, errors, key, value);
+        }
+        if (config.scheduler_mode === "monolithic") {
+          if (config.worker_chunk_size !== "all") {
+            errors.push("worker_chunk_size:monolithic-must-be-all");
+          }
+          if (config.worker_chunk_budget_ms !== 0) {
+            errors.push("worker_chunk_budget_ms:monolithic-must-be-0");
+          }
+          if (config.worker_yield_strategy !== "none") {
+            errors.push("worker_yield_strategy:monolithic-must-be-none");
+          }
+          if (config.preemption_enabled) {
+            errors.push("preemption_enabled:monolithic-blocked");
+          }
+        }
+        if (config.scheduler_mode === "scheduled") {
+          if (!Number.isInteger(config.worker_chunk_size) || config.worker_chunk_size <= 0) {
+            errors.push("worker_chunk_size:scheduled-required");
+          }
+          if (!Number.isInteger(config.worker_chunk_budget_ms) || config.worker_chunk_budget_ms <= 0) {
+            errors.push("worker_chunk_budget_ms:scheduled-required");
+          }
+          if (!["timeout", "message-channel", "scheduler-if-available"].includes(config.worker_yield_strategy)) {
+            errors.push("worker_yield_strategy:scheduled-unsupported");
+          }
+          if (!config.preemption_enabled) {
+            errors.push("preemption_enabled:scheduled-required");
+          }
+        }
+        if (config.synthetic_pressure_multiplier !== 1) {
+          errors.push("synthetic_pressure_multiplier:must-equal-1");
+        }
+        if (config.precompute_before_click) {
+          errors.push("precompute_before_click:blocked");
+        }
+        if (!config.urgent_projection_enabled) {
+          errors.push("urgent_projection_enabled:must-be-true");
+        }
+        if (config.stale_result_policy !== "reject") {
+          errors.push("stale_result_policy:must-be-reject");
+        }
+        if (!config.version_check_enabled) {
+          errors.push("version_check_enabled:must-be-true");
+        }
+        if (config.urgent_priority !== "visible-projection") {
+          errors.push("urgent_priority:must-be-visible-projection");
+        }
+        if (!config.stable_keys) {
+          errors.push("stable_keys:must-be-true");
+        }
+        if (!config.react_memo_enabled) {
+          errors.push("react_memo_enabled:must-be-true");
+        }
+        if (config.deferred_rendering) {
+          errors.push("deferred_rendering:blocked");
+        }
+        if (config.token_coalescing) {
+          errors.push("token_coalescing:blocked");
+        }
+
+        const config_valid = errors.length === 0;
+        return {
+          ...config,
+          config_valid,
+          capture_allowed: config_valid,
+          config_errors: errors.length === 0 ? "none" : errors.join("|")
+        };
+      }
+
+      function createHistory(size, config) {
+        const messages = [];
+        for (let index = 0; index < size; index += 1) {
+          messages.push({
+            id: `history-${index}`,
+            title: `Session item ${index + 1}`,
+            body: `scheduler projection node ${index + 1}: module=${index % Math.max(1, config.module_count)} subscriber=${index % Math.max(1, config.subscribers_per_module)}`
+          });
+        }
+        return messages;
+      }
+
+      function createStateRecords(messages, config) {
+        return messages.map((message, index) => ({
+          id: message.id,
+          index,
+          titleHash: hashString(message.title),
+          bodyHash: hashString(message.body),
+          weight: (index * 31 + config.flush_batch_size + config.module_count) % 997
+        }));
+      }
+
+      function expectedEquivalence(config) {
+        return {
+          module_flush_count: config.module_count,
+          subscriber_notify_count: config.module_count * config.subscribers_per_module,
+          queue_drain_step_count: config.module_count * config.queue_drain_steps_per_module,
+          derived_selector_eval_count: config.module_count * config.subscribers_per_module * config.selector_passes_per_subscriber,
+          state_nodes_touched_observed: config.state_nodes_touched,
+          derived_hash_rounds_observed: config.state_nodes_touched * config.derived_hash_rounds,
+          projection_update_count_observed: config.projection_update_count
+        };
+      }
+
+      function createTransaction(config, kind, priority, sessionVersion, actionId, checksumSeed) {
+        const requiredWorkUnits = kind === "heavy"
+          ? config.state_nodes_touched + (config.module_count * config.queue_drain_steps_per_module) + config.queued_effect_count + config.projection_update_count
+          : config.projection_update_count;
+        const txn = {
+          txn_id: `${kind}-txn-${sessionVersion}`,
+          parent_action_id: actionId,
+          priority,
+          deadline_ms: priority === "visible-projection" ? 16 : 1000,
+          budget_ms: config.worker_chunk_budget_ms,
+          session_version: sessionVersion,
+          visible_range: [0, Math.min(60, config.history_mount_size)],
+          dirty_ranges: [[0, Math.min(config.fanout_width, config.history_mount_size)]],
+          required_work_units: requiredWorkUnits,
+          cancellation_policy: kind === "urgent" ? "drop-stale" : "complete-equivalent",
+          result_version: sessionVersion + (kind === "urgent" ? 1 : 2),
+          checksum: hashString(`${kind}:${priority}:${sessionVersion}:${checksumSeed}`)
+        };
+        return txn;
+      }
+
+      function computeHeavyTransaction(payload, nowFn, progressLimit) {
+        const clock = typeof nowFn === "function" ? nowFn : (() => performance.now());
+        const config = payload.config;
+        const stateRecords = payload.stateRecords;
+        const totalUnits = payload.total_work_units;
+        const stateRecordAt = (index) => stateRecords[index % stateRecords.length];
+        const counters = {
+          module_flush_count: config.module_count,
+          subscriber_notify_count: config.module_count * config.subscribers_per_module,
+          queued_effect_count_observed: config.queued_effect_count,
+          state_nodes_touched_observed: 0,
+          derived_selector_eval_count: config.module_count * config.subscribers_per_module * config.selector_passes_per_subscriber,
+          queue_drain_step_count: 0,
+          projection_update_count_observed: 0,
+          derived_hash_rounds_observed: 0
+        };
+        let accumulator = payload.seed_accumulator >>> 0;
+        const limit = Math.min(totalUnits, progressLimit ?? totalUnits);
+        const startAt = clock();
+        for (let unit = 0; unit < limit; unit += 1) {
+          const record = stateRecordAt((unit * config.state_read_stride) + accumulator);
+          if (unit < config.module_count * config.queue_drain_steps_per_module) {
+            counters.queue_drain_step_count += 1;
+            accumulator = (accumulator ^ hashString(`queue:${unit}:${record.id}:${record.bodyHash}`)) >>> 0;
+          } else if (unit < (config.module_count * config.queue_drain_steps_per_module) + config.state_nodes_touched) {
+            counters.state_nodes_touched_observed += 1;
+            for (let round = 0; round < config.derived_hash_rounds; round += 1) {
+              accumulator = hashString(`state:${unit}:${round}:${record.id}:${record.weight}:${accumulator}`);
+              counters.derived_hash_rounds_observed += 1;
+            }
+          } else if (unit < (config.module_count * config.queue_drain_steps_per_module) + config.state_nodes_touched + config.queued_effect_count) {
+            accumulator = (accumulator ^ hashString(`effect:${unit}:${accumulator}`)) >>> 0;
+          } else {
+            counters.projection_update_count_observed += 1;
+            accumulator = hashString(`projection:${unit}:${record.titleHash}:${accumulator}`);
+          }
+        }
+        const endAt = clock();
+        return {
+          accumulator,
+          counters,
+          elapsed_ms: Math.max(0, endAt - startAt)
+        };
+      }
+
+      function buildHeavyResult(payload, schedulerStats, nowFn) {
+        const clock = typeof nowFn === "function" ? nowFn : (() => performance.now());
+        const heavyStart = payload.heavy_started_at;
+        const compute = computeHeavyTransaction(payload, clock);
+        const doneAt = clock();
+        const expected = expectedEquivalence(payload.config);
+        const counters = {
+          ...compute.counters,
+          ...expected,
+          queued_effect_count_observed: payload.config.queued_effect_count
+        };
+        const projection = {
+          id: `f2-heavy-${compute.accumulator}`,
+          title: "Heavy scheduler projection",
+          body: `mode=${payload.config.scheduler_mode} modules=${payload.config.module_count} checksum-seed=${compute.accumulator}`
+        };
+        const checksum = hashString(JSON.stringify({
+          action_sequence_hash: payload.action_sequence_hash,
+          workload_source_hash: payload.workload_source_hash,
+          transaction: payload.heavy_txn,
+          counters,
+          projection
+        }));
+        return {
+          type: "heavy-result",
+          ok: true,
+          scheduler_mode: payload.config.scheduler_mode,
+          action_sequence_hash: payload.action_sequence_hash,
+          workload_source_hash: payload.workload_source_hash,
+          transaction: payload.heavy_txn,
+          f2_worker_heavy_txn_total_ms: Math.max(0, doneAt - heavyStart),
+          f2_worker_chunk_count: schedulerStats.chunk_count,
+          f2_worker_max_chunk_ms: schedulerStats.max_chunk_ms,
+          f2_worker_yield_count: schedulerStats.yield_count,
+          f2_worker_preemptions: schedulerStats.preemptions,
+          f2_worker_stale_txn_count: schedulerStats.stale_txn_count,
+          f2_worker_completed_txn_count: schedulerStats.completed_txn_count,
+          f2_worker_dropped_txn_count: schedulerStats.dropped_txn_count,
+          f2_worker_equivalence_checksum: checksum,
+          heavy_worker_start_at: heavyStart,
+          heavy_worker_done_at: doneAt,
+          module_flush_count: counters.module_flush_count,
+          subscriber_notify_count: counters.subscriber_notify_count,
+          queue_drain_step_count: counters.queue_drain_step_count,
+          derived_selector_eval_count: counters.derived_selector_eval_count,
+          state_nodes_touched_observed: counters.state_nodes_touched_observed,
+          derived_hash_rounds_observed: counters.derived_hash_rounds_observed,
+          projection_update_count_observed: counters.projection_update_count_observed,
+          queued_effect_count_observed: counters.queued_effect_count_observed,
+          projection
+        };
+      }
+
+      function buildUrgentResult(payload, timing, nowFn) {
+        const clock = typeof nowFn === "function" ? nowFn : (() => performance.now());
+        const workerStartAt = Number.isFinite(timing?.urgent_worker_start_at)
+          ? timing.urgent_worker_start_at
+          : clock();
+        const doneAt = clock();
+        const sentAt = Number.isFinite(timing?.urgent_request_sent_at_main)
+          ? timing.urgent_request_sent_at_main
+          : workerStartAt;
+        const receivedAt = Number.isFinite(timing?.urgent_request_received_at_worker)
+          ? timing.urgent_request_received_at_worker
+          : workerStartAt;
+        const mainToWorkerDelayMs = Math.max(0, receivedAt - sentAt);
+        const workerQueueWaitMs = Math.max(0, workerStartAt - receivedAt);
+        const endToEndLatencyMs = Math.max(0, doneAt - sentAt);
+        const projection = {
+          id: `f2-urgent-${payload.urgent_txn.checksum}`,
+          title: "Urgent projection",
+          body: `priority=${payload.urgent_txn.priority} end_to_end_ms=${rounded(endToEndLatencyMs)}`
+        };
+        return {
+          type: "urgent-result",
+          ok: true,
+          scheduler_mode: payload.config.scheduler_mode,
+          transaction: payload.urgent_txn,
+          f2_worker_urgent_txn_latency_ms: endToEndLatencyMs,
+          f2_worker_urgent_wait_ms: workerQueueWaitMs,
+          urgent_request_sent_at_main: sentAt,
+          urgent_request_received_at_worker: receivedAt,
+          urgent_worker_start_at: workerStartAt,
+          urgent_worker_done_at: doneAt,
+          urgent_main_to_worker_delay_ms: mainToWorkerDelayMs,
+          urgent_worker_queue_wait_ms: workerQueueWaitMs,
+          urgent_end_to_end_latency_ms: endToEndLatencyMs,
+          projection
+        };
+      }
+
+      function simulateF2Result(payload, options = {}) {
+        const config = payload.config;
+        const baseHeavyMs = config.scheduler_mode === "monolithic" ? 55 : 58;
+        const urgentWaitMs = config.scheduler_mode === "monolithic" ? baseHeavyMs : Math.min(config.worker_chunk_budget_ms, 4);
+        const schedulerStats = {
+          chunk_count: config.scheduler_mode === "monolithic" ? 1 : Math.ceil(payload.total_work_units / config.worker_chunk_size),
+          max_chunk_ms: config.scheduler_mode === "monolithic" ? baseHeavyMs : config.worker_chunk_budget_ms,
+          yield_count: config.scheduler_mode === "monolithic" ? 0 : Math.max(1, Math.ceil(payload.total_work_units / config.worker_chunk_size) - 1),
+          preemptions: config.scheduler_mode === "monolithic" ? 0 : 1,
+          stale_txn_count: 0,
+          completed_txn_count: 2,
+          dropped_txn_count: 0
+        };
+        const heavy = buildHeavyResult({
+          ...payload,
+          heavy_started_at: 0
+        }, schedulerStats, () => baseHeavyMs);
+        heavy.f2_worker_heavy_txn_total_ms = baseHeavyMs;
+        heavy.f2_worker_roundtrip_ms = baseHeavyMs + 5;
+        const urgentSentAt = config.urgent_projection_delay_ms;
+        const urgentReceivedAt = config.scheduler_mode === "monolithic" ? baseHeavyMs : urgentSentAt + 1;
+        const urgentStartAt = config.scheduler_mode === "monolithic" ? baseHeavyMs : urgentSentAt + Math.min(config.worker_chunk_budget_ms, 4);
+        let urgent = buildUrgentResult(payload, {
+          urgent_request_sent_at_main: urgentSentAt,
+          urgent_request_received_at_worker: urgentReceivedAt,
+          urgent_worker_start_at: urgentStartAt
+        }, () => urgentStartAt + 2);
+        if (options.missingChecksum) {
+          delete heavy.f2_worker_equivalence_checksum;
+        }
+        if (options.reducedCounters) {
+          heavy.subscriber_notify_count = Math.max(0, heavy.subscriber_notify_count - 1);
+        }
+        if (options.staleCommit) {
+          urgent.transaction.result_version = payload.session_version - 1;
+        }
+        urgent.urgent_ack_received_at_main = urgentReceivedAt;
+        urgent.urgent_main_ack_latency_ms = urgentReceivedAt - urgentSentAt;
+        urgent.urgent_projection_visible_at_main = urgentStartAt + 2;
+        urgent.urgent_end_to_end_visible_ms = urgent.urgent_projection_visible_at_main - urgentSentAt;
+        return { heavy, urgent };
+      }
+
+      const config = buildConfig();
+      const historyMessages = createHistory(config.history_mount_size, config);
+      const stateRecords = createStateRecords(historyMessages, config);
+      const totalWorkUnits = (config.module_count * config.queue_drain_steps_per_module) +
+        config.state_nodes_touched +
+        config.queued_effect_count +
+        config.projection_update_count;
+      const actionSequence = [
+        "f2:start",
+        "f2:trigger:start",
+        "f2:trigger:end",
+        "f2:heavy-dispatch:start",
+        "f2:heavy-dispatch:end",
+        "f2:urgent-request:start",
+        "f2:urgent-request:end",
+        "f2:urgent-result:received",
+        "f2:urgent-projection-commit:start",
+        "f2:urgent-projection-commit:end",
+        "f2:heavy-result:received",
+        "f2:heavy-projection-commit:start",
+        "f2:heavy-projection-commit:end",
+        "f2:end"
+      ].join("|");
+      const workloadSource = JSON.stringify({
+        scenario_mode: config.scenario_mode,
+        scheduler_mode: config.scheduler_mode,
+        structural: Object.fromEntries(Object.keys(STRUCTURAL_EXPECTED).map((key) => [key, config[key]])),
+        worker_chunk_size: config.worker_chunk_size,
+        worker_chunk_budget_ms: config.worker_chunk_budget_ms,
+        worker_yield_strategy: config.worker_yield_strategy,
+        preemption_enabled: config.preemption_enabled
+      });
+      const actionSequenceHash = hashString(actionSequence);
+      const workloadSourceHash = hashString(workloadSource);
+      const sessionVersion = 1;
+      const parentActionId = `f2-action-${workloadSourceHash}`;
+      const heavyTxn = createTransaction(config, "heavy", "background-indexing", sessionVersion, parentActionId, workloadSourceHash);
+      const urgentTxn = createTransaction(config, "urgent", config.urgent_priority, sessionVersion, parentActionId, actionSequenceHash);
+      const audit = {
+        baseline_id: config.baseline_id,
+        scenario_mode: config.scenario_mode,
+        scheduler_mode: config.scheduler_mode,
+        urgent_projection_enabled: config.urgent_projection_enabled,
+        urgent_projection_delay_ms: config.urgent_projection_delay_ms,
+        worker_chunk_size: config.worker_chunk_size,
+        worker_chunk_budget_ms: config.worker_chunk_budget_ms,
+        worker_yield_strategy: config.worker_yield_strategy,
+        stale_result_policy: config.stale_result_policy,
+        version_check_enabled: config.version_check_enabled,
+        urgent_priority: config.urgent_priority,
+        preemption_enabled: config.preemption_enabled,
+        synthetic_pressure_multiplier: config.synthetic_pressure_multiplier,
+        no_precompute_before_click: !config.precompute_before_click,
+        precompute_before_click: config.precompute_before_click,
+        config_valid: config.config_valid,
+        capture_allowed: config.capture_allowed,
+        config_errors: config.config_errors,
+        future_output_pre_rendered: false,
+        stable_keys: config.stable_keys,
+        react_memo_enabled: config.react_memo_enabled,
+        deferred_rendering: config.deferred_rendering,
+        token_coalescing: config.token_coalescing,
+        priority_order: PRIORITY_ORDER.join(">"),
+        transaction_model_fields: TRANSACTION_MODEL_FIELDS.join("|"),
+        session_size: config.session_size,
+        module_count: config.module_count,
+        subscribers_per_module: config.subscribers_per_module,
+        fanout_width: config.fanout_width,
+        queued_effect_count: config.queued_effect_count,
+        state_nodes_touched: config.state_nodes_touched,
+        flush_batch_size: config.flush_batch_size,
+        commit_update_count: config.commit_update_count,
+        microtask_chain_length: config.microtask_chain_length,
+        payload_shape: config.payload_shape,
+        history_mount_size: config.history_mount_size,
+        content_richness: config.content_richness,
+        derived_work_enabled: config.derived_work_enabled,
+        selector_passes_per_subscriber: config.selector_passes_per_subscriber,
+        queue_drain_steps_per_module: config.queue_drain_steps_per_module,
+        state_read_stride: config.state_read_stride,
+        derived_hash_rounds: config.derived_hash_rounds,
+        projection_update_count: config.projection_update_count,
+        workload_source_hash: workloadSourceHash,
+        action_sequence_hash: actionSequenceHash,
+        worker_equivalence_checksum: "pending"
+      };
+      const counters = {
+        f2_marks_complete: false,
+        f2_main_max_task_ms: "trace-derived",
+        f2_main_long_task_count_50ms: "trace-derived",
+        f2_urgent_projection_visible_update_ms: "pending",
+        f2_urgent_projection_commit_ms: "pending",
+        f2_heavy_projection_commit_ms: "pending",
+        f2_input_dispatch_ms: "pending",
+        f2_worker_heavy_txn_total_ms: "pending",
+        f2_worker_urgent_txn_latency_ms: "pending",
+        f2_worker_urgent_wait_ms: "pending",
+        f2_worker_chunk_count: 0,
+        f2_worker_max_chunk_ms: "pending",
+        f2_worker_yield_count: 0,
+        f2_worker_preemptions: 0,
+        f2_worker_stale_txn_count: 0,
+        f2_worker_completed_txn_count: 0,
+        f2_worker_dropped_txn_count: 0,
+        f2_worker_equivalence_checksum: "pending",
+        f2_worker_roundtrip_ms: "pending",
+        f2_worker_error: "pending",
+        heavy_sent_at_main: "pending",
+        urgent_sent_at_main: "pending",
+        urgent_ack_received_at_main: "pending",
+        urgent_main_ack_latency_ms: "pending",
+        urgent_projection_visible_at_main: "pending",
+        urgent_end_to_end_visible_ms: "pending",
+        urgent_request_sent_at_main: "pending",
+        urgent_request_received_at_worker: "pending",
+        urgent_worker_start_at: "pending",
+        urgent_worker_done_at: "pending",
+        heavy_worker_start_at: "pending",
+        heavy_worker_done_at: "pending",
+        urgent_main_to_worker_delay_ms: "pending",
+        urgent_worker_queue_wait_ms: "pending",
+        urgent_end_to_end_latency_ms: "pending",
+        scheduled_preemption_count: 0,
+        module_flush_count: 0,
+        subscriber_notify_count: 0,
+        queue_drain_step_count: 0,
+        derived_selector_eval_count: 0,
+        state_nodes_touched_observed: 0,
+        derived_hash_rounds_observed: 0,
+        projection_update_count_observed: 0,
+        react_commit_count: 0,
+        react_root_render_count: 0,
+        react_component_render_count: 0
+      };
+
+      let captureIndex = 0;
+      let runStarted = false;
+      let sendHandledForRun = false;
+      let ready = false;
+      let readyAt = null;
+      let appMounted = false;
+      let setProjectionApi = null;
+      let worker = null;
+      let triggerStartAt = null;
+      let heavyDispatchStartAt = null;
+      let heavySentAtMain = null;
+      let urgentRequestStartAt = null;
+      let urgentSentAtMain = null;
+      let urgentAckReceivedAtMain = null;
+      let urgentResultReceivedAt = null;
+      let urgentProjectionCommitStartAt = null;
+      let heavyResultReceivedAt = null;
+      let heavyProjectionCommitStartAt = null;
+      let urgentCommitted = false;
+      let heavyCommitted = false;
+      let pendingProjectionCommits = [];
+
+      function updateStatus() {
+        const idleMs = ready && readyAt !== null ? Math.max(0, performance.now() - readyAt) : 0;
+        readinessNodes.readyState.textContent = `ready=${ready}`;
+        readinessNodes.idleState.textContent = `idle_ms=${Math.round(idleMs)}`;
+        readinessNodes.streamState.textContent = "stream_state=idle";
+        readinessNodes.tokenCount.textContent = "token_count=0";
+        auditContainer.innerHTML = Object.entries(audit).map(([key, value]) => {
+          const className = key === "config_errors" && value !== "none" ? " class=\"error\"" : "";
+          return `<span${className}>${key}=${String(value)}</span>`;
+        }).join("");
+        metricContainer.innerHTML = Object.entries(counters).map(([key, value]) => (
+          `<span>${key}=${String(value)}</span>`
+        )).join("");
+      }
+
+      function updateReadiness() {
+        const setupReady = config.config_valid &&
+          config.capture_allowed &&
+          appMounted &&
+          sendButton &&
+          !sendButton.disabled &&
+          audit.baseline_id === "p1-worker-scheduler-projection" &&
+          audit.scenario_mode === "p1-f2-worker-scheduler-projection";
+        if (setupReady && !ready) {
+          const elapsedSinceMount = performance.now() - mountedAt;
+          if (elapsedSinceMount >= 2000) {
+            ready = true;
+            readyAt = mountedAt;
+          }
+        }
+        updateStatus();
+        if (!ready) {
+          window.setTimeout(updateReadiness, 100);
+        }
+      }
+
+      function mark(name) {
+        performance.mark(`p1:capture:${captureIndex}:${name}`);
+      }
+
+      function markAudit() {
+        for (const [key, value] of Object.entries(audit)) {
+          mark(`audit:${key}=${String(value)}`);
+        }
+      }
+
+      function markMetric(key, value) {
+        mark(`metric:${key}=${String(value)}`);
+      }
+
+      function markMetrics() {
+        for (const [key, value] of Object.entries(counters)) {
+          markMetric(key, value);
+        }
+      }
+
+      function createWorkerPayload() {
+        return {
+          config,
+          stateRecords,
+          action_sequence_hash: actionSequenceHash,
+          workload_source_hash: workloadSourceHash,
+          session_version: sessionVersion,
+          parent_action_id: parentActionId,
+          heavy_txn: heavyTxn,
+          urgent_txn: urgentTxn,
+          total_work_units: totalWorkUnits,
+          seed_accumulator: workloadSourceHash
+        };
+      }
+
+      function validateHeavyResult(result) {
+        const errors = [];
+        const expect = (key, actual, expected) => {
+          if (actual !== expected) {
+            errors.push(`${key}:expected-${expected}:actual-${actual}`);
+          }
+        };
+        if (!result || result.ok !== true) {
+          errors.push("worker_heavy_result:not-ok");
+          return errors;
+        }
+        if (!Number.isInteger(result.f2_worker_equivalence_checksum)) {
+          errors.push("f2_worker_equivalence_checksum:missing");
+        }
+        expect("action_sequence_hash", result.action_sequence_hash, actionSequenceHash);
+        expect("workload_source_hash", result.workload_source_hash, workloadSourceHash);
+        expect("module_flush_count", result.module_flush_count, config.module_count);
+        expect("subscriber_notify_count", result.subscriber_notify_count, config.module_count * config.subscribers_per_module);
+        expect("queue_drain_step_count", result.queue_drain_step_count, config.module_count * config.queue_drain_steps_per_module);
+        expect("derived_selector_eval_count", result.derived_selector_eval_count, config.module_count * config.subscribers_per_module * config.selector_passes_per_subscriber);
+        expect("state_nodes_touched_observed", result.state_nodes_touched_observed, config.state_nodes_touched);
+        expect("derived_hash_rounds_observed", result.derived_hash_rounds_observed, config.state_nodes_touched * config.derived_hash_rounds);
+        expect("projection_update_count_observed", result.projection_update_count_observed, config.projection_update_count);
+        return errors;
+      }
+
+      function validateUrgentResult(result) {
+        const errors = [];
+        if (!result || result.ok !== true) {
+          errors.push("worker_urgent_result:not-ok");
+          return errors;
+        }
+        if (config.version_check_enabled && result.transaction?.result_version <= sessionVersion) {
+          errors.push("urgent_result:stale-version");
+        }
+        return errors;
+      }
+
+      function applyAuditSimulationMutation(results) {
+        const options = window.__p1F2AuditOptions || {};
+        if (options.missingChecksum) {
+          delete results.heavy.f2_worker_equivalence_checksum;
+        }
+        if (options.reducedCounters) {
+          results.heavy.subscriber_notify_count = Math.max(0, results.heavy.subscriber_notify_count - 1);
+        }
+        if (options.staleCommit) {
+          results.urgent.transaction.result_version = sessionVersion - 1;
+        }
+        return results;
+      }
+
+      function createWorker() {
+        const source = `
+          "use strict";
+          const hashString = ${hashString.toString()};
+          const rounded = ${rounded.toString()};
+          const computeHeavyTransaction = ${computeHeavyTransaction.toString()};
+          const expectedEquivalence = ${expectedEquivalence.toString()};
+          const buildHeavyResult = ${buildHeavyResult.toString()};
+          const buildUrgentResult = ${buildUrgentResult.toString()};
+          let payload = null;
+          let heavyProgress = 0;
+          let accumulator = 0;
+          let heavyStartedAt = 0;
+          let urgentQueue = [];
+          let schedulerStats = null;
+          function queueYield(callback) {
+            if (payload.config.worker_yield_strategy === "message-channel" && typeof MessageChannel !== "undefined") {
+              const channel = new MessageChannel();
+              channel.port1.onmessage = () => callback();
+              channel.port2.postMessage(0);
+              return;
+            }
+            setTimeout(callback, 0);
+          }
+          function postUrgentIfPending() {
+            if (urgentQueue.length === 0) {
+              return false;
+            }
+            const urgent = urgentQueue.shift();
+            const urgentStartAt = performance.now();
+            schedulerStats.preemptions += payload.config.scheduler_mode === "scheduled" ? 1 : 0;
+            schedulerStats.completed_txn_count += 1;
+            self.postMessage(buildUrgentResult(payload, {
+              urgent_request_sent_at_main: urgent.urgent_request_sent_at_main,
+              urgent_request_received_at_worker: urgent.urgent_request_received_at_worker,
+              urgent_worker_start_at: urgentStartAt
+            }, performance.now.bind(performance)));
+            return true;
+          }
+          function processScheduledChunk() {
+            if (!payload) {
+              return;
+            }
+            postUrgentIfPending();
+            const chunkStart = performance.now();
+            const nextProgress = Math.min(payload.total_work_units, heavyProgress + payload.config.worker_chunk_size);
+            const partial = computeHeavyTransaction({ ...payload, seed_accumulator: accumulator }, performance.now.bind(performance), nextProgress - heavyProgress);
+            accumulator = partial.accumulator;
+            heavyProgress = nextProgress;
+            const chunkMs = performance.now() - chunkStart;
+            schedulerStats.chunk_count += 1;
+            schedulerStats.max_chunk_ms = Math.max(schedulerStats.max_chunk_ms, chunkMs);
+            if (heavyProgress >= payload.total_work_units) {
+              const result = buildHeavyResult({ ...payload, seed_accumulator: accumulator, heavy_started_at: heavyStartedAt }, schedulerStats, performance.now.bind(performance));
+              schedulerStats.completed_txn_count += 1;
+              self.postMessage(result);
+              postUrgentIfPending();
+              payload = null;
+              return;
+            }
+            schedulerStats.yield_count += 1;
+            queueYield(processScheduledChunk);
+          }
+          self.onmessage = (event) => {
+            try {
+              if (event.data.type === "heavy") {
+                payload = event.data.payload;
+                heavyStartedAt = performance.now();
+                accumulator = payload.seed_accumulator >>> 0;
+                schedulerStats = {
+                  chunk_count: 0,
+                  max_chunk_ms: 0,
+                  yield_count: 0,
+                  preemptions: 0,
+                  stale_txn_count: 0,
+                  completed_txn_count: 0,
+                  dropped_txn_count: 0
+                };
+                if (payload.config.scheduler_mode === "monolithic") {
+                  const result = buildHeavyResult({ ...payload, heavy_started_at: heavyStartedAt }, {
+                    chunk_count: 1,
+                    max_chunk_ms: 0,
+                    yield_count: 0,
+                    preemptions: 0,
+                    stale_txn_count: 0,
+                    completed_txn_count: 1,
+                    dropped_txn_count: 0
+                  }, performance.now.bind(performance));
+                  self.postMessage(result);
+                  payload = null;
+                  return;
+                }
+                processScheduledChunk();
+              } else if (event.data.type === "urgent") {
+                const urgentReceivedAt = performance.now();
+                const urgentRequest = {
+                  urgent_request_sent_at_main: event.data.urgent_request_sent_at_main ?? event.data.queued_at,
+                  urgent_request_received_at_worker: urgentReceivedAt
+                };
+                self.postMessage({
+                  type: "urgent-ack",
+                  urgent_sent_at_main: urgentRequest.urgent_request_sent_at_main,
+                  urgent_request_sent_at_main: urgentRequest.urgent_request_sent_at_main,
+                  urgent_request_received_at_worker: urgentReceivedAt
+                });
+                if (!payload) {
+                  self.postMessage(buildUrgentResult(event.data.payload, {
+                    ...urgentRequest,
+                    urgent_worker_start_at: urgentReceivedAt
+                  }, performance.now.bind(performance)));
+                  return;
+                }
+                urgentQueue.push(urgentRequest);
+              }
+            } catch (error) {
+              self.postMessage({ ok: false, type: "worker-error", f2_worker_error: String(error && error.message ? error.message : error) });
+            }
+          };
+        `;
+        const blob = new Blob([source], { type: "text/javascript" });
+        const url = URL.createObjectURL(blob);
+        const createdWorker = new Worker(url);
+        createdWorker.addEventListener("message", (event) => {
+          handleWorkerMessage(event.data);
+        });
+        createdWorker.addEventListener("error", (event) => {
+          counters.f2_worker_error = `worker-error:${event.message || "unknown"}`;
+          markMetrics();
+          updateStatus();
+        });
+        createdWorker.__f2Url = url;
+        return createdWorker;
+      }
+
+      function maybeFinishRun() {
+        if (!urgentCommitted || !heavyCommitted) {
+          return;
+        }
+        if (worker?.__f2Url) {
+          URL.revokeObjectURL(worker.__f2Url);
+        }
+        worker = null;
+        mark("f2:end");
+        counters.f2_marks_complete = true;
+        markMetrics();
+        updateStatus();
+      }
+
+      function handleUrgentAck(result) {
+        urgentAckReceivedAtMain = Number.isFinite(result?.urgent_ack_received_at_main)
+          ? result.urgent_ack_received_at_main
+          : performance.now();
+        const sentAt = Number.isFinite(result?.urgent_sent_at_main)
+          ? result.urgent_sent_at_main
+          : (Number.isFinite(urgentSentAtMain) ? urgentSentAtMain : result?.urgent_request_sent_at_main);
+        const ackSentAt = Number.isFinite(sentAt) ? sentAt : urgentAckReceivedAtMain;
+        counters.urgent_ack_received_at_main = rounded(urgentAckReceivedAtMain);
+        counters.urgent_main_ack_latency_ms = rounded(Math.max(0, urgentAckReceivedAtMain - ackSentAt));
+        markMetric("urgent_ack_received_at_main", counters.urgent_ack_received_at_main);
+        markMetric("urgent_main_ack_latency_ms", counters.urgent_main_ack_latency_ms);
+      }
+
+      function handleUrgentResult(result) {
+        urgentResultReceivedAt = performance.now();
+        mark("f2:urgent-result:received");
+        const errors = validateUrgentResult(result);
+        counters.f2_worker_urgent_txn_latency_ms = rounded(result?.f2_worker_urgent_txn_latency_ms ?? 0);
+        counters.f2_worker_urgent_wait_ms = rounded(result?.f2_worker_urgent_wait_ms ?? 0);
+        counters.urgent_sent_at_main = rounded(result?.urgent_request_sent_at_main ?? urgentSentAtMain ?? 0);
+        counters.urgent_request_sent_at_main = rounded(result?.urgent_request_sent_at_main ?? 0);
+        counters.urgent_request_received_at_worker = rounded(result?.urgent_request_received_at_worker ?? 0);
+        counters.urgent_worker_start_at = rounded(result?.urgent_worker_start_at ?? 0);
+        counters.urgent_worker_done_at = rounded(result?.urgent_worker_done_at ?? 0);
+        counters.urgent_main_to_worker_delay_ms = rounded(result?.urgent_main_to_worker_delay_ms ?? 0);
+        counters.urgent_worker_queue_wait_ms = rounded(result?.urgent_worker_queue_wait_ms ?? 0);
+        counters.urgent_end_to_end_latency_ms = rounded(result?.urgent_end_to_end_latency_ms ?? 0);
+        if (errors.length > 0) {
+          counters.f2_worker_error = errors.join("|");
+          markMetrics();
+          updateStatus();
+          return;
+        }
+        mark("f2:urgent-projection-commit:start");
+        urgentProjectionCommitStartAt = performance.now();
+        try {
+          const committed = setProjectionApi?.commitProjection(result.projection, "urgent", result.transaction.result_version, {
+            startAt: urgentProjectionCommitStartAt,
+            resultReceivedAt: urgentResultReceivedAt,
+            sentAt: result?.urgent_request_sent_at_main ?? urgentSentAtMain,
+            visibleAt: result?.urgent_projection_visible_at_main
+          });
+          if (committed !== true) {
+            throw new Error("projection-api:not-ready");
+          }
+        } catch (error) {
+          counters.f2_worker_error = `projection-commit:urgent:${error && error.message ? error.message : String(error)}`;
+          markMetrics();
+          updateStatus();
+        }
+      }
+
+      function handleHeavyResult(result) {
+        heavyResultReceivedAt = performance.now();
+        mark("f2:heavy-result:received");
+        const errors = validateHeavyResult(result);
+        counters.f2_worker_heavy_txn_total_ms = rounded(result?.f2_worker_heavy_txn_total_ms ?? 0);
+        counters.f2_worker_chunk_count = result?.f2_worker_chunk_count ?? 0;
+        counters.f2_worker_max_chunk_ms = rounded(result?.f2_worker_max_chunk_ms ?? 0);
+        counters.f2_worker_yield_count = result?.f2_worker_yield_count ?? 0;
+        counters.f2_worker_preemptions = result?.f2_worker_preemptions ?? 0;
+        counters.scheduled_preemption_count = counters.f2_worker_preemptions;
+        counters.f2_worker_stale_txn_count = result?.f2_worker_stale_txn_count ?? 0;
+        counters.f2_worker_completed_txn_count = result?.f2_worker_completed_txn_count ?? 0;
+        counters.f2_worker_dropped_txn_count = result?.f2_worker_dropped_txn_count ?? 0;
+        counters.f2_worker_equivalence_checksum = result?.f2_worker_equivalence_checksum ?? "missing";
+        counters.f2_worker_roundtrip_ms = rounded(heavyResultReceivedAt - heavyDispatchStartAt);
+        counters.heavy_worker_start_at = rounded(result?.heavy_worker_start_at ?? 0);
+        counters.heavy_worker_done_at = rounded(result?.heavy_worker_done_at ?? 0);
+        counters.module_flush_count = result?.module_flush_count ?? 0;
+        counters.subscriber_notify_count = result?.subscriber_notify_count ?? 0;
+        counters.queue_drain_step_count = result?.queue_drain_step_count ?? 0;
+        counters.derived_selector_eval_count = result?.derived_selector_eval_count ?? 0;
+        counters.state_nodes_touched_observed = result?.state_nodes_touched_observed ?? 0;
+        counters.derived_hash_rounds_observed = result?.derived_hash_rounds_observed ?? 0;
+        counters.projection_update_count_observed = result?.projection_update_count_observed ?? 0;
+        audit.worker_equivalence_checksum = counters.f2_worker_equivalence_checksum;
+        counters.f2_worker_error = errors.length === 0 ? (counters.f2_worker_error === "pending" ? "none" : counters.f2_worker_error) : errors.join("|");
+        if (errors.length > 0) {
+          markMetrics();
+          updateStatus();
+          return;
+        }
+        mark("f2:heavy-projection-commit:start");
+        heavyProjectionCommitStartAt = performance.now();
+        try {
+          const committed = setProjectionApi?.commitProjection(result.projection, "heavy", result.transaction.result_version, {
+            startAt: heavyProjectionCommitStartAt,
+            resultReceivedAt: heavyResultReceivedAt
+          });
+          if (committed !== true) {
+            throw new Error("projection-api:not-ready");
+          }
+        } catch (error) {
+          counters.f2_worker_error = `projection-commit:heavy:${error && error.message ? error.message : String(error)}`;
+          markMetrics();
+          updateStatus();
+        }
+      }
+
+      function handleWorkerMessage(result) {
+        if (result?.type === "urgent-ack") {
+          handleUrgentAck(result);
+        } else if (result?.type === "urgent-result") {
+          handleUrgentResult(result);
+        } else if (result?.type === "heavy-result") {
+          handleHeavyResult(result);
+        } else {
+          counters.f2_worker_error = result?.f2_worker_error || "worker-result:unknown";
+          markMetrics();
+          updateStatus();
+        }
+      }
+
+      function dispatchUrgentRequest(payload) {
+        mark("f2:urgent-request:start");
+        urgentRequestStartAt = performance.now();
+        urgentSentAtMain = urgentRequestStartAt;
+        counters.urgent_sent_at_main = rounded(urgentSentAtMain);
+        counters.urgent_request_sent_at_main = rounded(urgentRequestStartAt);
+        if (worker) {
+          worker.postMessage({
+            type: "urgent",
+            payload,
+            queued_at: urgentRequestStartAt,
+            urgent_request_sent_at_main: urgentRequestStartAt
+          });
+        }
+        mark("f2:urgent-request:end");
+        counters.f2_input_dispatch_ms = rounded(performance.now() - urgentRequestStartAt);
+      }
+
+      function dispatchHeavyTransaction() {
+        mark("f2:heavy-dispatch:start");
+        heavyDispatchStartAt = performance.now();
+        const payload = createWorkerPayload();
+        heavySentAtMain = heavyDispatchStartAt;
+        counters.heavy_sent_at_main = rounded(heavySentAtMain);
+        const auditOptions = window.__p1F2AuditOptions;
+        if (auditOptions) {
+          mark("f2:heavy-dispatch:end");
+          mark("f2:urgent-request:start");
+          urgentRequestStartAt = performance.now();
+          urgentSentAtMain = config.urgent_projection_delay_ms;
+          counters.urgent_sent_at_main = rounded(urgentSentAtMain);
+          counters.urgent_request_sent_at_main = rounded(urgentSentAtMain);
+          mark("f2:urgent-request:end");
+          counters.f2_input_dispatch_ms = rounded(performance.now() - urgentRequestStartAt);
+          const results = applyAuditSimulationMutation(simulateF2Result(payload, auditOptions));
+          queueMicrotask(() => handleUrgentAck(results.urgent));
+          queueMicrotask(() => handleUrgentResult(results.urgent));
+          queueMicrotask(() => handleHeavyResult(results.heavy));
+          return;
+        }
+        worker = createWorker();
+        worker.postMessage({ type: "heavy", payload });
+        mark("f2:heavy-dispatch:end");
+        window.setTimeout(() => dispatchUrgentRequest(payload), config.urgent_projection_delay_ms);
+      }
+
+      function runMicrotaskChain(step) {
+        if (step < config.microtask_chain_length - 1) {
+          queueMicrotask(() => runMicrotaskChain(step + 1));
+          return;
+        }
+        dispatchHeavyTransaction();
+      }
+
+      function triggerSchedulerAction() {
+        if (!config.capture_allowed || runStarted) {
+          return;
+        }
+        runStarted = true;
+        sendHandledForRun = false;
+        urgentCommitted = false;
+        heavyCommitted = false;
+        pendingProjectionCommits = [];
+        heavySentAtMain = null;
+        urgentSentAtMain = null;
+        urgentAckReceivedAtMain = null;
+        counters.f2_marks_complete = false;
+        mark("f2:start");
+        mark("f2:trigger:start");
+        triggerStartAt = performance.now();
+        const PointerEventCtor = window.PointerEvent || window.Event;
+        sendButton.dispatchEvent(new PointerEventCtor("pointerup", { bubbles: true, cancelable: true }));
+        sendButton.dispatchEvent(new window.Event("click", { bubbles: true, cancelable: true }));
+        mark("f2:trigger:end");
+      }
+
+      function handleSend(event) {
+        event.preventDefault();
+        if (!config.capture_allowed || !runStarted || sendHandledForRun) {
+          return;
+        }
+        sendHandledForRun = true;
+        queueMicrotask(() => runMicrotaskChain(0));
+      }
+
+      const MessageView = React.memo(function MessageView({ message }) {
+        counters.react_component_render_count += 1;
+        return React.createElement(
+          "article",
+          { className: "message" },
+          React.createElement("div", { className: "message-title" }, message.title),
+          React.createElement("div", { className: "message-body" }, message.body)
+        );
+      });
+
+      const HistoryList = React.memo(function HistoryList({ messages }) {
+        counters.react_component_render_count += 1;
+        return React.createElement(
+          React.Fragment,
+          null,
+          messages.map((message) => React.createElement(MessageView, { key: message.id, message }))
+        );
+      });
+
+      function App() {
+        counters.react_root_render_count += 1;
+        const [messages, setMessages] = React.useState(historyMessages);
+        const [commitVersion, setCommitVersion] = React.useState(0);
+
+        React.useLayoutEffect(() => {
+          appMounted = true;
+          updateReadiness();
+        }, []);
+
+        React.useLayoutEffect(() => {
+          setProjectionApi = {
+            commitProjection(projection, kind, resultVersion, commitInfo = {}) {
+              if (config.version_check_enabled && resultVersion <= sessionVersion) {
+                counters.f2_worker_stale_txn_count += 1;
+                counters.f2_worker_error = "projection:stale-result-rejected";
+                markMetrics();
+                updateStatus();
+                return false;
+              }
+              const pendingCommit = {
+                kind,
+                startAt: commitInfo.startAt,
+                resultReceivedAt: commitInfo.resultReceivedAt,
+                sentAt: commitInfo.sentAt,
+                visibleAt: commitInfo.visibleAt
+              };
+              pendingProjectionCommits.push(pendingCommit);
+              try {
+                setMessages((currentMessages) => [
+                  ...currentMessages,
+                  {
+                    id: `${projection.id}-${kind}-${resultVersion}`,
+                    title: projection.title,
+                    body: projection.body
+                  }
+                ]);
+                setCommitVersion((version) => version + 1);
+                return true;
+              } catch (error) {
+                pendingProjectionCommits = pendingProjectionCommits.filter((entry) => entry !== pendingCommit);
+                throw error;
+              }
+            }
+          };
+          return () => {
+            setProjectionApi = null;
+          };
+        }, [commitVersion]);
+
+        React.useLayoutEffect(() => {
+          if (commitVersion === 0 || pendingProjectionCommits.length === 0) {
+            return;
+          }
+          const commitEndAt = performance.now();
+          const completedCommits = pendingProjectionCommits.splice(0);
+          counters.react_commit_count += completedCommits.length;
+          for (const completedCommit of completedCommits) {
+            if (completedCommit.kind === "urgent") {
+              const startAt = Number.isFinite(completedCommit.startAt) ? completedCommit.startAt : urgentProjectionCommitStartAt;
+              const receivedAt = Number.isFinite(completedCommit.resultReceivedAt) ? completedCommit.resultReceivedAt : urgentResultReceivedAt;
+              counters.f2_urgent_projection_commit_ms = rounded(commitEndAt - startAt);
+              counters.f2_urgent_projection_visible_update_ms = rounded(commitEndAt - receivedAt);
+              const sentAt = Number.isFinite(completedCommit.sentAt) ? completedCommit.sentAt : urgentSentAtMain;
+              const visibleAt = Number.isFinite(completedCommit.visibleAt) ? completedCommit.visibleAt : commitEndAt;
+              counters.urgent_projection_visible_at_main = rounded(visibleAt);
+              counters.urgent_end_to_end_visible_ms = rounded(Math.max(0, visibleAt - sentAt));
+              markMetric("urgent_projection_visible_at_main", counters.urgent_projection_visible_at_main);
+              markMetric("urgent_end_to_end_visible_ms", counters.urgent_end_to_end_visible_ms);
+              urgentCommitted = true;
+              mark("f2:urgent-projection-commit:end");
+            } else if (completedCommit.kind === "heavy") {
+              const startAt = Number.isFinite(completedCommit.startAt) ? completedCommit.startAt : heavyProjectionCommitStartAt;
+              counters.f2_heavy_projection_commit_ms = rounded(commitEndAt - startAt);
+              heavyCommitted = true;
+              mark("f2:heavy-projection-commit:end");
+            }
+          }
+          maybeFinishRun();
+        }, [commitVersion]);
+
+        return React.createElement(HistoryList, { messages });
+      }
+
+      function observeCaptureMarks() {
+        if (!("PerformanceObserver" in window)) {
+          return;
+        }
+        const observer = new PerformanceObserver((list) => {
+          for (const entry of list.getEntries()) {
+            if (entry.name === "p0:capture:start") {
+              captureIndex += 1;
+              runStarted = false;
+              markAudit();
+              updateStatus();
+              if (config.capture_allowed) {
+                queueMicrotask(triggerSchedulerAction);
+              }
+            }
+          }
+        });
+        observer.observe({ type: "mark", buffered: true });
+      }
+
+      composer.addEventListener("submit", handleSend);
+      sendButton.addEventListener("pointerup", () => {});
+      sendButton.addEventListener("click", handleSend);
+      sendButton.disabled = !config.capture_allowed;
+      window.__p1F2SchedulerProjection = {
+        audit,
+        counters,
+        config,
+        workloadSource,
+        stateRecords,
+        simulateF2Result,
+        expectedEquivalence
+      };
+      updateStatus();
+      observeCaptureMarks();
+
+      if (!React || !ReactDOM || !ReactDOM.createRoot) {
+        audit.config_valid = false;
+        audit.capture_allowed = false;
+        audit.config_errors = "react18:missing";
+        sendButton.disabled = true;
+        updateStatus();
+        return;
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+    })();
+  </script>
+</body>
+</html>

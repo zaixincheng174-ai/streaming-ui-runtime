@@ -1,0 +1,964 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>P1-F1 Worker Flush Fanout Baseline</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f5f3;
+      color: #181a1f;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #f5f5f3;
+    }
+
+    .shell {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: 100vh;
+    }
+
+    header {
+      border-bottom: 1px solid #d9d9d2;
+      background: #ffffff;
+      padding: 14px 20px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 650;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin-top: 4px;
+      color: #5a5f69;
+      font-size: 13px;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(360px, 540px) 1fr;
+      gap: 16px;
+      padding: 16px;
+      min-height: 0;
+    }
+
+    .panel {
+      background: #ffffff;
+      border: 1px solid #d9d9d2;
+      border-radius: 8px;
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    .panel h2 {
+      margin: 0;
+      padding: 12px 14px;
+      border-bottom: 1px solid #e7e7e1;
+      font-size: 14px;
+      font-weight: 650;
+    }
+
+    .audit-grid,
+    .metric-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 6px;
+      padding: 12px 14px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .audit-grid span,
+    .metric-grid span {
+      display: block;
+      overflow-wrap: anywhere;
+    }
+
+    .error {
+      color: #a5281b;
+      font-weight: 650;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-rows: minmax(0, 1fr) auto;
+      min-height: 0;
+    }
+
+    .history {
+      overflow: auto;
+      padding: 16px;
+    }
+
+    .message {
+      border-bottom: 1px solid #ecece6;
+      padding: 10px 0;
+    }
+
+    .message-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #4b5563;
+      margin-bottom: 4px;
+    }
+
+    .message-body {
+      font-size: 13px;
+      line-height: 1.45;
+      color: #22252c;
+      white-space: pre-wrap;
+    }
+
+    .composer {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      border-top: 1px solid #d9d9d2;
+      background: #ffffff;
+      padding: 12px;
+    }
+
+    .composer input {
+      flex: 1;
+      min-width: 0;
+      border: 1px solid #c8c9c1;
+      border-radius: 6px;
+      padding: 10px 12px;
+      font: inherit;
+    }
+
+    .composer button {
+      border: 1px solid #1f2937;
+      border-radius: 6px;
+      background: #1f2937;
+      color: #ffffff;
+      font: inherit;
+      font-weight: 650;
+      padding: 10px 14px;
+      cursor: pointer;
+    }
+
+    .composer button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <h1>P1-F1 Worker Flush Fanout Baseline</h1>
+      <div class="subtitle">Worker-offloaded derived fanout with bounded main-thread projection.</div>
+    </header>
+    <main>
+      <section class="panel">
+        <h2>Audit</h2>
+        <div class="audit-grid" id="readiness-status">
+          <span id="ready-state">ready=false</span>
+          <span id="idle-state">idle_ms=0</span>
+          <span id="stream-state">stream_state=idle</span>
+          <span id="token-count">token_count=0</span>
+        </div>
+        <div class="audit-grid" id="audit-status"></div>
+        <h2>Runtime Metrics</h2>
+        <div class="metric-grid" id="metric-status"></div>
+      </section>
+      <section class="panel workspace">
+        <div class="history" id="history-scroll">
+          <div id="root"></div>
+        </div>
+        <form class="composer" id="composer">
+          <input id="send-input" value="Send worker fanout calibration payload" aria-label="Message">
+          <button type="submit" id="send-button">Send</button>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <script src="/vendor/react18/react.production.min.js"></script>
+  <script src="/vendor/react18/react-dom.production.min.js"></script>
+  <script>
+    (() => {
+      "use strict";
+
+      const React = window.React;
+      const ReactDOM = window.ReactDOM;
+
+      const EXPECTED = Object.freeze({
+        baseline_id: "p1-worker-offload-fanout",
+        scenario_mode: "p1-f1-worker-offload-ab",
+        calibration_level: "derived",
+        session_size: 2500,
+        module_count: 20,
+        subscribers_per_module: 96,
+        fanout_width: 192,
+        queued_effect_count: 2048,
+        state_nodes_touched: 32768,
+        flush_batch_size: 2048,
+        commit_update_count: 4,
+        microtask_chain_length: 8,
+        payload_shape: "derived-json",
+        history_mount_size: 2500,
+        content_richness: "derived",
+        synthetic_pressure_multiplier: 1,
+        derived_work_enabled: true,
+        selector_passes_per_subscriber: 8,
+        queue_drain_steps_per_module: 256,
+        state_read_stride: 7,
+        derived_hash_rounds: 4,
+        projection_update_count: 6,
+        worker_offload_enabled: true,
+        worker_mode: "dedicated-worker",
+        equivalent_work_required: true,
+        precompute_before_click: false,
+        stable_keys: true,
+        react_memo_enabled: true,
+        deferred_rendering: false,
+        token_coalescing: false,
+        future_output_pre_rendered: false
+      });
+
+      const auditContainer = document.getElementById("audit-status");
+      const metricContainer = document.getElementById("metric-status");
+      const readinessNodes = {
+        readyState: document.getElementById("ready-state"),
+        idleState: document.getElementById("idle-state"),
+        streamState: document.getElementById("stream-state"),
+        tokenCount: document.getElementById("token-count")
+      };
+      const sendButton = document.getElementById("send-button");
+      const composer = document.getElementById("composer");
+      const mountedAt = performance.now();
+
+      function hashString(value) {
+        let hash = 2166136261;
+        for (let index = 0; index < value.length; index += 1) {
+          hash ^= value.charCodeAt(index);
+          hash = Math.imul(hash, 16777619);
+        }
+        return hash >>> 0;
+      }
+
+      function parseBooleanParam(params, key, defaultValue, errors) {
+        if (!params.has(key)) {
+          return defaultValue;
+        }
+        const value = params.get(key);
+        if (value === "true") {
+          return true;
+        }
+        if (value === "false") {
+          return false;
+        }
+        errors.push(`${key}:invalid-boolean`);
+        return defaultValue;
+      }
+
+      function parseIntegerParam(params, key, defaultValue, errors) {
+        if (!params.has(key)) {
+          return defaultValue;
+        }
+        const raw = params.get(key);
+        if (raw === null || raw.trim() === "") {
+          errors.push(`${key}:missing`);
+          return defaultValue;
+        }
+        const parsed = Number(raw);
+        if (!Number.isInteger(parsed) || parsed < 0) {
+          errors.push(`${key}:invalid-number`);
+          return defaultValue;
+        }
+        return parsed;
+      }
+
+      function parseStringParam(params, key, defaultValue, errors) {
+        if (!params.has(key)) {
+          return defaultValue;
+        }
+        const value = params.get(key);
+        if (value === null || value.trim() === "") {
+          errors.push(`${key}:missing`);
+          return defaultValue;
+        }
+        return value;
+      }
+
+      function assertEqual(config, errors, key) {
+        if (config[key] !== EXPECTED[key]) {
+          errors.push(`${key}:must-equal:${EXPECTED[key]}`);
+        }
+      }
+
+      function buildConfig() {
+        const params = new URLSearchParams(window.location.search);
+        const errors = [];
+        const config = {
+          baseline_id: parseStringParam(params, "baseline_id", EXPECTED.baseline_id, errors),
+          scenario_mode: parseStringParam(params, "scenario_mode", EXPECTED.scenario_mode, errors),
+          calibration_level: parseStringParam(params, "calibration_level", EXPECTED.calibration_level, errors),
+          session_size: parseIntegerParam(params, "session_size", EXPECTED.session_size, errors),
+          module_count: parseIntegerParam(params, "module_count", EXPECTED.module_count, errors),
+          subscribers_per_module: parseIntegerParam(params, "subscribers_per_module", EXPECTED.subscribers_per_module, errors),
+          fanout_width: parseIntegerParam(params, "fanout_width", EXPECTED.fanout_width, errors),
+          queued_effect_count: parseIntegerParam(params, "queued_effect_count", EXPECTED.queued_effect_count, errors),
+          state_nodes_touched: parseIntegerParam(params, "state_nodes_touched", EXPECTED.state_nodes_touched, errors),
+          flush_batch_size: parseIntegerParam(params, "flush_batch_size", EXPECTED.flush_batch_size, errors),
+          commit_update_count: parseIntegerParam(params, "commit_update_count", EXPECTED.commit_update_count, errors),
+          microtask_chain_length: parseIntegerParam(params, "microtask_chain_length", EXPECTED.microtask_chain_length, errors),
+          payload_shape: parseStringParam(params, "payload_shape", EXPECTED.payload_shape, errors),
+          history_mount_size: parseIntegerParam(params, "history_mount_size", EXPECTED.history_mount_size, errors),
+          content_richness: parseStringParam(params, "content_richness", EXPECTED.content_richness, errors),
+          synthetic_pressure_multiplier: parseIntegerParam(params, "synthetic_pressure_multiplier", EXPECTED.synthetic_pressure_multiplier, errors),
+          derived_work_enabled: parseBooleanParam(params, "derived_work_enabled", EXPECTED.derived_work_enabled, errors),
+          selector_passes_per_subscriber: parseIntegerParam(params, "selector_passes_per_subscriber", EXPECTED.selector_passes_per_subscriber, errors),
+          queue_drain_steps_per_module: parseIntegerParam(params, "queue_drain_steps_per_module", EXPECTED.queue_drain_steps_per_module, errors),
+          state_read_stride: parseIntegerParam(params, "state_read_stride", EXPECTED.state_read_stride, errors),
+          derived_hash_rounds: parseIntegerParam(params, "derived_hash_rounds", EXPECTED.derived_hash_rounds, errors),
+          projection_update_count: parseIntegerParam(params, "projection_update_count", EXPECTED.projection_update_count, errors),
+          worker_offload_enabled: parseBooleanParam(params, "worker_offload_enabled", EXPECTED.worker_offload_enabled, errors),
+          worker_mode: parseStringParam(params, "worker_mode", EXPECTED.worker_mode, errors),
+          equivalent_work_required: parseBooleanParam(params, "equivalent_work_required", EXPECTED.equivalent_work_required, errors),
+          precompute_before_click: parseBooleanParam(params, "precompute_before_click", EXPECTED.precompute_before_click, errors),
+          stable_keys: parseBooleanParam(params, "stable_keys", EXPECTED.stable_keys, errors),
+          react_memo_enabled: parseBooleanParam(params, "react_memo_enabled", EXPECTED.react_memo_enabled, errors),
+          deferred_rendering: parseBooleanParam(params, "deferred_rendering", EXPECTED.deferred_rendering, errors),
+          token_coalescing: parseBooleanParam(params, "token_coalescing", EXPECTED.token_coalescing, errors),
+          future_output_pre_rendered: false
+        };
+
+        for (const key of Object.keys(EXPECTED)) {
+          assertEqual(config, errors, key);
+        }
+        if (config.synthetic_pressure_multiplier !== 1) {
+          errors.push("synthetic_pressure_multiplier:must-equal-1");
+        }
+        if (config.precompute_before_click) {
+          errors.push("precompute_before_click:blocked");
+        }
+        if (!config.worker_offload_enabled) {
+          errors.push("worker_offload_enabled:must-be-true");
+        }
+        if (config.worker_mode !== "dedicated-worker") {
+          errors.push("worker_mode:must-be-dedicated-worker");
+        }
+        if (!config.equivalent_work_required) {
+          errors.push("equivalent_work_required:must-be-true");
+        }
+        if (!config.stable_keys) {
+          errors.push("stable_keys:must-be-true");
+        }
+        if (!config.react_memo_enabled) {
+          errors.push("react_memo_enabled:must-be-true");
+        }
+        if (config.deferred_rendering) {
+          errors.push("deferred_rendering:blocked");
+        }
+        if (config.token_coalescing) {
+          errors.push("token_coalescing:blocked");
+        }
+
+        const config_valid = errors.length === 0;
+        return {
+          ...config,
+          config_valid,
+          capture_allowed: config_valid,
+          config_errors: errors.length === 0 ? "none" : errors.join("|")
+        };
+      }
+
+      function createHistory(size, config) {
+        const messages = [];
+        for (let index = 0; index < size; index += 1) {
+          messages.push({
+            id: `history-${index}`,
+            title: `Session item ${index + 1}`,
+            body: `worker fanout history node ${index + 1}: module=${index % Math.max(1, config.module_count)} subscriber=${index % Math.max(1, config.subscribers_per_module)}`
+          });
+        }
+        return messages;
+      }
+
+      function createStateRecords(messages, config) {
+        return messages.map((message, index) => ({
+          id: message.id,
+          index,
+          titleHash: hashString(message.title),
+          bodyHash: hashString(message.body),
+          weight: (index * 31 + config.flush_batch_size + config.module_count) % 997
+        }));
+      }
+
+      function computeWorkerFanout(payload, nowFn) {
+        const clock = typeof nowFn === "function"
+          ? nowFn
+          : (() => performance.now());
+        const config = payload.config;
+        const stateRecords = payload.stateRecords;
+        const receivedAt = clock();
+        const flushStart = clock();
+        const counters = {
+          module_flush_count: 0,
+          subscriber_notify_count: 0,
+          queued_effect_count_observed: 0,
+          state_nodes_touched_observed: 0,
+          derived_selector_eval_count: 0,
+          queue_drain_step_count: 0,
+          projection_update_count_observed: 0,
+          derived_hash_rounds_observed: 0
+        };
+        const stateRecordAt = (index) => stateRecords[index % stateRecords.length];
+        const applyDerivedHashRounds = (local, record, moduleId, family, subscriberId, pass) => {
+          let value = local;
+          for (let round = 0; round < config.derived_hash_rounds; round += 1) {
+            value = hashString(`${value}:${record.id}:${record.bodyHash}:${family}:${subscriberId}:${pass}:${round}`);
+            counters.derived_hash_rounds_observed += 1;
+          }
+          return value;
+        };
+        let accumulator = 0;
+        const touchedBudget = { count: 0 };
+        const safeSessionSize = Math.max(1, config.session_size);
+        for (let moduleIndex = 0; moduleIndex < config.module_count; moduleIndex += 1) {
+          const moduleId = `module-${moduleIndex}`;
+          const family = moduleIndex % 2 === 0 ? "conversation-state" : "tool-state";
+          counters.module_flush_count += 1;
+          for (let step = 0; step < config.queue_drain_steps_per_module; step += 1) {
+            const record = stateRecordAt((moduleIndex * config.queue_drain_steps_per_module) + (step * config.state_read_stride));
+            accumulator = (accumulator ^ hashString(`${moduleId}:queue:${step}:${record.id}:${record.bodyHash}:${accumulator}`)) >>> 0;
+            counters.queue_drain_step_count += 1;
+          }
+          for (let subscriberIndex = 0; subscriberIndex < config.subscribers_per_module; subscriberIndex += 1) {
+            const subscriberId = `${moduleId}-subscriber-${subscriberIndex}`;
+            const subscriberOffset = (moduleIndex * config.subscribers_per_module + subscriberIndex) % safeSessionSize;
+            counters.subscriber_notify_count += 1;
+            for (let pass = 0; pass < config.selector_passes_per_subscriber; pass += 1) {
+              counters.derived_selector_eval_count += 1;
+              for (let index = 0; index < config.fanout_width && touchedBudget.count < config.state_nodes_touched; index += 1) {
+                const nodeIndex = (subscriberOffset + ((index + pass) * config.state_read_stride) + touchedBudget.count) % safeSessionSize;
+                const record = stateRecordAt(nodeIndex);
+                accumulator = (accumulator + record.titleHash + record.weight + hashString(`${moduleId}:${subscriberId}:${nodeIndex}:${pass}`)) >>> 0;
+                accumulator = applyDerivedHashRounds(accumulator, record, moduleId, family, subscriberId, pass);
+                touchedBudget.count += 1;
+                counters.state_nodes_touched_observed += 1;
+              }
+            }
+          }
+        }
+        for (let index = 0; index < config.queued_effect_count; index += 1) {
+          accumulator = (accumulator ^ hashString(`effect:${index}:${accumulator}`)) >>> 0;
+          counters.queued_effect_count_observed += 1;
+        }
+        for (let index = 0; index < config.projection_update_count; index += 1) {
+          const record = stateRecordAt((index * config.state_read_stride) + accumulator);
+          accumulator = hashString(`projection:${index}:${record.id}:${record.weight}:${accumulator}`);
+          counters.projection_update_count_observed += 1;
+        }
+        const flushEnd = clock();
+        const projection = {
+          id: `worker-projection-${accumulator}`,
+          title: "Worker fanout projection",
+          body: `modules=${config.module_count} subscribers=${config.subscribers_per_module} accumulator=${accumulator}`
+        };
+        const checksumSource = JSON.stringify({
+          action_sequence_hash: payload.action_sequence_hash,
+          workload_source_hash: payload.workload_source_hash,
+          accumulator,
+          counters,
+          projection
+        });
+        const workerResultChecksum = hashString(checksumSource);
+        const doneAt = clock();
+        return {
+          ok: true,
+          action_sequence_hash: payload.action_sequence_hash,
+          workload_source_hash: payload.workload_source_hash,
+          worker_received_at: receivedAt,
+          worker_flush_start: flushStart,
+          worker_flush_end: flushEnd,
+          worker_projection_ready_at: flushEnd,
+          worker_done_at: doneAt,
+          f1_worker_compute_ms: Math.max(0, doneAt - receivedAt),
+          f1_worker_flush_ms: Math.max(0, flushEnd - flushStart),
+          f1_worker_module_flush_count: counters.module_flush_count,
+          f1_worker_subscriber_notify_count: counters.subscriber_notify_count,
+          f1_worker_queue_drain_step_count: counters.queue_drain_step_count,
+          f1_worker_derived_selector_eval_count: counters.derived_selector_eval_count,
+          f1_worker_state_nodes_touched_observed: counters.state_nodes_touched_observed,
+          f1_worker_derived_hash_rounds_observed: counters.derived_hash_rounds_observed,
+          f1_worker_projection_update_count_observed: counters.projection_update_count_observed,
+          f1_worker_queued_effect_count_observed: counters.queued_effect_count_observed,
+          worker_result_checksum: workerResultChecksum,
+          projection
+        };
+      }
+
+      const config = buildConfig();
+      const historyMessages = createHistory(config.history_mount_size, config);
+      const stateRecords = createStateRecords(historyMessages, config);
+      const actionSequence = [
+        "f1:start",
+        "f1:trigger:start",
+        "f1:trigger:end",
+        "f1:dispatch-to-worker:start",
+        "f1:dispatch-to-worker:end",
+        "f1:worker-result:received",
+        "f1:projection-commit:start",
+        "f1:projection-commit:end",
+        "f1:end"
+      ].join("|");
+      const workloadSource = JSON.stringify({
+        scenario_mode: config.scenario_mode,
+        calibration_level: config.calibration_level,
+        session_size: config.session_size,
+        module_count: config.module_count,
+        subscribers_per_module: config.subscribers_per_module,
+        fanout_width: config.fanout_width,
+        queued_effect_count: config.queued_effect_count,
+        state_nodes_touched: config.state_nodes_touched,
+        flush_batch_size: config.flush_batch_size,
+        commit_update_count: config.commit_update_count,
+        microtask_chain_length: config.microtask_chain_length,
+        payload_shape: config.payload_shape,
+        history_mount_size: config.history_mount_size,
+        content_richness: config.content_richness,
+        derived_work_enabled: config.derived_work_enabled,
+        selector_passes_per_subscriber: config.selector_passes_per_subscriber,
+        queue_drain_steps_per_module: config.queue_drain_steps_per_module,
+        state_read_stride: config.state_read_stride,
+        derived_hash_rounds: config.derived_hash_rounds,
+        projection_update_count: config.projection_update_count,
+        worker_offload_enabled: config.worker_offload_enabled,
+        worker_mode: config.worker_mode
+      });
+      const actionSequenceHash = hashString(actionSequence);
+      const workloadSourceHash = hashString(workloadSource);
+      const audit = {
+        baseline_id: config.baseline_id,
+        scenario_mode: config.scenario_mode,
+        worker_offload_enabled: config.worker_offload_enabled,
+        worker_mode: config.worker_mode,
+        equivalent_work_required: config.equivalent_work_required,
+        synthetic_pressure_multiplier: config.synthetic_pressure_multiplier,
+        no_precompute_before_click: !config.precompute_before_click,
+        precompute_before_click: config.precompute_before_click,
+        config_valid: config.config_valid,
+        capture_allowed: config.capture_allowed,
+        config_errors: config.config_errors,
+        future_output_pre_rendered: false,
+        stable_keys: config.stable_keys,
+        react_memo_enabled: config.react_memo_enabled,
+        deferred_rendering: config.deferred_rendering,
+        token_coalescing: config.token_coalescing,
+        calibration_level: config.calibration_level,
+        session_size: config.session_size,
+        module_count: config.module_count,
+        subscribers_per_module: config.subscribers_per_module,
+        fanout_width: config.fanout_width,
+        queued_effect_count: config.queued_effect_count,
+        state_nodes_touched: config.state_nodes_touched,
+        flush_batch_size: config.flush_batch_size,
+        commit_update_count: config.commit_update_count,
+        microtask_chain_length: config.microtask_chain_length,
+        payload_shape: config.payload_shape,
+        history_mount_size: config.history_mount_size,
+        content_richness: config.content_richness,
+        derived_work_enabled: config.derived_work_enabled,
+        selector_passes_per_subscriber: config.selector_passes_per_subscriber,
+        queue_drain_steps_per_module: config.queue_drain_steps_per_module,
+        state_read_stride: config.state_read_stride,
+        derived_hash_rounds: config.derived_hash_rounds,
+        projection_update_count: config.projection_update_count,
+        worker_result_checksum: "pending",
+        workload_source_hash: workloadSourceHash,
+        action_sequence_hash: actionSequenceHash
+      };
+      const counters = {
+        f1_marks_complete: false,
+        f1_main_click_window_ms: "pending",
+        f1_main_dispatch_window_ms: "pending",
+        f1_main_projection_commit_ms: "pending",
+        f1_main_total_visible_update_ms: "pending",
+        f1_main_run_task_max_ms: "trace-derived",
+        f1_main_long_task_count_50ms: "trace-derived",
+        react_commit_count: 0,
+        react_root_render_count: 0,
+        react_component_render_count: 0,
+        f1_worker_compute_ms: "pending",
+        f1_worker_flush_ms: "pending",
+        f1_worker_module_flush_count: 0,
+        f1_worker_subscriber_notify_count: 0,
+        f1_worker_queue_drain_step_count: 0,
+        f1_worker_derived_selector_eval_count: 0,
+        f1_worker_state_nodes_touched_observed: 0,
+        f1_worker_derived_hash_rounds_observed: 0,
+        f1_worker_projection_update_count_observed: 0,
+        f1_worker_queued_effect_count_observed: 0,
+        f1_worker_result_bytes: 0,
+        f1_worker_roundtrip_ms: "pending",
+        f1_worker_error: "pending",
+        worker_result_checksum: "pending"
+      };
+
+      let captureIndex = 0;
+      let runStarted = false;
+      let sendHandledForRun = false;
+      let ready = false;
+      let readyAt = null;
+      let appMounted = false;
+      let setProjectionApi = null;
+      let worker = null;
+      let triggerStartAt = null;
+      let triggerEndAt = null;
+      let dispatchStartAt = null;
+      let workerResultReceivedAt = null;
+      let projectionCommitStartAt = null;
+
+      function rounded(value) {
+        return Number.isFinite(value) ? Number(value.toFixed(3)) : value;
+      }
+
+      function updateStatus() {
+        const idleMs = ready && readyAt !== null ? Math.max(0, performance.now() - readyAt) : 0;
+        readinessNodes.readyState.textContent = `ready=${ready}`;
+        readinessNodes.idleState.textContent = `idle_ms=${Math.round(idleMs)}`;
+        readinessNodes.streamState.textContent = "stream_state=idle";
+        readinessNodes.tokenCount.textContent = "token_count=0";
+        auditContainer.innerHTML = Object.entries(audit).map(([key, value]) => {
+          const className = key === "config_errors" && value !== "none" ? " class=\"error\"" : "";
+          return `<span${className}>${key}=${String(value)}</span>`;
+        }).join("");
+        metricContainer.innerHTML = Object.entries(counters).map(([key, value]) => (
+          `<span>${key}=${String(value)}</span>`
+        )).join("");
+      }
+
+      function updateReadiness() {
+        const setupReady = config.config_valid &&
+          config.capture_allowed &&
+          appMounted &&
+          sendButton &&
+          !sendButton.disabled &&
+          audit.baseline_id === "p1-worker-offload-fanout" &&
+          audit.scenario_mode === "p1-f1-worker-offload-ab";
+        if (setupReady && !ready) {
+          const elapsedSinceMount = performance.now() - mountedAt;
+          if (elapsedSinceMount >= 2000) {
+            ready = true;
+            readyAt = mountedAt;
+          }
+        }
+        updateStatus();
+        if (!ready) {
+          window.setTimeout(updateReadiness, 100);
+        }
+      }
+
+      function mark(name) {
+        performance.mark(`p1:capture:${captureIndex}:${name}`);
+      }
+
+      function markAudit() {
+        for (const [key, value] of Object.entries(audit)) {
+          mark(`audit:${key}=${String(value)}`);
+        }
+      }
+
+      function markMetric(key, value) {
+        mark(`metric:${key}=${String(value)}`);
+      }
+
+      function markMetrics() {
+        for (const [key, value] of Object.entries(counters)) {
+          markMetric(key, value);
+        }
+      }
+
+      function createWorkerPayload() {
+        return {
+          config,
+          stateRecords,
+          action_sequence_hash: actionSequenceHash,
+          workload_source_hash: workloadSourceHash
+        };
+      }
+
+      function validateWorkerResult(result) {
+        const errors = [];
+        const expect = (key, actual, expected) => {
+          if (actual !== expected) {
+            errors.push(`${key}:expected-${expected}:actual-${actual}`);
+          }
+        };
+        if (!result || result.ok !== true) {
+          errors.push("worker_result:not-ok");
+          return errors;
+        }
+        if (!Number.isInteger(result.worker_result_checksum)) {
+          errors.push("worker_result_checksum:missing");
+        }
+        expect("action_sequence_hash", result.action_sequence_hash, actionSequenceHash);
+        expect("workload_source_hash", result.workload_source_hash, workloadSourceHash);
+        expect("module_flush_count", result.f1_worker_module_flush_count, config.module_count);
+        expect("subscriber_notify_count", result.f1_worker_subscriber_notify_count, config.module_count * config.subscribers_per_module);
+        expect("queued_effect_count_observed", result.f1_worker_queued_effect_count_observed, config.queued_effect_count);
+        expect("state_nodes_touched_observed", result.f1_worker_state_nodes_touched_observed, config.state_nodes_touched);
+        expect("derived_selector_eval_count", result.f1_worker_derived_selector_eval_count, config.module_count * config.subscribers_per_module * config.selector_passes_per_subscriber);
+        expect("queue_drain_step_count", result.f1_worker_queue_drain_step_count, config.module_count * config.queue_drain_steps_per_module);
+        expect("derived_hash_rounds_observed", result.f1_worker_derived_hash_rounds_observed, config.state_nodes_touched * config.derived_hash_rounds);
+        expect("projection_update_count_observed", result.f1_worker_projection_update_count_observed, config.projection_update_count);
+        return errors;
+      }
+
+      function createWorker() {
+        const source = `
+          "use strict";
+          const hashString = ${hashString.toString()};
+          const computeWorkerFanout = ${computeWorkerFanout.toString()};
+          self.onmessage = (event) => {
+            try {
+              self.postMessage(computeWorkerFanout(event.data));
+            } catch (error) {
+              self.postMessage({ ok: false, f1_worker_error: String(error && error.message ? error.message : error) });
+            }
+          };
+        `;
+        const blob = new Blob([source], { type: "text/javascript" });
+        const url = URL.createObjectURL(blob);
+        const createdWorker = new Worker(url);
+        createdWorker.addEventListener("message", (event) => {
+          URL.revokeObjectURL(url);
+          worker = null;
+          handleWorkerResult(event.data);
+        });
+        createdWorker.addEventListener("error", (event) => {
+          URL.revokeObjectURL(url);
+          worker = null;
+          counters.f1_worker_error = `worker-error:${event.message || "unknown"}`;
+          markMetrics();
+          updateStatus();
+        });
+        return createdWorker;
+      }
+
+      function applyAuditSimulationMutation(result) {
+        const options = window.__p1F1AuditOptions || {};
+        if (options.missingWorkerChecksum) {
+          delete result.worker_result_checksum;
+        }
+        if (options.reducedCounters) {
+          result.f1_worker_subscriber_notify_count = Math.max(0, result.f1_worker_subscriber_notify_count - 1);
+        }
+        return result;
+      }
+
+      function dispatchToWorker() {
+        mark("f1:dispatch-to-worker:start");
+        dispatchStartAt = performance.now();
+        const payload = createWorkerPayload();
+        const auditOptions = window.__p1F1AuditOptions;
+        if (auditOptions) {
+          const result = applyAuditSimulationMutation(computeWorkerFanout(payload, () => 0));
+          mark("f1:dispatch-to-worker:end");
+          counters.f1_main_dispatch_window_ms = rounded(performance.now() - dispatchStartAt);
+          queueMicrotask(() => handleWorkerResult(result));
+          return;
+        }
+        worker = createWorker();
+        worker.postMessage(payload);
+        mark("f1:dispatch-to-worker:end");
+        counters.f1_main_dispatch_window_ms = rounded(performance.now() - dispatchStartAt);
+      }
+
+      function handleWorkerResult(result) {
+        workerResultReceivedAt = performance.now();
+        mark("f1:worker-result:received");
+        const errors = validateWorkerResult(result);
+        counters.f1_worker_result_bytes = JSON.stringify(result || {}).length;
+        counters.f1_worker_roundtrip_ms = rounded(workerResultReceivedAt - dispatchStartAt);
+        counters.f1_worker_compute_ms = rounded(result?.f1_worker_compute_ms ?? 0);
+        counters.f1_worker_flush_ms = rounded(result?.f1_worker_flush_ms ?? 0);
+        counters.f1_worker_module_flush_count = result?.f1_worker_module_flush_count ?? 0;
+        counters.f1_worker_subscriber_notify_count = result?.f1_worker_subscriber_notify_count ?? 0;
+        counters.f1_worker_queue_drain_step_count = result?.f1_worker_queue_drain_step_count ?? 0;
+        counters.f1_worker_derived_selector_eval_count = result?.f1_worker_derived_selector_eval_count ?? 0;
+        counters.f1_worker_state_nodes_touched_observed = result?.f1_worker_state_nodes_touched_observed ?? 0;
+        counters.f1_worker_derived_hash_rounds_observed = result?.f1_worker_derived_hash_rounds_observed ?? 0;
+        counters.f1_worker_projection_update_count_observed = result?.f1_worker_projection_update_count_observed ?? 0;
+        counters.f1_worker_queued_effect_count_observed = result?.f1_worker_queued_effect_count_observed ?? 0;
+        counters.worker_result_checksum = result?.worker_result_checksum ?? "missing";
+        audit.worker_result_checksum = counters.worker_result_checksum;
+        counters.f1_worker_error = errors.length === 0 ? "none" : errors.join("|");
+        mark("f1:projection-commit:start");
+        projectionCommitStartAt = performance.now();
+        if (errors.length === 0 && setProjectionApi) {
+          setProjectionApi.commitProjection(result.projection, result.worker_result_checksum);
+        } else {
+          counters.f1_marks_complete = false;
+          markMetrics();
+          updateStatus();
+        }
+      }
+
+      function runMicrotaskChain(step) {
+        if (step < config.microtask_chain_length - 1) {
+          queueMicrotask(() => runMicrotaskChain(step + 1));
+          return;
+        }
+        dispatchToWorker();
+      }
+
+      function triggerWorkerAction() {
+        if (!config.capture_allowed || runStarted) {
+          return;
+        }
+        runStarted = true;
+        sendHandledForRun = false;
+        counters.f1_marks_complete = false;
+        mark("f1:start");
+        mark("f1:trigger:start");
+        triggerStartAt = performance.now();
+        const PointerEventCtor = window.PointerEvent || window.Event;
+        sendButton.dispatchEvent(new PointerEventCtor("pointerup", { bubbles: true, cancelable: true }));
+        sendButton.dispatchEvent(new window.Event("click", { bubbles: true, cancelable: true }));
+        triggerEndAt = performance.now();
+        counters.f1_main_click_window_ms = rounded(triggerEndAt - triggerStartAt);
+        mark("f1:trigger:end");
+      }
+
+      function handleSend(event) {
+        event.preventDefault();
+        if (!config.capture_allowed || !runStarted || sendHandledForRun) {
+          return;
+        }
+        sendHandledForRun = true;
+        queueMicrotask(() => runMicrotaskChain(0));
+      }
+
+      const MessageView = React.memo(function MessageView({ message }) {
+        counters.react_component_render_count += 1;
+        return React.createElement(
+          "article",
+          { className: "message" },
+          React.createElement("div", { className: "message-title" }, message.title),
+          React.createElement("div", { className: "message-body" }, message.body)
+        );
+      });
+
+      const HistoryList = React.memo(function HistoryList({ messages }) {
+        counters.react_component_render_count += 1;
+        return React.createElement(
+          React.Fragment,
+          null,
+          messages.map((message) => React.createElement(MessageView, { key: message.id, message }))
+        );
+      });
+
+      function App() {
+        counters.react_root_render_count += 1;
+        const [messages, setMessages] = React.useState(historyMessages);
+        const [projectionVersion, setProjectionVersion] = React.useState(0);
+
+        React.useLayoutEffect(() => {
+          appMounted = true;
+          updateReadiness();
+        }, []);
+
+        React.useLayoutEffect(() => {
+          setProjectionApi = {
+            commitProjection(projection, checksum) {
+              setMessages((currentMessages) => [
+                ...currentMessages,
+                {
+                  id: `${projection.id}-${checksum}`,
+                  title: projection.title,
+                  body: projection.body
+                }
+              ]);
+              setProjectionVersion((version) => version + 1);
+            }
+          };
+          return () => {
+            setProjectionApi = null;
+          };
+        }, [projectionVersion]);
+
+        React.useLayoutEffect(() => {
+          if (projectionVersion > 0 && projectionCommitStartAt !== null) {
+            counters.react_commit_count += 1;
+            const commitEndAt = performance.now();
+            counters.f1_main_projection_commit_ms = rounded(commitEndAt - projectionCommitStartAt);
+            counters.f1_main_total_visible_update_ms = rounded(commitEndAt - workerResultReceivedAt);
+            mark("f1:projection-commit:end");
+            mark("f1:end");
+            counters.f1_marks_complete = true;
+            markMetrics();
+            updateStatus();
+          }
+        }, [projectionVersion]);
+
+        return React.createElement(HistoryList, { messages });
+      }
+
+      function observeCaptureMarks() {
+        if (!("PerformanceObserver" in window)) {
+          return;
+        }
+        const observer = new PerformanceObserver((list) => {
+          for (const entry of list.getEntries()) {
+            if (entry.name === "p0:capture:start") {
+              captureIndex += 1;
+              runStarted = false;
+              markAudit();
+              updateStatus();
+              if (config.capture_allowed) {
+                queueMicrotask(triggerWorkerAction);
+              }
+            }
+          }
+        });
+        observer.observe({ type: "mark", buffered: true });
+      }
+
+      composer.addEventListener("submit", handleSend);
+      sendButton.addEventListener("pointerup", () => {});
+      sendButton.addEventListener("click", handleSend);
+      sendButton.disabled = !config.capture_allowed;
+      window.__p1F1WorkerOffload = {
+        audit,
+        counters,
+        config,
+        workloadSource,
+        stateRecords,
+        computeWorkerFanout
+      };
+      updateStatus();
+      observeCaptureMarks();
+
+      if (!React || !ReactDOM || !ReactDOM.createRoot) {
+        audit.config_valid = false;
+        audit.capture_allowed = false;
+        audit.config_errors = "react18:missing";
+        sendButton.disabled = true;
+        updateStatus();
+        return;
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+    })();
+  </script>
+</body>
+</html>

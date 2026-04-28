@@ -1,0 +1,27 @@
+{
+  "id": "s02_append_scrollback",
+  "title": "Append while scrolled back",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "settle_ms": 2000,
+  "capture_ms": 20000,
+  "phases": [
+    {
+      "id": "append_scrollback",
+      "label": "Stay two to three viewports off tail while append continues",
+      "duration_ms": 20000
+    }
+  ],
+  "sop": [
+    "Load the target and confirm append activity is ongoing before the run starts.",
+    "Scroll back two to three full viewports and stop there before pressing Enter.",
+    "Do not return to tail during capture.",
+    "Keep the Chrome window foreground-active for the full run."
+  ],
+  "notes_template": [
+    "anchor_movement=none|minor|major",
+    "one_sentence_observation"
+  ]
+}

@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Controlled Append Surface</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        line-height: 1.4;
+      }
+
+      html, body {
+        margin: 0;
+        padding: 0;
+        background: #f7f7f2;
+        color: #141414;
+      }
+
+      body {
+        min-height: 100vh;
+      }
+
+      #status {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        padding: 12px 16px;
+        border-bottom: 1px solid #d8d5cb;
+        background: rgba(247, 247, 242, 0.96);
+        backdrop-filter: blur(2px);
+        font-size: 12px;
+      }
+
+      #surface {
+        padding: 8px 16px 32px;
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: 96px 120px 1fr;
+        gap: 16px;
+        padding: 4px 0;
+        border-bottom: 1px solid #ebe8de;
+        white-space: pre-wrap;
+      }
+
+      .row-id {
+        color: #6d6757;
+      }
+
+      .row-phase {
+        color: #185b53;
+      }
+
+      .row-body {
+        color: #181818;
+      }
+
+      .row-body-stack {
+        display: grid;
+        gap: 6px;
+      }
+
+      .row-body-line {
+        display: block;
+      }
+
+      .row-pill-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .row-pill {
+        display: inline-block;
+        padding: 2px 8px;
+        border: 1px solid #d6d2c5;
+        border-radius: 999px;
+        background: #f2efe6;
+        color: #4a4437;
+        font-size: 11px;
+      }
+
+      .row-ai {
+        align-items: start;
+      }
+
+      .row-ai .row-phase {
+        font-weight: 600;
+      }
+
+      .row-ai-title {
+        font-weight: 600;
+        color: #1a1a1a;
+      }
+
+      .row-ai-list,
+      .row-ai-kv {
+        margin: 0;
+        padding-left: 18px;
+      }
+
+      .row-ai-list li,
+      .row-ai-kv li {
+        margin: 2px 0;
+      }
+
+      .row-ai-code {
+        margin: 0;
+        padding: 10px 12px;
+        border: 1px solid #ddd7c7;
+        border-radius: 6px;
+        background: #f1eee5;
+        overflow-x: auto;
+        color: #26231d;
+      }
+
+      .config-error {
+        max-width: 760px;
+        margin: 32px auto;
+        padding: 16px;
+        border: 1px solid #b91c1c;
+        background: #fef2f2;
+        color: #7f1d1d;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      }
+
+      .config-error h1 {
+        margin: 0 0 12px;
+        font-size: 16px;
+      }
+
+      .config-error pre {
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="status">
+      <span id="level">level=L1</span>
+      <span id="row-count">rows=0</span>
+      <span id="mode">mode=tail-follow</span>
+      <span id="profile">profile=reference</span>
+      <span id="initial-history">initial_history=1200</span>
+      <span id="append-interval">append_interval_ms=80</span>
+      <span id="near-tail-threshold">near_tail_threshold_px=160</span>
+    </div>
+    <main id="surface" aria-label="Controlled append surface"></main>
+    <script>
+      const WORKLOAD_LEVELS = {
+        L1: {
+          level: "L1",
+          label: "reference",
+          initialHistoryCount: 1200,
+          appendIntervalMs: 80,
+          nearTailThresholdPx: 160,
+          pattern: "uniform"
+        },
+        L2: {
+          level: "L2",
+          label: "higher-cadence",
+          initialHistoryCount: 1200,
+          appendIntervalMs: 40,
+          nearTailThresholdPx: 160,
+          pattern: "uniform"
+        },
+        L3: {
+          level: "L3",
+          label: "higher-cadence-expanded",
+          initialHistoryCount: 1200,
+          appendIntervalMs: 40,
+          nearTailThresholdPx: 160,
+          pattern: "expanded"
+        },
+        L4: {
+          level: "L4",
+          label: "ai-surface-lite",
+          initialHistoryCount: 1200,
+          appendIntervalMs: 32,
+          nearTailThresholdPx: 160,
+          pattern: "ai-lite"
+        }
+      };
+
+      const P0D_PARAM_NAMES = [
+        "cell_id",
+        "seed_blocks",
+        "chars_per_block",
+        "append_interval_ms",
+        "capture_window_s",
+        "block_style"
+      ];
+      const P0D_REQUIRED_PARAM_NAMES = P0D_PARAM_NAMES.filter((name) => name !== "cell_id");
+
+      function hasP0dParams(params) {
+        return P0D_PARAM_NAMES.some((name) => params.has(name));
+      }
+
+      function parsePositiveIntegerParam(params, name, errors) {
+        if (!params.has(name)) {
+          errors.push(`missing ${name}`);
+          return null;
+        }
+
+        const rawValue = params.get(name) || "";
+        if (!/^[1-9][0-9]*$/.test(rawValue)) {
+          errors.push(`${name} must be a positive integer`);
+          return null;
+        }
+
+        const value = Number(rawValue);
+        if (!Number.isSafeInteger(value)) {
+          errors.push(`${name} exceeds the safe integer range`);
+          return null;
+        }
+
+        return value;
+      }
+
+      function resolveP0dConfig(params) {
+        const errors = [];
+        const seedBlocks = parsePositiveIntegerParam(params, "seed_blocks", errors);
+        const charsPerBlock = parsePositiveIntegerParam(params, "chars_per_block", errors);
+        const appendIntervalMs = parsePositiveIntegerParam(params, "append_interval_ms", errors);
+        const captureWindowS = parsePositiveIntegerParam(params, "capture_window_s", errors);
+        const blockStyle = params.get("block_style");
+        const cellId = params.get("cell_id") || "p0d_ad_hoc";
+
+        for (const name of P0D_REQUIRED_PARAM_NAMES) {
+          if (!params.has(name)) {
+            continue;
+          }
+          if ((params.get(name) || "").trim() === "") {
+            errors.push(`${name} must not be empty`);
+          }
+        }
+
+        if (!params.has("block_style")) {
+          errors.push("missing block_style");
+        } else if (blockStyle !== "plain") {
+          errors.push("block_style must be plain");
+        }
+
+        if (!/^[A-Za-z0-9_-]+$/.test(cellId)) {
+          errors.push("cell_id may contain only letters, numbers, underscores, and hyphens");
+        }
+
+        if (errors.length > 0) {
+          return {
+            error: [
+              "Invalid P0-D controlled target v2 query.",
+              ...errors.map((error) => `- ${error}`),
+              "",
+              "Required P0-D params:",
+              "seed_blocks, chars_per_block, append_interval_ms, capture_window_s, block_style=plain"
+            ].join("\n")
+          };
+        }
+
+        return {
+          config: {
+            level: "P0D",
+            label: `p0d-v2:${cellId}`,
+            initialHistoryCount: seedBlocks,
+            appendIntervalMs,
+            nearTailThresholdPx: 160,
+            pattern: "uniform",
+            p0d: true,
+            cellId,
+            seedBlocks,
+            charsPerBlock,
+            captureWindowS,
+            blockStyle
+          }
+        };
+      }
+
+      function resolveConfig() {
+        const params = new URLSearchParams(window.location.search);
+        if (hasP0dParams(params)) {
+          return resolveP0dConfig(params);
+        }
+
+        const requested = (params.get("level") || "L1").toUpperCase();
+        return { config: WORKLOAD_LEVELS[requested] || WORKLOAD_LEVELS.L1 };
+      }
+
+      function renderConfigError(message) {
+        const panel = document.createElement("main");
+        panel.className = "config-error";
+
+        const heading = document.createElement("h1");
+        heading.textContent = "Controlled target configuration error";
+
+        const details = document.createElement("pre");
+        details.textContent = message;
+
+        panel.append(heading, details);
+        document.body.replaceChildren(panel);
+      }
+
+      const RESOLVED_CONFIG = resolveConfig();
+      if (RESOLVED_CONFIG.error) {
+        renderConfigError(RESOLVED_CONFIG.error);
+        throw new Error(RESOLVED_CONFIG.error);
+      }
+
+      const CONFIG = RESOLVED_CONFIG.config;
+
+      const surface = document.getElementById("surface");
+      const levelNode = document.getElementById("level");
+      const rowCountNode = document.getElementById("row-count");
+      const modeNode = document.getElementById("mode");
+      const profileNode = document.getElementById("profile");
+      const initialHistoryNode = document.getElementById("initial-history");
+      const appendIntervalNode = document.getElementById("append-interval");
+      const nearTailThresholdNode = document.getElementById("near-tail-threshold");
+
+      let nextSequence = 1;
+
+      function appendStatusItem(id, text) {
+        const item = document.createElement("span");
+        item.id = id;
+        item.textContent = text;
+        document.getElementById("status").appendChild(item);
+      }
+
+      function addP0dAuditStatus() {
+        if (!CONFIG.p0d) {
+          return;
+        }
+
+        appendStatusItem("p0d-cell-id", `cell_id=${CONFIG.cellId}`);
+        appendStatusItem("p0d-seed-blocks", `seed_blocks=${CONFIG.seedBlocks}`);
+        appendStatusItem("p0d-chars-per-block", `chars_per_block=${CONFIG.charsPerBlock}`);
+        appendStatusItem("p0d-capture-window", `capture_window_s=${CONFIG.captureWindowS}`);
+        appendStatusItem("p0d-block-style", `block_style=${CONFIG.blockStyle}`);
+      }
+
+      addP0dAuditStatus();
+
+      function distanceFromBottomPx() {
+        const root = document.documentElement;
+        return root.scrollHeight - window.scrollY - window.innerHeight;
+      }
+
+      function isNearTail() {
+        return distanceFromBottomPx() <= CONFIG.nearTailThresholdPx;
+      }
+
+      function updateStatus() {
+        levelNode.textContent = `level=${CONFIG.level}`;
+        rowCountNode.textContent = `rows=${nextSequence - 1}`;
+        modeNode.textContent = isNearTail() ? "mode=tail-follow" : "mode=off-tail";
+        profileNode.textContent = `profile=${CONFIG.label}`;
+        initialHistoryNode.textContent = `initial_history=${CONFIG.initialHistoryCount}`;
+        appendIntervalNode.textContent = `append_interval_ms=${CONFIG.appendIntervalMs}`;
+        nearTailThresholdNode.textContent = `near_tail_threshold_px=${CONFIG.nearTailThresholdPx}`;
+      }
+
+      function rowBodyFor(sequence) {
+        const phase = sequence % 5;
+        const bucket = sequence % 7;
+        const parity = sequence % 2 === 0 ? "even" : "odd";
+        return `append surface baseline message ${sequence} | phase=${phase} | bucket=${bucket} | parity=${parity}`;
+      }
+
+      function p0dRowBodyFor(sequence) {
+        const targetLength = CONFIG.charsPerBlock;
+        const phase = sequence % 5;
+        const bucket = sequence % 7;
+        const parity = sequence % 2 === 0 ? "even" : "odd";
+        let body = `append surface controlled block ${sequence} | phase=${phase} | bucket=${bucket} | parity=${parity}`;
+        let token = 0;
+
+        while (body.length < targetLength) {
+          body += ` | unit=${(sequence + token) % 997}:${String(token).padStart(3, "0")}`;
+          token += 1;
+        }
+
+        return body.slice(0, targetLength);
+      }
+
+      function uniformRowBodyFor(sequence) {
+        if (CONFIG.p0d) {
+          return p0dRowBodyFor(sequence);
+        }
+        return rowBodyFor(sequence);
+      }
+
+      function baseRow(sequence, phaseLabel) {
+        const row = document.createElement("div");
+        row.className = "row";
+        row.dataset.sequence = String(sequence);
+
+        const rowId = document.createElement("span");
+        rowId.className = "row-id";
+        rowId.textContent = String(sequence).padStart(6, "0");
+
+        const rowPhase = document.createElement("span");
+        rowPhase.className = "row-phase";
+        rowPhase.textContent = phaseLabel;
+
+        return { row, rowId, rowPhase };
+      }
+
+      function appendUniformRow(sequence, parent = surface) {
+        const { row, rowId, rowPhase } = baseRow(sequence, `stream-${sequence % 5}`);
+        const rowBody = document.createElement("span");
+        rowBody.className = "row-body";
+        rowBody.textContent = uniformRowBodyFor(sequence);
+        row.append(rowId, rowPhase, rowBody);
+        parent.appendChild(row);
+      }
+
+      function appendExpandedRow(sequence, parent = surface) {
+        const { row, rowId, rowPhase } = baseRow(sequence, `band-${sequence % 6}`);
+        const body = document.createElement("div");
+        body.className = "row-body-stack";
+
+        const lead = document.createElement("span");
+        lead.className = "row-body-line";
+        lead.textContent = `expanded append block ${sequence} keeps cadence high while varying line count and content width`;
+
+        const detail = document.createElement("span");
+        detail.className = "row-body-line";
+        detail.textContent = `section=${sequence % 4} | branch=${sequence % 9} | window_hint=${(sequence % 5) + 2} viewports`;
+
+        body.append(lead, detail);
+
+        if (sequence % 2 === 0) {
+          const extra = document.createElement("span");
+          extra.className = "row-body-line";
+          extra.textContent = `secondary detail ${sequence} extends the body to create a taller and less uniform append pattern.`;
+          body.appendChild(extra);
+        }
+
+        if (sequence % 3 === 0) {
+          const strip = document.createElement("div");
+          strip.className = "row-pill-strip";
+          for (const label of [
+            `tokens=${120 + (sequence % 11) * 17}`,
+            `tool=${sequence % 5}`,
+            `delta=${(sequence % 7) + 1}`
+          ]) {
+            const pill = document.createElement("span");
+            pill.className = "row-pill";
+            pill.textContent = label;
+            strip.appendChild(pill);
+          }
+          body.appendChild(strip);
+        }
+
+        row.append(rowId, rowPhase, body);
+        parent.appendChild(row);
+      }
+
+      function appendAiLiteRow(sequence, parent = surface) {
+        const phaseIndex = sequence % 4;
+        const phaseLabel = ["assistant", "plan", "tool", "result"][phaseIndex];
+        const { row, rowId, rowPhase } = baseRow(sequence, phaseLabel);
+        row.classList.add("row-ai");
+
+        const body = document.createElement("div");
+        body.className = "row-body-stack";
+
+        const title = document.createElement("span");
+        title.className = "row-ai-title";
+        title.textContent = `turn ${sequence} | ladder=${CONFIG.level} | mode=${phaseLabel}`;
+        body.appendChild(title);
+
+        if (phaseIndex === 0) {
+          const para = document.createElement("span");
+          para.className = "row-body-line";
+          para.textContent = `Assistant draft ${sequence} continues a controlled long-lived surface update with deterministic phrasing and steady append pressure.`;
+          body.appendChild(para);
+        } else if (phaseIndex === 1) {
+          const list = document.createElement("ul");
+          list.className = "row-ai-list";
+          for (const item of [
+            `scan shard ${sequence % 6}`,
+            `summarize branch ${sequence % 8}`,
+            `queue follow-up ${sequence % 5}`
+          ]) {
+            const li = document.createElement("li");
+            li.textContent = item;
+            list.appendChild(li);
+          }
+          body.appendChild(list);
+        } else if (phaseIndex === 2) {
+          const code = document.createElement("pre");
+          code.className = "row-ai-code";
+          code.textContent = [
+            `tool.run id=${sequence}`,
+            `target=segment-${sequence % 7}`,
+            `status=ok delta=${(sequence % 9) + 1}`
+          ].join("\n");
+          body.appendChild(code);
+        } else {
+          const list = document.createElement("ul");
+          list.className = "row-ai-kv";
+          for (const item of [
+            `rows_added=${(sequence % 4) + 1}`,
+            `tokens_seen=${240 + (sequence % 13) * 19}`,
+            `anchor_state=stable`
+          ]) {
+            const li = document.createElement("li");
+            li.textContent = item;
+            list.appendChild(li);
+          }
+          body.appendChild(list);
+        }
+
+        const strip = document.createElement("div");
+        strip.className = "row-pill-strip";
+        for (const label of [
+          `phase=${phaseIndex}`,
+          `bucket=${sequence % 9}`,
+          `cadence=${CONFIG.appendIntervalMs}ms`
+        ]) {
+          const pill = document.createElement("span");
+          pill.className = "row-pill";
+          pill.textContent = label;
+          strip.appendChild(pill);
+        }
+        body.appendChild(strip);
+
+        row.append(rowId, rowPhase, body);
+        parent.appendChild(row);
+      }
+
+      function appendRow(sequence, parent = surface) {
+        if (CONFIG.pattern === "expanded") {
+          appendExpandedRow(sequence, parent);
+          return;
+        }
+        if (CONFIG.pattern === "ai-lite") {
+          appendAiLiteRow(sequence, parent);
+          return;
+        }
+        appendUniformRow(sequence, parent);
+      }
+
+      function seedHistory() {
+        const fragment = document.createDocumentFragment();
+        for (let sequence = 1; sequence <= CONFIG.initialHistoryCount; sequence += 1) {
+          appendRow(sequence, fragment);
+        }
+        surface.appendChild(fragment);
+        nextSequence = CONFIG.initialHistoryCount + 1;
+      }
+
+      function scrollToTail() {
+        window.scrollTo(0, document.documentElement.scrollHeight);
+      }
+
+      function appendTick() {
+        const shouldFollow = isNearTail();
+        appendRow(nextSequence);
+        nextSequence += 1;
+        if (shouldFollow) {
+          scrollToTail();
+        }
+        updateStatus();
+      }
+
+      seedHistory();
+      requestAnimationFrame(() => {
+        scrollToTail();
+        updateStatus();
+      });
+
+      window.addEventListener("scroll", updateStatus, { passive: true });
+      window.setInterval(appendTick, CONFIG.appendIntervalMs);
+    </script>
+  </body>
+</html>

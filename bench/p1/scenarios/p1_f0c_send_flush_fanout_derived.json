@@ -1,0 +1,45 @@
+{
+  "id": "p1_f0c_send_flush_fanout_derived",
+  "title": "P1-F0 F0-C send/flush fanout derived calibration",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "settle_ms": 5000,
+  "capture_ms": 12000,
+  "phases": [
+    {
+      "id": "send_flush_fanout_derived",
+      "label": "Dispatch a synthetic DOM pointerup/click and observe derived send/flush/fanout work",
+      "duration_ms": 7000
+    },
+    {
+      "id": "post_fanout_observe",
+      "label": "Keep the page foreground-active after the derived fanout action completes",
+      "duration_ms": 5000
+    }
+  ],
+  "sop": [
+    "F0-C is derived fanout calibration only.",
+    "F0-C is not product trace replay.",
+    "F0-C is not P2.",
+    "F0-C is not Canvas/WebGPU.",
+    "F0-C is not synthetic pressure.",
+    "F0-C uses structural fanout variables and deterministic derived work over accumulated session state.",
+    "synthetic_pressure_multiplier must remain 1.",
+    "F0-C requires one smoke first; no 3x run is allowed until separately approved.",
+    "Load the P1-F0 target and confirm visible audit state shows config_valid=true and capture_allowed=true.",
+    "Confirm scenario_mode=p1-f0-send-flush-fanout, calibration_level=derived, payload_shape=derived-json, content_richness=derived, and derived_work_enabled=true.",
+    "Confirm selector_passes_per_subscriber, queue_drain_steps_per_module, state_read_stride, derived_hash_rounds, and projection_update_count match the approved F0-C cell.",
+    "Confirm stable_keys=true, react_memo_enabled=true, deferred_rendering=false, token_coalescing=false, and synthetic_pressure_multiplier=1.",
+    "Press Enter only after the page is loaded and the Chrome window is foreground-active.",
+    "Do not interact with the page during capture; the target dispatches synthetic DOM pointerup/click events on the visible send button when it observes p0:capture:start.",
+    "Keep the Chrome window foreground-active for the full 12 second capture window."
+  ],
+  "notes_template": [
+    "f0c_derived_calibration=yes|no",
+    "config_valid=yes|no",
+    "foreground_visible=yes|no",
+    "one_sentence_observation"
+  ]
+}

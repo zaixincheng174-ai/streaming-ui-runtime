@@ -1,0 +1,40 @@
+{
+  "id": "p1_f0a_send_flush_fanout_light",
+  "title": "P1-F0 F0-A send/flush fanout light calibration",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "settle_ms": 5000,
+  "capture_ms": 12000,
+  "phases": [
+    {
+      "id": "send_flush_fanout_light",
+      "label": "Dispatch a synthetic DOM pointerup/click and observe the light send/flush/fanout model",
+      "duration_ms": 7000
+    },
+    {
+      "id": "post_fanout_observe",
+      "label": "Keep the page foreground-active after the fanout action completes",
+      "duration_ms": 5000
+    }
+  ],
+  "sop": [
+    "F0-A is light calibration only.",
+    "F0-A is not product trace replay.",
+    "F0-A is not P2.",
+    "F0-A is not a renderer benchmark.",
+    "F0-A validates send/flush/fanout harness support.",
+    "Load the P1-F0 target and confirm visible audit state shows config_valid=true and capture_allowed=true.",
+    "Confirm scenario_mode=p1-f0-send-flush-fanout, calibration_level=light, synthetic_pressure_multiplier=1, stable_keys=true, react_memo_enabled=true, deferred_rendering=false, and token_coalescing=false.",
+    "Press Enter only after the page is loaded and the Chrome window is foreground-active.",
+    "Do not interact with the page during capture; the target dispatches synthetic DOM pointerup/click events on the visible send button when it observes p0:capture:start.",
+    "Keep the Chrome window foreground-active for the full 12 second capture window."
+  ],
+  "notes_template": [
+    "f0a_light_calibration=yes|no",
+    "config_valid=yes|no",
+    "foreground_visible=yes|no",
+    "one_sentence_observation"
+  ]
+}

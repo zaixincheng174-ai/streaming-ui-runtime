@@ -1,0 +1,34 @@
+{
+  "id": "p1a_stream_tail_follow_20ms",
+  "title": "P1-A AI streaming chat tail-follow 20ms",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "settle_ms": 5000,
+  "capture_ms": 45000,
+  "phases": [
+    {
+      "id": "stream_tail_follow",
+      "label": "Stream 800 markdown/code/tool-output tokens at 20ms while remaining tail-followed",
+      "duration_ms": 35000
+    },
+    {
+      "id": "post_stream_observe",
+      "label": "Keep the page foreground-active after the stream completes",
+      "duration_ms": 10000
+    }
+  ],
+  "sop": [
+    "Load the P1-A target and confirm the visible audit state shows ready=true and idle_ms is increasing before the run starts.",
+    "Confirm baseline_id, scenario_mode=tail-follow, history_messages=160, stream_tokens=800, and token_interval_ms=20.",
+    "Press Enter only after the history is mounted and has been idle for at least 2 seconds.",
+    "Do not interact with the page during capture; the target starts streaming when it observes p0:capture:start.",
+    "Keep the Chrome window foreground-active for the full 45 second capture window."
+  ],
+  "notes_template": [
+    "anchor_movement=none|minor|major",
+    "ready_idle_confirmed=yes|no",
+    "one_sentence_observation"
+  ]
+}

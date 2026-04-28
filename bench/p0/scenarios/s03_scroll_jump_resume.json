@@ -1,0 +1,37 @@
+{
+  "id": "s03_scroll_jump_resume",
+  "title": "Scroll, hold, and return to tail",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "settle_ms": 2000,
+  "capture_ms": 20000,
+  "phases": [
+    {
+      "id": "manual_scroll",
+      "label": "Scroll steadily through history",
+      "duration_ms": 8000
+    },
+    {
+      "id": "hold_mid_history",
+      "label": "Hold position mid-history",
+      "duration_ms": 4000
+    },
+    {
+      "id": "return_to_tail",
+      "label": "Return to tail and stabilize",
+      "duration_ms": 8000
+    }
+  ],
+  "sop": [
+    "Load the target and confirm append activity is already visible before the run starts.",
+    "During manual_scroll, scroll steadily through history without pausing or jumping erratically.",
+    "During hold_mid_history, stop scrolling and keep the viewport fixed.",
+    "During return_to_tail, navigate back to tail and keep the Chrome window foreground-active."
+  ],
+  "notes_template": [
+    "anchor_movement=none|minor|major",
+    "one_sentence_observation"
+  ]
+}

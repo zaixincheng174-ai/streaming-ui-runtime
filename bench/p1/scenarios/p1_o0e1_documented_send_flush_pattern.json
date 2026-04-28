@@ -1,0 +1,36 @@
+{
+  "id": "p1_o0e1_documented_send_flush_pattern",
+  "title": "P1 Option 0 E1 documented send flush pattern",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "settle_ms": 5000,
+  "capture_ms": 12000,
+  "phases": [
+    {
+      "id": "documented_send_flush",
+      "label": "Dispatch a synthetic DOM pointerup/click send path and observe the documented microtask/commit pattern",
+      "duration_ms": 7000
+    },
+    {
+      "id": "post_send_observe",
+      "label": "Keep the page foreground-active after the send pattern completes",
+      "duration_ms": 5000
+    }
+  ],
+  "sop": [
+    "Load the production React sanity target and confirm the visible audit state shows ready=true and idle_ms is increasing before the run starts.",
+    "Confirm scenario_mode=documented-send-flush-pattern, grounding_source=p0-product-trace-attribution, source_fidelity=documented-pattern-only, raw_trace_available=false, and native_pointer_dispatch_measured=false.",
+    "Confirm this is not raw private trace replay and not native pointer input dispatch measurement.",
+    "Press Enter only after the history is mounted and has been idle for at least 2 seconds.",
+    "Do not interact with the page during capture; the target dispatches synthetic DOM pointerup/click events on the visible send button when it observes p0:capture:start.",
+    "Keep the Chrome window foreground-active for the full 12 second capture window."
+  ],
+  "notes_template": [
+    "documented_pattern_only=yes|no",
+    "ready_idle_confirmed=yes|no",
+    "foreground_visible=yes|no",
+    "one_sentence_observation"
+  ]
+}

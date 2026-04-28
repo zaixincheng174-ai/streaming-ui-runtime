@@ -1,0 +1,30 @@
+node_modules/
+dist/
+build/
+coverage/
+
+# macOS / local editor artifacts
+.DS_Store
+*.log
+
+# Credentials and local environment
+.env
+.env.*
+*.pem
+
+# Private traces, captures, and local-only result stores
+traces/private/
+results/private/
+bench/p0/results/
+private/
+local/
+*.trace
+*.har
+
+# Codex local state
+.codex/
+.codex/auth.json
+.codex/history.jsonl
+
+# Private trace-derived artifacts
+bench/p0/private-trace-derived/

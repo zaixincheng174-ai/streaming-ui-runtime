@@ -1,0 +1,1516 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>P1 Production React Sanity</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f6f7f9;
+      color: #15181e;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+    }
+    header,
+    footer {
+      padding: 10px 14px;
+      background: #ffffff;
+      border-bottom: 1px solid #d8dde6;
+    }
+    footer {
+      border-top: 1px solid #d8dde6;
+      border-bottom: 0;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 16px;
+      line-height: 1.25;
+    }
+    .status-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+      font-size: 12px;
+    }
+    .status-grid span {
+      padding: 3px 6px;
+      border: 1px solid #d8dde6;
+      background: #f9fafb;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+    #config-errors {
+      margin-top: 8px;
+      color: #a5231f;
+      font-size: 13px;
+      white-space: pre-wrap;
+    }
+    main {
+      min-height: 0;
+      display: grid;
+      grid-template-rows: 1fr;
+    }
+    #chat-scroll {
+      min-height: 0;
+      overflow: auto;
+      padding: 18px 18px 24px;
+    }
+    .message {
+      max-width: 920px;
+      margin: 0 auto 14px;
+      padding: 12px 14px;
+      border: 1px solid #dfe4ec;
+      border-radius: 8px;
+      background: #ffffff;
+      box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+    }
+    .message.user {
+      background: #fbfcff;
+    }
+    .role {
+      margin: 0 0 8px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #526071;
+      text-transform: uppercase;
+    }
+    .content h3 {
+      margin: 10px 0 6px;
+      font-size: 16px;
+    }
+    .content p {
+      margin: 7px 0;
+      line-height: 1.48;
+    }
+    .content ul {
+      margin: 7px 0 7px 20px;
+      padding: 0;
+    }
+    .content li {
+      margin: 3px 0;
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+    }
+    p code,
+    li code {
+      padding: 1px 4px;
+      background: #eef2f7;
+      border-radius: 4px;
+    }
+    pre {
+      margin: 10px 0;
+      padding: 10px;
+      overflow: auto;
+      border-radius: 6px;
+      background: #111827;
+      color: #e5e7eb;
+      line-height: 1.45;
+    }
+    .tok-keyword {
+      color: #93c5fd;
+    }
+    .tok-number {
+      color: #fbbf24;
+    }
+    .tok-string {
+      color: #86efac;
+    }
+    .tok-comment {
+      color: #94a3b8;
+    }
+    .composer {
+      width: min(920px, calc(100vw - 36px));
+      margin: 0 auto;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .composer input {
+      flex: 1;
+      min-width: 0;
+      padding: 9px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font: inherit;
+    }
+    .composer button {
+      padding: 9px 12px;
+      border: 1px solid #9aa7b8;
+      border-radius: 6px;
+      background: #ffffff;
+      font: inherit;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>P1 Production React Sanity</h1>
+    <div class="status-grid" id="audit-status">
+      <span id="ready-state">ready=false</span>
+      <span id="idle-state">idle_ms=0</span>
+      <span id="stream-state">stream_state=idle</span>
+      <span id="token-count">token_count=0</span>
+      <span id="config-valid">config_valid=false</span>
+      <span id="capture-allowed">capture_allowed=false</span>
+      <span id="config-error-summary">config_errors=unknown</span>
+      <span id="baseline-id">baseline_id=unknown</span>
+      <span id="react-version">react_version=unknown</span>
+      <span id="react-build">react_build=production</span>
+      <span id="react-local-vendor">react_local_vendor=true</span>
+      <span id="history-messages">history_messages=0</span>
+      <span id="content-mix">content_mix=unknown</span>
+      <span id="stream-tokens">stream_tokens=0</span>
+      <span id="token-interval">token_interval_ms=0</span>
+      <span id="scenario-mode">scenario_mode=unknown</span>
+      <span id="highlight-policy">highlight_policy=unknown</span>
+      <span id="grounding-source">grounding_source=not-applicable</span>
+      <span id="source-fidelity">source_fidelity=not-applicable</span>
+      <span id="raw-trace-available">raw_trace_available=false</span>
+      <span id="native-pointer-dispatch-measured">native_pointer_dispatch_measured=false</span>
+      <span id="send-trigger-mode">send_trigger_mode=not-applicable</span>
+      <span id="microtask-flush-chain-enabled">microtask_flush_chain_enabled=false</span>
+      <span id="framework-commit-traversal-enabled">framework_commit_traversal_enabled=false</span>
+      <span id="microtask-chain-length">microtask_chain_length=0</span>
+      <span id="microtask-payload-shape">microtask_payload_shape=not-applicable</span>
+      <span id="commit-update-count">commit_update_count=0</span>
+      <span id="appended-message-count">appended_message_count=0</span>
+      <span id="synthetic-pressure-multiplier">synthetic_pressure_multiplier=1</span>
+      <span id="stream-code-block-count">stream_code_block_count=0</span>
+      <span id="stream-code-line-count">stream_code_line_count=0</span>
+      <span id="future-output-pre-rendered">future_output_pre_rendered=false</span>
+      <span id="react-root-render-count">react_root_render_count=0</span>
+      <span id="react-message-render-count">react_message_render_count=0</span>
+      <span id="react-block-render-count">react_block_render_count=0</span>
+      <span id="react-code-block-render-count">react_code_block_render_count=0</span>
+      <span id="react-closed-code-block-render-count">react_closed_code_block_render_count=0</span>
+      <span id="highlight-call-count">highlight_call_count=0</span>
+      <span id="created-highlight-span-count">created_highlight_span_count=0</span>
+      <span id="token-stream-hash">token_stream_hash=0</span>
+      <span id="active-message-source-hash">active_message_source_hash=0</span>
+      <span id="action-sequence-hash">action_sequence_hash=0</span>
+      <span id="send-payload-hash">send_payload_hash=0</span>
+      <span id="semantic-block-sequence-hash">semantic_block_sequence_hash=0</span>
+      <span id="code-block-signature-hash">code_block_signature_hash=0</span>
+      <span id="final-rendered-text-hash">final_rendered_text_hash=0</span>
+      <span id="final-rendered-text-hash-definition">final_rendered_text_hash_definition=active-message-rendered-textContent-fnv1a</span>
+      <span id="block-signature-hash">block_signature_hash=0</span>
+    </div>
+    <div id="config-errors"></div>
+  </header>
+  <main>
+    <div id="chat-scroll">
+      <div id="root"></div>
+    </div>
+  </main>
+  <footer>
+    <div class="composer">
+      <input id="send-input" value="" aria-label="Message input" placeholder="Ask a follow-up" readonly>
+      <button id="send-button" type="button">Send</button>
+    </div>
+  </footer>
+
+  <script src="/vendor/react18/react.production.min.js"></script>
+  <script src="/vendor/react18/react-dom.production.min.js"></script>
+  <script>
+    (() => {
+      "use strict";
+
+      const React = window.React;
+      const ReactDOM = window.ReactDOM;
+      const h = React.createElement;
+      const SCENARIO_TAIL_FOLLOW = "tail-follow";
+      const SCENARIO_SEND_FLUSH = "documented-send-flush-pattern";
+      const SEND_PATTERN = {
+        groundingSource: "p0-product-trace-attribution",
+        sourceFidelity: "documented-pattern-only",
+        rawTraceAvailable: false,
+        nativePointerDispatchMeasured: false,
+        triggerMode: "synthetic-dom-event",
+        microtaskFlushChainEnabled: true,
+        frameworkCommitTraversalEnabled: true,
+        microtaskChainLength: 2,
+        microtaskPayloadShape: "documented-pattern-approximation:pointerup-run-microtasks-o-c",
+        commitUpdateCount: 2,
+        appendedMessageCount: 1,
+        syntheticPressureMultiplier: 1
+      };
+      const REQUIRED = {
+        baselineId: "production-react-sanity",
+        historyMessages: 160,
+        contentMix: "code-heavy",
+        streamTokens: 800,
+        tokenIntervalMs: 20,
+        scenarioMode: SCENARIO_TAIL_FOLLOW,
+        highlightPolicy: "streaming-plain-until-close"
+      };
+      const SEND_REQUIRED = {
+        historyMessages: 1000,
+        contentMix: "standard",
+        streamTokens: 0,
+        tokenIntervalMs: 0
+      };
+      const SUPPORTED_CONTENT_MIXES = new Set(["standard", "code-heavy"]);
+      const SUPPORTED_HISTORY_MESSAGES = {
+        "standard": new Set([160]),
+        "code-heavy": new Set([160, 500, 1000])
+      };
+
+      const statusNodes = {
+        readyState: document.getElementById("ready-state"),
+        idleState: document.getElementById("idle-state"),
+        streamState: document.getElementById("stream-state"),
+        tokenCount: document.getElementById("token-count"),
+        configValid: document.getElementById("config-valid"),
+        captureAllowed: document.getElementById("capture-allowed"),
+        configErrorSummary: document.getElementById("config-error-summary"),
+        baselineId: document.getElementById("baseline-id"),
+        reactVersion: document.getElementById("react-version"),
+        reactBuild: document.getElementById("react-build"),
+        reactLocalVendor: document.getElementById("react-local-vendor"),
+        historyMessages: document.getElementById("history-messages"),
+        contentMix: document.getElementById("content-mix"),
+        streamTokens: document.getElementById("stream-tokens"),
+        tokenInterval: document.getElementById("token-interval"),
+        scenarioMode: document.getElementById("scenario-mode"),
+        highlightPolicy: document.getElementById("highlight-policy"),
+        groundingSource: document.getElementById("grounding-source"),
+        sourceFidelity: document.getElementById("source-fidelity"),
+        rawTraceAvailable: document.getElementById("raw-trace-available"),
+        nativePointerDispatchMeasured: document.getElementById("native-pointer-dispatch-measured"),
+        sendTriggerMode: document.getElementById("send-trigger-mode"),
+        microtaskFlushChainEnabled: document.getElementById("microtask-flush-chain-enabled"),
+        frameworkCommitTraversalEnabled: document.getElementById("framework-commit-traversal-enabled"),
+        microtaskChainLength: document.getElementById("microtask-chain-length"),
+        microtaskPayloadShape: document.getElementById("microtask-payload-shape"),
+        commitUpdateCount: document.getElementById("commit-update-count"),
+        appendedMessageCount: document.getElementById("appended-message-count"),
+        syntheticPressureMultiplier: document.getElementById("synthetic-pressure-multiplier"),
+        streamCodeBlockCount: document.getElementById("stream-code-block-count"),
+        streamCodeLineCount: document.getElementById("stream-code-line-count"),
+        futureOutputPreRendered: document.getElementById("future-output-pre-rendered"),
+        reactRootRenderCount: document.getElementById("react-root-render-count"),
+        reactMessageRenderCount: document.getElementById("react-message-render-count"),
+        reactBlockRenderCount: document.getElementById("react-block-render-count"),
+        reactCodeBlockRenderCount: document.getElementById("react-code-block-render-count"),
+        reactClosedCodeBlockRenderCount: document.getElementById("react-closed-code-block-render-count"),
+        highlightCallCount: document.getElementById("highlight-call-count"),
+        createdHighlightSpanCount: document.getElementById("created-highlight-span-count"),
+        tokenStreamHash: document.getElementById("token-stream-hash"),
+        activeMessageSourceHash: document.getElementById("active-message-source-hash"),
+        actionSequenceHash: document.getElementById("action-sequence-hash"),
+        sendPayloadHash: document.getElementById("send-payload-hash"),
+        semanticBlockSequenceHash: document.getElementById("semantic-block-sequence-hash"),
+        codeBlockSignatureHash: document.getElementById("code-block-signature-hash"),
+        finalRenderedTextHash: document.getElementById("final-rendered-text-hash"),
+        finalRenderedTextHashDefinition: document.getElementById("final-rendered-text-hash-definition"),
+        blockSignatureHash: document.getElementById("block-signature-hash")
+      };
+      const configErrorsNode = document.getElementById("config-errors");
+      const scrollNode = document.getElementById("chat-scroll");
+      const sendButtonNode = document.getElementById("send-button");
+
+      function parseConfig() {
+        const params = new URLSearchParams(window.location.search);
+        const requestedScenarioMode = params.get("scenario_mode") || REQUIRED.scenarioMode;
+        const isSendMode = requestedScenarioMode === SCENARIO_SEND_FLUSH;
+        const config = {
+          baselineId: params.get("baseline_id") || REQUIRED.baselineId,
+          historyMessages: Number(params.get("history_messages") || (isSendMode ? SEND_REQUIRED.historyMessages : REQUIRED.historyMessages)),
+          contentMix: params.get("content_mix") || (isSendMode ? SEND_REQUIRED.contentMix : REQUIRED.contentMix),
+          streamTokens: Number(params.get("stream_tokens") || (isSendMode ? SEND_REQUIRED.streamTokens : REQUIRED.streamTokens)),
+          tokenIntervalMs: Number(params.get("token_interval_ms") || (isSendMode ? SEND_REQUIRED.tokenIntervalMs : REQUIRED.tokenIntervalMs)),
+          scenarioMode: requestedScenarioMode,
+          highlightPolicy: params.get("highlight_policy") || REQUIRED.highlightPolicy,
+          microtaskChainLength: Number(params.get("microtask_chain_length") || SEND_PATTERN.microtaskChainLength),
+          microtaskPayloadShape: params.get("microtask_payload_shape") || SEND_PATTERN.microtaskPayloadShape,
+          commitUpdateCount: Number(params.get("commit_update_count") || SEND_PATTERN.commitUpdateCount),
+          appendedMessageCount: Number(params.get("appended_message_count") || SEND_PATTERN.appendedMessageCount),
+          syntheticPressureMultiplier: Number(params.get("synthetic_pressure_multiplier") || SEND_PATTERN.syntheticPressureMultiplier)
+        };
+        const errors = [];
+        if (config.baselineId !== REQUIRED.baselineId) {
+          errors.push("baseline_id must be production-react-sanity");
+        }
+        if (config.scenarioMode !== SCENARIO_TAIL_FOLLOW && config.scenarioMode !== SCENARIO_SEND_FLUSH) {
+          errors.push("scenario_mode must be tail-follow|documented-send-flush-pattern");
+        }
+        if (!SUPPORTED_CONTENT_MIXES.has(config.contentMix)) {
+          errors.push("content_mix must be standard|code-heavy");
+        } else if (config.scenarioMode === SCENARIO_TAIL_FOLLOW && !SUPPORTED_HISTORY_MESSAGES[config.contentMix].has(config.historyMessages)) {
+          errors.push(`history_messages for ${config.contentMix} must be ${Array.from(SUPPORTED_HISTORY_MESSAGES[config.contentMix]).join("|")}`);
+        }
+        if (config.scenarioMode === SCENARIO_SEND_FLUSH && config.contentMix !== SEND_REQUIRED.contentMix) {
+          errors.push("content_mix for documented-send-flush-pattern must be standard");
+        }
+        if (config.scenarioMode === SCENARIO_SEND_FLUSH && config.historyMessages !== SEND_REQUIRED.historyMessages) {
+          errors.push("history_messages for documented-send-flush-pattern must be 1000");
+        }
+        if (config.scenarioMode === SCENARIO_TAIL_FOLLOW && config.streamTokens !== REQUIRED.streamTokens) {
+          errors.push("stream_tokens must be 800");
+        }
+        if (config.scenarioMode === SCENARIO_SEND_FLUSH && config.streamTokens !== SEND_REQUIRED.streamTokens) {
+          errors.push("stream_tokens for documented-send-flush-pattern must be 0");
+        }
+        if (config.scenarioMode === SCENARIO_TAIL_FOLLOW && config.tokenIntervalMs !== REQUIRED.tokenIntervalMs) {
+          errors.push("token_interval_ms must be 20");
+        }
+        if (config.scenarioMode === SCENARIO_SEND_FLUSH && config.tokenIntervalMs !== SEND_REQUIRED.tokenIntervalMs) {
+          errors.push("token_interval_ms for documented-send-flush-pattern must be 0");
+        }
+        if (config.highlightPolicy !== REQUIRED.highlightPolicy) {
+          errors.push("highlight_policy must be streaming-plain-until-close");
+        }
+        if (config.scenarioMode === SCENARIO_SEND_FLUSH) {
+          if (config.microtaskChainLength !== SEND_PATTERN.microtaskChainLength) {
+            errors.push(`microtask_chain_length for documented-send-flush-pattern must be ${SEND_PATTERN.microtaskChainLength}`);
+          }
+          if (config.microtaskPayloadShape !== SEND_PATTERN.microtaskPayloadShape) {
+            errors.push(`microtask_payload_shape for documented-send-flush-pattern must be ${SEND_PATTERN.microtaskPayloadShape}`);
+          }
+          if (config.commitUpdateCount !== SEND_PATTERN.commitUpdateCount) {
+            errors.push(`commit_update_count for documented-send-flush-pattern must be ${SEND_PATTERN.commitUpdateCount}`);
+          }
+          if (config.appendedMessageCount !== SEND_PATTERN.appendedMessageCount) {
+            errors.push(`appended_message_count for documented-send-flush-pattern must be ${SEND_PATTERN.appendedMessageCount}`);
+          }
+          if (config.syntheticPressureMultiplier !== 1) {
+            errors.push("synthetic_pressure_multiplier above 1 is blocked without separate approval");
+          }
+        }
+        return { config, errors };
+      }
+
+      function configErrorText() {
+        return errors.length === 0 ? "none" : errors.join("; ");
+      }
+
+      function fnv1a(text) {
+        let hash = 2166136261;
+        for (let index = 0; index < text.length; index += 1) {
+          hash ^= text.charCodeAt(index);
+          hash = Math.imul(hash, 16777619);
+        }
+        return hash >>> 0;
+      }
+
+      function escapeInline(text) {
+        return text;
+      }
+
+      function fencedBlock(language, lines) {
+        return ["```" + language, ...lines, "```"].join("\n");
+      }
+
+      function toolOutputLines(sequence, format) {
+        if (format === "json") {
+          return [
+            "format: json",
+            "{",
+            `  "tool": "retrieval-${sequence}",`,
+            `  "rows": ${24 + (sequence % 13)},`,
+            "  \"status\": \"ok\"",
+            "}"
+          ];
+        }
+        if (format === "terminal") {
+          return [
+            "format: terminal",
+            `$ rg --json "needle-${sequence}" ./workspace`,
+            `./src/item-${sequence}.ts:12:export const item = ${sequence};`,
+            `./src/item-${sequence}.ts:19:return item + 1;`,
+            "exit_code=0"
+          ];
+        }
+        if (format === "markdown-table") {
+          return [
+            "format: markdown-table",
+            "| file | rows | status |",
+            "| --- | ---: | --- |",
+            `| report-${sequence}.md | ${10 + (sequence % 9)} | parsed |`,
+            `| trace-${sequence}.json | ${20 + (sequence % 11)} | indexed |`
+          ];
+        }
+        return [
+          "format: file-listing",
+          `src/session/${sequence}/index.ts`,
+          `src/session/${sequence}/renderer.ts`,
+          `logs/session-${sequence}.jsonl`,
+          `artifacts/session-${sequence}/summary.md`
+        ];
+      }
+
+      function standardHistorySource(sequence) {
+        const bucket = sequence % 5;
+        if (bucket === 0) {
+          return [
+            `# History checkpoint ${sequence}`,
+            "",
+            `The assistant maintains a stable tail while handling message ${sequence} with \`inlineState${sequence % 7}\` and deterministic content.`,
+            "",
+            "- preserve prior context",
+            "- keep the input responsive",
+            "- avoid dropping streamed output"
+          ].join("\n");
+        }
+        if (bucket === 1) {
+          return [
+            `## Tool result ${sequence}`,
+            "",
+            "```tool-output",
+            `tool: ledger-search-${sequence % 9}`,
+            `rows: ${20 + (sequence % 11)}`,
+            "status: ok",
+            `checksum: ${sequence * 37}`,
+            "```"
+          ].join("\n");
+        }
+        if (bucket === 2) {
+          return [
+            `The user asks for a compact explanation of batch ${sequence}.`,
+            "",
+            "```js",
+            `const row${sequence} = { id: ${sequence}, visible: true };`,
+            `function format${sequence}(value) {`,
+            "  return String(value).trim().toUpperCase();",
+            "}",
+            "```"
+          ].join("\n");
+        }
+        if (bucket === 3) {
+          return [
+            `### JSON payload ${sequence}`,
+            "",
+            "```json",
+            "{",
+            `  "message_id": ${sequence},`,
+            "  \"kind\": \"history\",",
+            `  "priority": ${sequence % 4},`,
+            "  \"complete\": true",
+            "}",
+            "```"
+          ].join("\n");
+        }
+        return {
+          source: [
+            `Paragraph ${sequence} covers long-running stream context with markdown rendering and code-adjacent prose.`,
+            "",
+            "- first item uses `inline_code`",
+            "- second item keeps variable height",
+            "- third item adds enough body text to exercise wrapping and layout"
+          ].join("\n")
+        }.source;
+      }
+
+      function codeHeavyHistorySource(sequence) {
+        const bucket = sequence % 5;
+        const language = bucket === 0 ? "js" : bucket === 2 ? "ts" : "json";
+        if (bucket === 0 || bucket === 2 || bucket === 3) {
+          return [
+            `# Code-heavy checkpoint ${sequence}`,
+            "",
+            `This history message contains a 30-line fenced ${language} block and inline \`code_${sequence}\`.`,
+            "",
+            "- preserve streaming semantics",
+            "- keep syntax highlighting active",
+            "- keep the full history mounted",
+            "",
+            fencedBlock(language, makeCodeLines(sequence, 30, language))
+          ].join("\n");
+        }
+
+        if (bucket === 1) {
+          return [
+            `## Review note ${sequence}`,
+            "",
+            "The assistant compares parsed code regions with surrounding prose while keeping markdown structure stable.",
+            "",
+            "- code-heavy non-code control row",
+            "- deterministic message height"
+          ].join("\n");
+        }
+
+        return [
+          `### Tool side note ${sequence}`,
+          "",
+          "```tool-output",
+          ...toolOutputLines(sequence, "terminal"),
+          "```"
+        ].join("\n");
+      }
+
+      function historySource(sequence, contentMix) {
+        if (contentMix === "code-heavy") {
+          return codeHeavyHistorySource(sequence);
+        }
+        return standardHistorySource(sequence);
+      }
+
+      function generateHistoryMessage(index) {
+        const sequence = index + 1;
+        return {
+          id: `history-${sequence}`,
+          role: sequence % 3 === 0 ? "user" : "assistant",
+          source: historySource(sequence, config.contentMix)
+        };
+      }
+
+      function generateHistoryMessages(count) {
+        return Array.from({ length: count }, (_, index) => generateHistoryMessage(index));
+      }
+
+      function makeCodeLines(sequence, lineCount, language) {
+        const lines = [];
+        if (language === "json") {
+          lines.push("{");
+          for (let line = 1; line <= lineCount - 2; line += 1) {
+            const suffix = line === lineCount - 2 ? "" : ",";
+            lines.push(`  "metric_${String(line).padStart(2, "0")}": ${sequence * 100 + line}${suffix}`);
+          }
+          lines.push("}");
+          return lines;
+        }
+
+        if (language === "sh") {
+          for (let line = 1; line <= lineCount; line += 1) {
+            lines.push(`node scripts/p1/task-${sequence}.mjs --row ${line} --mode deterministic`);
+          }
+          return lines;
+        }
+
+        for (let line = 1; line <= lineCount; line += 1) {
+          lines.push(`const value_${sequence}_${line} = normalizeToken(${sequence + line});`);
+        }
+        return lines;
+      }
+
+      function standardStreamSectionTokens(sectionIndex) {
+        const suffix = String(sectionIndex).padStart(2, "0");
+        return [
+          `# Streaming section ${suffix}\n\n`,
+          "The ", "assistant ", "streams ", "a ", "mixed ", "markdown ", "answer ", "while ", "the ", "input ", "box ", "remains ", "present. ",
+          "It ", "includes ", "`inline_state_", suffix, "` ", "and ", "structured ", "content.\n\n",
+          "- token ", "cadence ", "is ", "deterministic\n",
+          "- tail ", "follow ", "must ", "remain ", "stable\n",
+          "- parsing ", "and ", "highlighting ", "still ", "run\n\n",
+          "```js\n",
+          "const ", `value${sectionIndex}`, " = ", String(sectionIndex), ";\n",
+          "function ", `render${sectionIndex}`, "(token) {\n",
+          "  return ", "String", "(token)", ".trim", "();\n",
+          "}\n",
+          "```\n\n",
+          "```json\n",
+          "{\n",
+          `  "section": ${sectionIndex},\n`,
+          "  \"streaming\": true,\n",
+          "  \"kind\": \"p1a\"\n",
+          "}\n",
+          "```\n\n",
+          "```tool-output\n",
+          `tool: diagnostic-${sectionIndex}\n`,
+          "status: ok\n",
+          `rows: ${12 + (sectionIndex % 8)}\n`,
+          "```\n\n"
+        ];
+      }
+
+      function codeHeavyStreamSectionTokens(sectionIndex) {
+        const suffix = String(sectionIndex).padStart(2, "0");
+        const language = sectionIndex % 3 === 0 ? "json" : sectionIndex % 3 === 1 ? "js" : "sh";
+        return [
+          `# Code-heavy streaming section ${suffix}\n\n`,
+          "The ", "assistant ", "streams ", "code-heavy ", "markdown ", "while ", "keeping ", "`inline_code` ", "active.\n\n",
+          "- each ", "section ", "includes ", "a ", "30-line ", "fenced ", "code ", "block\n",
+          "- syntax ", "highlighting ", "uses ", "the ", "same ", "local ", "path\n\n",
+          "```", language, "\n",
+          ...makeCodeLines(1000 + sectionIndex, 30, language).map((line) => `${line}\n`),
+          "```\n\n"
+        ];
+      }
+
+      function streamSectionTokens(sectionIndex, contentMix) {
+        if (contentMix === "code-heavy") {
+          return codeHeavyStreamSectionTokens(sectionIndex);
+        }
+        return standardStreamSectionTokens(sectionIndex);
+      }
+
+      function fillerTokens(remaining) {
+        const source = [
+          "Final ", "stream ", "paragraph ", "keeps ", "markdown ", "valid ", "and ", "closes ", "without ", "opening ", "a ", "new ", "fence. ",
+          "- trailing ", "list ", "item ", "with ", "`inline_code`", "\n"
+        ];
+        const result = [];
+        while (result.length < remaining) {
+          result.push(source[result.length % source.length]);
+        }
+        return result;
+      }
+
+      function createStreamTokens(count, contentMix) {
+        const tokens = [];
+        let sectionIndex = 1;
+        while (tokens.length < count) {
+          const section = streamSectionTokens(sectionIndex, contentMix);
+          if (tokens.length + section.length <= count) {
+            tokens.push(...section);
+          } else {
+            tokens.push(...fillerTokens(count - tokens.length));
+          }
+          sectionIndex += 1;
+        }
+        return tokens.slice(0, count);
+      }
+
+      function documentedSendPayloadSource() {
+        return [
+          "# Documented send flush pattern",
+          "",
+          "The visible send surface dispatches a synthetic pointerup and click sequence.",
+          "",
+          "- grounding source: p0-product-trace-attribution",
+          "- source fidelity: documented-pattern-only",
+          "- dominant family: app-side async microtask / flush overhead",
+          "- secondary family: framework commit traversal overhead",
+          "",
+          "The payload is appended only after the microtask chain completes."
+        ].join("\n");
+      }
+
+      function documentedSendActionSequence() {
+        return [
+          "send:start",
+          "send:trigger:start",
+          "send:synthetic-pointerup",
+          "send:synthetic-click",
+          "send:trigger:end",
+          "send:microtask:start",
+          "send:microtask:end",
+          "send:commit:start",
+          "send:commit:end",
+          "send:end"
+        ].join("|");
+      }
+
+      function startsBlock(line) {
+        return (
+          /^#{1,3}\s+/.test(line) ||
+          /^-\s+/.test(line) ||
+          /^```/.test(line) ||
+          /^::tool-output\s+/.test(line) ||
+          /^>\s+/.test(line)
+        );
+      }
+
+      function parseMarkdown(source) {
+        const lines = source.replace(/\r\n/g, "\n").split("\n");
+        const blocks = [];
+        let index = 0;
+        while (index < lines.length) {
+          const line = lines[index];
+          if (line.trim() === "") {
+            index += 1;
+            continue;
+          }
+          const fence = line.match(/^```([A-Za-z0-9_-]+)?\s*$/);
+          if (fence) {
+            const language = fence[1] || "text";
+            const codeLines = [];
+            index += 1;
+            while (index < lines.length && !/^```\s*$/.test(lines[index])) {
+              codeLines.push(lines[index]);
+              index += 1;
+            }
+            const closed = index < lines.length;
+            if (index < lines.length) {
+              index += 1;
+            }
+            const content = codeLines.join("\n");
+            blocks.push({
+              type: language === "tool-output" || language === "tool" ? "tool" : "code",
+              language,
+              content,
+              closed,
+              key: `code-${blocks.length}-${language}-${fnv1a(content)}-${closed ? "closed" : "open"}`
+            });
+            continue;
+          }
+          const heading = line.match(/^(#{1,3})\s+(.+)$/);
+          if (heading) {
+            blocks.push({
+              type: "heading",
+              level: heading[1].length,
+              text: heading[2],
+              key: `heading-${index}-${fnv1a(line)}`
+            });
+            index += 1;
+            continue;
+          }
+          if (line.startsWith("- ")) {
+            const items = [];
+            const start = index;
+            while (index < lines.length && lines[index].startsWith("- ")) {
+              items.push(lines[index].slice(2));
+              index += 1;
+            }
+            blocks.push({
+              type: "list",
+              items,
+              key: `list-${start}-${fnv1a(items.join("|"))}`
+            });
+            continue;
+          }
+          const paragraph = [];
+          const start = index;
+          while (
+            index < lines.length &&
+            lines[index].trim() !== "" &&
+            !startsBlock(lines[index])
+          ) {
+            paragraph.push(lines[index]);
+            index += 1;
+          }
+          if (paragraph.length === 0) {
+            paragraph.push(lines[index]);
+            index += 1;
+          }
+          blocks.push({
+            type: "paragraph",
+            text: paragraph.join(" "),
+            key: `paragraph-${start}-${fnv1a(paragraph.join(" "))}`
+          });
+        }
+        return blocks;
+      }
+
+      function inlineNodes(text) {
+        const parts = String(text).split(/(`[^`]+`)/g);
+        return parts.map((part, index) => {
+          if (part.startsWith("`") && part.endsWith("`")) {
+            return h("code", { key: index }, part.slice(1, -1));
+          }
+          return escapeInline(part);
+        });
+      }
+
+      const counters = {
+        reactRootRenderCount: 0,
+        reactMessageRenderCount: 0,
+        reactBlockRenderCount: 0,
+        reactCodeBlockRenderCount: 0,
+        reactClosedCodeBlockRenderCount: 0,
+        highlightCallCount: 0,
+        createdHighlightSpanCount: 0
+      };
+
+      function resetRenderCounters() {
+        for (const key of Object.keys(counters)) {
+          counters[key] = 0;
+        }
+      }
+
+      function highlightCode(code) {
+        counters.highlightCallCount += 1;
+        const pieces = String(code).split(/(\bconst\b|\breturn\b|\bfunction\b|\d+|"[^"]*"|'[^']*'|\/\/.*$)/gm);
+        return pieces.map((piece, index) => {
+          if (!piece) {
+            return null;
+          }
+          let className = null;
+          if (/^(const|return|function)$/.test(piece)) {
+            className = "tok-keyword";
+          } else if (/^\d+$/.test(piece)) {
+            className = "tok-number";
+          } else if (/^["']/.test(piece)) {
+            className = "tok-string";
+          } else if (/^\/\//.test(piece)) {
+            className = "tok-comment";
+          }
+          if (className) {
+            counters.createdHighlightSpanCount += 1;
+            return h("span", { key: index, className }, piece);
+          }
+          return piece;
+        });
+      }
+
+      const TextBlock = React.memo(function TextBlock({ block }) {
+        counters.reactBlockRenderCount += 1;
+          if (block.type === "heading") {
+            return h(`h${block.level || 3}`, null, inlineNodes(block.text));
+          }
+          if (block.type === "list") {
+            return h("ul", null, block.items.map((item, index) => h("li", { key: index }, inlineNodes(item))));
+        }
+        return h("p", null, inlineNodes(block.text));
+      });
+
+      const CodeBlock = React.memo(function CodeBlock({ language, content, closed }) {
+        counters.reactBlockRenderCount += 1;
+        counters.reactCodeBlockRenderCount += 1;
+        if (closed) {
+          counters.reactClosedCodeBlockRenderCount += 1;
+        }
+        const shouldHighlight = closed;
+        const children = shouldHighlight ? highlightCode(content) : content;
+        return h("pre", null, h("code", { "data-language": language, "data-closed": String(closed) }, children));
+      });
+
+      const ToolBlock = React.memo(function ToolBlock({ content }) {
+        counters.reactBlockRenderCount += 1;
+        return h("pre", { className: "tool-output" }, h("code", null, content));
+      });
+
+      const MessageView = React.memo(function MessageView({ message }) {
+        counters.reactMessageRenderCount += 1;
+        const blocks = React.useMemo(() => parseMarkdown(message.source), [message.source]);
+        return h(
+          "article",
+          { className: `message ${message.role}` },
+          h("div", { className: "role" }, message.role),
+          h("div", { className: "content" }, blocks.map((block) => {
+            if (block.type === "code") {
+              return h(CodeBlock, {
+                key: block.key,
+                language: block.language,
+                content: block.content,
+                closed: block.closed
+              });
+            }
+            if (block.type === "tool") {
+              return h(ToolBlock, { key: block.key, content: block.content });
+            }
+            return h(TextBlock, { key: block.key, block });
+          }))
+        );
+      });
+
+      const HistoryList = React.memo(function HistoryList({ messages }) {
+        return h(React.Fragment, null, messages.map((message) => h(MessageView, { key: message.id, message })));
+      });
+
+      function inlineRenderedText(text) {
+        return String(text).split("`").join("");
+      }
+
+      function renderedTextFromBlocks(blocks) {
+        let renderedText = "";
+        for (const block of blocks) {
+          if (block.type === "heading" || block.type === "paragraph") {
+            renderedText += inlineRenderedText(block.text);
+          } else if (block.type === "list") {
+            for (const item of block.items) {
+              renderedText += inlineRenderedText(item);
+            }
+          } else if (block.type === "code" || block.type === "tool") {
+            renderedText += block.content;
+          }
+        }
+        return renderedText;
+      }
+
+      function computeSemanticBlockSequenceHash(source) {
+        let closedCodeOrdinal = 0;
+        const parts = [];
+        for (const block of parseMarkdown(source)) {
+          if (block.type === "heading") {
+            parts.push(`heading:${block.level}:${fnv1a(block.text)}`);
+          } else if (block.type === "paragraph") {
+            parts.push(`paragraph:${fnv1a(block.text)}`);
+          } else if (block.type === "list") {
+            parts.push(`list:${block.items.length}:${fnv1a(block.items.join("\n"))}`);
+          } else if (block.type === "tool") {
+            parts.push(`tool:${block.language || "tool"}:${fnv1a(block.content)}`);
+          } else if (block.type === "code") {
+            parts.push(`code:${closedCodeOrdinal}:${block.language}:${fnv1a(block.content)}`);
+            closedCodeOrdinal += 1;
+          }
+        }
+        return fnv1a(parts.join("|"));
+      }
+
+      function computeCodeBlockSignatureHash(source) {
+        let closedCodeOrdinal = 0;
+        const parts = [];
+        for (const block of parseMarkdown(source)) {
+          if (block.type === "code") {
+            parts.push(`${closedCodeOrdinal}:${block.language}:${fnv1a(block.content)}`);
+            closedCodeOrdinal += 1;
+          }
+        }
+        return fnv1a(parts.join("|"));
+      }
+
+      function computeFinalRenderedTextHash(source) {
+        return fnv1a(renderedTextFromBlocks(parseMarkdown(source)));
+      }
+
+      function countStreamCode(source) {
+        const blocks = parseMarkdown(source);
+        let blockCount = 0;
+        let lineCount = 0;
+        for (const block of blocks) {
+          if (block.type === "code") {
+            blockCount += 1;
+            lineCount += block.content === "" ? 0 : block.content.split("\n").length;
+          }
+        }
+        return { blockCount, lineCount };
+      }
+
+      const { config, errors } = parseConfig();
+      const configValid = errors.length === 0;
+      const captureAllowed = configValid;
+      const isSendFlushScenario = config.scenarioMode === SCENARIO_SEND_FLUSH;
+      const historyMessages = captureAllowed ? generateHistoryMessages(config.historyMessages) : [];
+      const streamTokens = captureAllowed && !isSendFlushScenario ? createStreamTokens(config.streamTokens, config.contentMix) : [];
+      const sendPayloadSource = captureAllowed && isSendFlushScenario ? documentedSendPayloadSource() : "";
+      const sendActionSequence = captureAllowed && isSendFlushScenario ? documentedSendActionSequence() : "";
+      const finalStreamSource = streamTokens.join("");
+      const measuredSource = isSendFlushScenario ? sendPayloadSource : finalStreamSource;
+      const finalHistorySource = historyMessages.map((message) => message.source).join("\u001d");
+      const finalStreamCode = countStreamCode(finalStreamSource);
+      const tokenStreamHash = fnv1a(streamTokens.join("\u001e"));
+      const activeMessageSourceHash = fnv1a(measuredSource);
+      const actionSequenceHash = fnv1a(sendActionSequence);
+      const sendPayloadHash = fnv1a(sendPayloadSource);
+      const historySourceHash = fnv1a(finalHistorySource);
+      const workloadSourceHash = fnv1a(`${finalHistorySource}\u001f${measuredSource}`);
+      const semanticBlockSequenceHash = computeSemanticBlockSequenceHash(measuredSource);
+      const codeBlockSignatureHash = computeCodeBlockSignatureHash(measuredSource);
+      const finalRenderedTextHash = computeFinalRenderedTextHash(measuredSource);
+      let ready = false;
+      const mountedAt = performance.now();
+      let readyAt = null;
+      let streamTimer = null;
+      let captureIndex = 0;
+      let currentTokenIndex = 0;
+      let currentStreamSource = "";
+      let tailMissCount = 0;
+      let finalizedCapture = false;
+      let sendTriggerActive = false;
+      let sendTriggered = false;
+      let sendFinalized = false;
+      let setActiveSourceExternal = null;
+      let setTokenCountExternal = null;
+      let setStreamStateExternal = null;
+      let setSendMessagesExternal = null;
+      let setSendStateExternal = null;
+      let applySendCommitExternal = null;
+
+      function setText(node, value) {
+        node.textContent = value;
+      }
+
+      function updateStatus(streamState = null, tokenCount = null) {
+        const idleMs = readyAt === null ? 0 : Math.max(0, performance.now() - readyAt);
+        setText(statusNodes.readyState, `ready=${ready}`);
+        setText(statusNodes.idleState, `idle_ms=${Math.round(idleMs)}`);
+        if (streamState !== null) {
+          setText(statusNodes.streamState, `stream_state=${streamState}`);
+        }
+        if (tokenCount !== null) {
+          setText(statusNodes.tokenCount, `token_count=${tokenCount}`);
+        }
+        setText(statusNodes.configValid, `config_valid=${configValid}`);
+        setText(statusNodes.captureAllowed, `capture_allowed=${captureAllowed}`);
+        setText(statusNodes.configErrorSummary, `config_errors=${configErrorText()}`);
+        setText(statusNodes.baselineId, `baseline_id=${config.baselineId}`);
+        setText(statusNodes.reactVersion, `react_version=${React.version}`);
+        setText(statusNodes.reactBuild, "react_build=production");
+        setText(statusNodes.reactLocalVendor, "react_local_vendor=true");
+        setText(statusNodes.historyMessages, `history_messages=${config.historyMessages}`);
+        setText(statusNodes.contentMix, `content_mix=${config.contentMix}`);
+        setText(statusNodes.streamTokens, `stream_tokens=${config.streamTokens}`);
+        setText(statusNodes.tokenInterval, `token_interval_ms=${config.tokenIntervalMs}`);
+        setText(statusNodes.scenarioMode, `scenario_mode=${config.scenarioMode}`);
+        setText(statusNodes.highlightPolicy, `highlight_policy=${config.highlightPolicy}`);
+        setText(statusNodes.groundingSource, `grounding_source=${isSendFlushScenario ? SEND_PATTERN.groundingSource : "not-applicable"}`);
+        setText(statusNodes.sourceFidelity, `source_fidelity=${isSendFlushScenario ? SEND_PATTERN.sourceFidelity : "not-applicable"}`);
+        setText(statusNodes.rawTraceAvailable, `raw_trace_available=${isSendFlushScenario ? String(SEND_PATTERN.rawTraceAvailable) : "false"}`);
+        setText(statusNodes.nativePointerDispatchMeasured, `native_pointer_dispatch_measured=${isSendFlushScenario ? String(SEND_PATTERN.nativePointerDispatchMeasured) : "false"}`);
+        setText(statusNodes.sendTriggerMode, `send_trigger_mode=${isSendFlushScenario ? SEND_PATTERN.triggerMode : "not-applicable"}`);
+        setText(statusNodes.microtaskFlushChainEnabled, `microtask_flush_chain_enabled=${isSendFlushScenario ? String(SEND_PATTERN.microtaskFlushChainEnabled) : "false"}`);
+        setText(statusNodes.frameworkCommitTraversalEnabled, `framework_commit_traversal_enabled=${isSendFlushScenario ? String(SEND_PATTERN.frameworkCommitTraversalEnabled) : "false"}`);
+        setText(statusNodes.microtaskChainLength, `microtask_chain_length=${isSendFlushScenario ? config.microtaskChainLength : 0}`);
+        setText(statusNodes.microtaskPayloadShape, `microtask_payload_shape=${isSendFlushScenario ? config.microtaskPayloadShape : "not-applicable"}`);
+        setText(statusNodes.commitUpdateCount, `commit_update_count=${isSendFlushScenario ? config.commitUpdateCount : 0}`);
+        setText(statusNodes.appendedMessageCount, `appended_message_count=${isSendFlushScenario ? config.appendedMessageCount : 0}`);
+        setText(statusNodes.syntheticPressureMultiplier, `synthetic_pressure_multiplier=${isSendFlushScenario ? config.syntheticPressureMultiplier : 1}`);
+        setText(statusNodes.streamCodeBlockCount, `stream_code_block_count=${finalStreamCode.blockCount}`);
+        setText(statusNodes.streamCodeLineCount, `stream_code_line_count=${finalStreamCode.lineCount}`);
+        setText(statusNodes.futureOutputPreRendered, "future_output_pre_rendered=false");
+        setText(statusNodes.reactRootRenderCount, `react_root_render_count=${counters.reactRootRenderCount}`);
+        setText(statusNodes.reactMessageRenderCount, `react_message_render_count=${counters.reactMessageRenderCount}`);
+        setText(statusNodes.reactBlockRenderCount, `react_block_render_count=${counters.reactBlockRenderCount}`);
+        setText(statusNodes.reactCodeBlockRenderCount, `react_code_block_render_count=${counters.reactCodeBlockRenderCount}`);
+        setText(statusNodes.reactClosedCodeBlockRenderCount, `react_closed_code_block_render_count=${counters.reactClosedCodeBlockRenderCount}`);
+        setText(statusNodes.highlightCallCount, `highlight_call_count=${counters.highlightCallCount}`);
+        setText(statusNodes.createdHighlightSpanCount, `created_highlight_span_count=${counters.createdHighlightSpanCount}`);
+        setText(statusNodes.tokenStreamHash, `token_stream_hash=${tokenStreamHash}`);
+        setText(statusNodes.activeMessageSourceHash, `active_message_source_hash=${activeMessageSourceHash}`);
+        setText(statusNodes.actionSequenceHash, `action_sequence_hash=${actionSequenceHash}`);
+        setText(statusNodes.sendPayloadHash, `send_payload_hash=${sendPayloadHash}`);
+        setText(statusNodes.semanticBlockSequenceHash, `semantic_block_sequence_hash=${semanticBlockSequenceHash}`);
+        setText(statusNodes.codeBlockSignatureHash, `code_block_signature_hash=${codeBlockSignatureHash}`);
+        setText(statusNodes.finalRenderedTextHash, `final_rendered_text_hash=${finalRenderedTextHash}`);
+        setText(statusNodes.finalRenderedTextHashDefinition, "final_rendered_text_hash_definition=active-message-rendered-textContent-fnv1a");
+        setText(statusNodes.blockSignatureHash, `block_signature_hash=${codeBlockSignatureHash}`);
+      }
+
+      function markP1(name) {
+        performance.mark(`p1:capture:${captureIndex}:${name}`);
+      }
+
+      function emitAuditMarks() {
+        markP1(`audit:config_valid=${configValid}`);
+        markP1(`audit:capture_allowed=${captureAllowed}`);
+        markP1(`audit:config_errors=${configErrorText()}`);
+        markP1(`audit:baseline_id=${config.baselineId}`);
+        markP1(`audit:react_version=${React.version}`);
+        markP1("audit:react_build=production");
+        markP1("audit:react_local_vendor=true");
+        markP1(`audit:history_messages=${config.historyMessages}`);
+        markP1(`audit:content_mix=${config.contentMix}`);
+        markP1(`audit:stream_tokens=${config.streamTokens}`);
+        markP1(`audit:token_interval_ms=${config.tokenIntervalMs}`);
+        markP1(`audit:scenario_mode=${config.scenarioMode}`);
+        markP1(`audit:highlight_policy=${config.highlightPolicy}`);
+        markP1(`audit:grounding_source=${isSendFlushScenario ? SEND_PATTERN.groundingSource : "not-applicable"}`);
+        markP1(`audit:source_fidelity=${isSendFlushScenario ? SEND_PATTERN.sourceFidelity : "not-applicable"}`);
+        markP1(`audit:raw_trace_available=${isSendFlushScenario ? String(SEND_PATTERN.rawTraceAvailable) : "false"}`);
+        markP1(`audit:native_pointer_dispatch_measured=${isSendFlushScenario ? String(SEND_PATTERN.nativePointerDispatchMeasured) : "false"}`);
+        markP1(`audit:send_trigger_mode=${isSendFlushScenario ? SEND_PATTERN.triggerMode : "not-applicable"}`);
+        markP1(`audit:microtask_flush_chain_enabled=${isSendFlushScenario ? String(SEND_PATTERN.microtaskFlushChainEnabled) : "false"}`);
+        markP1(`audit:framework_commit_traversal_enabled=${isSendFlushScenario ? String(SEND_PATTERN.frameworkCommitTraversalEnabled) : "false"}`);
+        markP1(`audit:microtask_chain_length=${isSendFlushScenario ? config.microtaskChainLength : 0}`);
+        markP1(`audit:microtask_payload_shape=${isSendFlushScenario ? config.microtaskPayloadShape : "not-applicable"}`);
+        markP1(`audit:commit_update_count=${isSendFlushScenario ? config.commitUpdateCount : 0}`);
+        markP1(`audit:appended_message_count=${isSendFlushScenario ? config.appendedMessageCount : 0}`);
+        markP1(`audit:synthetic_pressure_multiplier=${isSendFlushScenario ? config.syntheticPressureMultiplier : 1}`);
+        markP1(`audit:stream_code_block_count=${finalStreamCode.blockCount}`);
+        markP1(`audit:stream_code_line_count=${finalStreamCode.lineCount}`);
+        markP1("audit:future_output_pre_rendered=false");
+        markP1(`audit:token_stream_hash=${tokenStreamHash}`);
+        markP1(`audit:active_message_source_hash=${activeMessageSourceHash}`);
+        markP1(`audit:action_sequence_hash=${actionSequenceHash}`);
+        markP1(`audit:send_payload_hash=${sendPayloadHash}`);
+        markP1(`audit:history_source_hash=${historySourceHash}`);
+        markP1(`audit:workload_source_hash=${workloadSourceHash}`);
+        markP1(`audit:semantic_block_sequence_hash=${semanticBlockSequenceHash}`);
+        markP1(`audit:code_block_signature_hash=${codeBlockSignatureHash}`);
+        markP1("audit:final_rendered_text_hash_definition=active-message-rendered-textContent-fnv1a");
+      }
+
+      function emitFinalMetrics() {
+        markP1("stream:end");
+        markP1(`metric:final-token-count=${currentTokenIndex}`);
+        markP1(`metric:tail_miss_count=${tailMissCount}`);
+        markP1(`metric:react_root_render_count=${counters.reactRootRenderCount}`);
+        markP1(`metric:react_message_render_count=${counters.reactMessageRenderCount}`);
+        markP1(`metric:react_block_render_count=${counters.reactBlockRenderCount}`);
+        markP1(`metric:react_code_block_render_count=${counters.reactCodeBlockRenderCount}`);
+        markP1(`metric:react_closed_code_block_render_count=${counters.reactClosedCodeBlockRenderCount}`);
+        markP1(`metric:highlight_call_count=${counters.highlightCallCount}`);
+        markP1(`metric:created_highlight_span_count=${counters.createdHighlightSpanCount}`);
+        markP1(`metric:stream_code_block_count=${finalStreamCode.blockCount}`);
+        markP1(`metric:stream_code_line_count=${finalStreamCode.lineCount}`);
+        markP1(`metric:token_stream_hash=${tokenStreamHash}`);
+        markP1(`metric:active_message_source_hash=${activeMessageSourceHash}`);
+        markP1(`metric:history_source_hash=${historySourceHash}`);
+        markP1(`metric:workload_source_hash=${workloadSourceHash}`);
+        markP1(`metric:semantic_block_sequence_hash=${semanticBlockSequenceHash}`);
+        markP1(`metric:code_block_signature_hash=${codeBlockSignatureHash}`);
+        markP1(`metric:final_rendered_text_hash=${finalRenderedTextHash}`);
+        markP1(`metric:block_signature_hash=${codeBlockSignatureHash}`);
+        updateStatus("complete", currentTokenIndex);
+      }
+
+      function emitSendFinalMetrics() {
+        markP1(`metric:react_root_render_count=${counters.reactRootRenderCount}`);
+        markP1(`metric:react_message_render_count=${counters.reactMessageRenderCount}`);
+        markP1(`metric:react_block_render_count=${counters.reactBlockRenderCount}`);
+        markP1(`metric:react_code_block_render_count=${counters.reactCodeBlockRenderCount}`);
+        markP1(`metric:react_closed_code_block_render_count=${counters.reactClosedCodeBlockRenderCount}`);
+        markP1(`metric:highlight_call_count=${counters.highlightCallCount}`);
+        markP1(`metric:created_highlight_span_count=${counters.createdHighlightSpanCount}`);
+        markP1(`metric:action_sequence_hash=${actionSequenceHash}`);
+        markP1(`metric:send_payload_hash=${sendPayloadHash}`);
+        markP1(`metric:history_source_hash=${historySourceHash}`);
+        markP1(`metric:workload_source_hash=${workloadSourceHash}`);
+        markP1(`metric:semantic_block_sequence_hash=${semanticBlockSequenceHash}`);
+        markP1(`metric:code_block_signature_hash=${codeBlockSignatureHash}`);
+        markP1(`metric:final_rendered_text_hash=${finalRenderedTextHash}`);
+        updateStatus("complete", 0);
+      }
+
+      function stopStream(incomplete) {
+        if (streamTimer !== null) {
+          window.clearTimeout(streamTimer);
+          streamTimer = null;
+        }
+        if (incomplete && captureIndex > 0) {
+          markP1(`stream:incomplete-token-count=${currentTokenIndex}`);
+        }
+        if (setStreamStateExternal) {
+          setStreamStateExternal(incomplete ? "idle" : "complete");
+        }
+        updateStatus(incomplete ? "idle" : "complete", currentTokenIndex);
+      }
+
+      function queueSendMicrotask(step, done) {
+        const enqueue = window.queueMicrotask || ((callback) => Promise.resolve().then(callback));
+        enqueue(() => {
+          if (step === 1) {
+            markP1("send:microtask:start");
+          }
+          if (step >= config.microtaskChainLength) {
+            markP1("send:microtask:end");
+            done();
+            return;
+          }
+          queueSendMicrotask(step + 1, done);
+        });
+      }
+
+      function createSendMessages() {
+        const messages = [];
+        for (let index = 0; index < config.appendedMessageCount; index += 1) {
+          messages.push({
+            id: `send-appended-${captureIndex}-${index + 1}`,
+            role: "assistant",
+            source: sendPayloadSource
+          });
+        }
+        return messages;
+      }
+
+      function beginDocumentedSendFlush() {
+        if (!isSendFlushScenario || sendTriggered) {
+          return;
+        }
+        sendTriggered = true;
+        queueSendMicrotask(1, () => {
+          markP1("send:commit:start");
+          if (applySendCommitExternal) {
+            applySendCommitExternal(createSendMessages());
+          }
+        });
+      }
+
+      function dispatchSyntheticSendEvents() {
+        if (!sendButtonNode) {
+          markP1("send:error-missing-button");
+          return;
+        }
+        sendTriggerActive = true;
+        markP1("send:trigger:start");
+        const PointerEventCtor = window.PointerEvent || window.Event;
+        sendButtonNode.dispatchEvent(new PointerEventCtor("pointerup", { bubbles: true, cancelable: true }));
+        sendButtonNode.dispatchEvent(new window.Event("click", { bubbles: true, cancelable: true }));
+        markP1("send:trigger:end");
+        sendTriggerActive = false;
+      }
+
+      function scheduleNextToken() {
+        streamTimer = window.setTimeout(() => {
+          currentTokenIndex += 1;
+          currentStreamSource += streamTokens[currentTokenIndex - 1];
+          if (setActiveSourceExternal) {
+            setActiveSourceExternal(currentStreamSource);
+          }
+          if (setTokenCountExternal) {
+            setTokenCountExternal(currentTokenIndex);
+          }
+          if (currentTokenIndex % 100 === 0) {
+            markP1(`stream:token-${currentTokenIndex}`);
+          }
+          updateStatus("streaming", currentTokenIndex);
+          if (currentTokenIndex >= config.streamTokens) {
+            streamTimer = null;
+            return;
+          }
+          scheduleNextToken();
+        }, config.tokenIntervalMs);
+      }
+
+      function startCaptureStream() {
+        if (!ready || errors.length > 0) {
+          if (captureIndex > 0) {
+            markP1("error:not-ready");
+          }
+          return;
+        }
+        stopStream(true);
+        captureIndex += 1;
+        currentTokenIndex = 0;
+        currentStreamSource = "";
+        tailMissCount = 0;
+        finalizedCapture = false;
+        resetRenderCounters();
+        if (setActiveSourceExternal) {
+          setActiveSourceExternal("");
+        }
+        if (setTokenCountExternal) {
+          setTokenCountExternal(0);
+        }
+        if (setStreamStateExternal) {
+          setStreamStateExternal("streaming");
+        }
+        updateStatus("streaming", 0);
+        const idleMs = readyAt === null ? 0 : Math.max(0, performance.now() - readyAt);
+        markP1(`ready:idle-ms=${Math.round(idleMs)}`);
+        emitAuditMarks();
+        markP1("stream:start");
+        scheduleNextToken();
+      }
+
+      function startCaptureSendPattern() {
+        if (!ready || errors.length > 0) {
+          if (captureIndex > 0) {
+            markP1("error:not-ready");
+          }
+          return;
+        }
+        stopStream(true);
+        captureIndex += 1;
+        currentTokenIndex = 0;
+        currentStreamSource = "";
+        tailMissCount = 0;
+        finalizedCapture = false;
+        sendTriggered = false;
+        sendFinalized = false;
+        resetRenderCounters();
+        if (setActiveSourceExternal) {
+          setActiveSourceExternal("");
+        }
+        if (setTokenCountExternal) {
+          setTokenCountExternal(0);
+        }
+        if (setSendMessagesExternal) {
+          setSendMessagesExternal([]);
+        }
+        if (setStreamStateExternal) {
+          setStreamStateExternal("sending");
+        }
+        if (setSendStateExternal) {
+          setSendStateExternal("sending");
+        }
+        updateStatus("sending", 0);
+        const idleMs = readyAt === null ? 0 : Math.max(0, performance.now() - readyAt);
+        markP1(`ready:idle-ms=${Math.round(idleMs)}`);
+        emitAuditMarks();
+        markP1("send:start");
+        dispatchSyntheticSendEvents();
+      }
+
+      function handleCaptureEnd() {
+        if (isSendFlushScenario) {
+          if (!sendFinalized && captureIndex > 0) {
+            markP1("send:incomplete");
+          }
+          return;
+        }
+        if (currentTokenIndex < config.streamTokens) {
+          stopStream(true);
+        }
+      }
+
+      function installSendSurfaceHandlers() {
+        if (!sendButtonNode) {
+          return;
+        }
+        sendButtonNode.addEventListener("pointerup", () => {
+          if (!sendTriggerActive || !isSendFlushScenario) {
+            return;
+          }
+          markP1("send:synthetic-pointerup");
+          beginDocumentedSendFlush();
+        });
+        sendButtonNode.addEventListener("click", () => {
+          if (!sendTriggerActive || !isSendFlushScenario) {
+            return;
+          }
+          markP1("send:synthetic-click");
+        });
+      }
+
+      function App() {
+        counters.reactRootRenderCount += 1;
+        const [activeSource, setActiveSource] = React.useState("");
+        const [tokenCount, setTokenCount] = React.useState(0);
+        const [streamState, setStreamState] = React.useState("idle");
+        const [sendMessages, setSendMessages] = React.useState([]);
+        const [sendCommitVersion, setSendCommitVersion] = React.useState(0);
+        setActiveSourceExternal = setActiveSource;
+        setTokenCountExternal = setTokenCount;
+        setStreamStateExternal = setStreamState;
+        setSendMessagesExternal = setSendMessages;
+        setSendStateExternal = setStreamState;
+        applySendCommitExternal = (messages) => {
+          setSendMessages((current) => [...current, ...messages]);
+          setSendCommitVersion((current) => current + 1);
+        };
+
+        React.useLayoutEffect(() => {
+          if (tokenCount > 0 && streamState === "streaming") {
+            if (scrollNode.scrollTop < scrollNode.scrollHeight - scrollNode.clientHeight - 2) {
+              tailMissCount += 1;
+            }
+            scrollNode.scrollTop = scrollNode.scrollHeight;
+          }
+        }, [activeSource, tokenCount, streamState]);
+
+        React.useEffect(() => {
+          updateStatus(streamState, tokenCount);
+          if (
+            streamState === "streaming" &&
+            tokenCount === config.streamTokens &&
+            !finalizedCapture
+          ) {
+            finalizedCapture = true;
+            currentTokenIndex = tokenCount;
+            window.setTimeout(() => {
+              if (setStreamStateExternal) {
+                setStreamStateExternal("complete");
+              }
+              emitFinalMetrics();
+            }, 0);
+          }
+        }, [activeSource, tokenCount, streamState]);
+
+        React.useLayoutEffect(() => {
+          if (!isSendFlushScenario || sendCommitVersion === 0 || sendFinalized) {
+            return;
+          }
+          sendFinalized = true;
+          markP1("send:commit:end");
+          if (setSendStateExternal) {
+            setSendStateExternal("complete");
+          }
+          markP1("send:end");
+          emitSendFinalMetrics();
+        }, [sendCommitVersion]);
+
+        if (isSendFlushScenario) {
+          return h(
+            React.Fragment,
+            null,
+            h(HistoryList, { messages: historyMessages }),
+            sendMessages.map((message) => h(MessageView, { key: message.id, message }))
+          );
+        }
+
+        return h(
+          React.Fragment,
+          null,
+          h(HistoryList, { messages: historyMessages }),
+          h(MessageView, {
+            key: "active-assistant-message",
+            message: {
+              id: "active-assistant-message",
+              role: "assistant",
+              source: activeSource || " "
+            }
+          })
+        );
+      }
+
+      function installCaptureObserver() {
+        const observer = new PerformanceObserver((list) => {
+          for (const entry of list.getEntries()) {
+            if (entry.name === "p0:capture:start") {
+              if (isSendFlushScenario) {
+                startCaptureSendPattern();
+              } else {
+                startCaptureStream();
+              }
+            } else if (entry.name === "p0:capture:end") {
+              handleCaptureEnd();
+            }
+          }
+        });
+        observer.observe({ type: "mark", buffered: true });
+      }
+
+      function initialize() {
+        statusNodes.baselineId.textContent = `baseline_id=${config.baselineId}`;
+        statusNodes.reactVersion.textContent = `react_version=${React.version}`;
+        configErrorsNode.textContent = errors.length > 0 ? `Config error:\n${errors.join("\n")}` : "";
+        updateStatus("idle", 0);
+        const root = ReactDOM.createRoot(document.getElementById("root"));
+        root.render(h(App));
+        installSendSurfaceHandlers();
+        installCaptureObserver();
+        window.setTimeout(() => {
+          ready = captureAllowed;
+          readyAt = mountedAt;
+          updateStatus("idle", 0);
+          scrollNode.scrollTop = scrollNode.scrollHeight;
+        }, Math.max(0, 2000 - (performance.now() - mountedAt)));
+        window.__p1ProductionReactSanity = {
+          config,
+          audit: {
+            config_valid: configValid,
+            capture_allowed: captureAllowed,
+            config_errors: configErrorText(),
+            baseline_id: config.baselineId,
+            react_version: React.version,
+            react_build: "production",
+            react_local_vendor: true,
+            history_messages: config.historyMessages,
+            content_mix: config.contentMix,
+            stream_tokens: config.streamTokens,
+            token_interval_ms: config.tokenIntervalMs,
+            scenario_mode: config.scenarioMode,
+            highlight_policy: config.highlightPolicy,
+            grounding_source: isSendFlushScenario ? SEND_PATTERN.groundingSource : "not-applicable",
+            source_fidelity: isSendFlushScenario ? SEND_PATTERN.sourceFidelity : "not-applicable",
+            raw_trace_available: isSendFlushScenario ? SEND_PATTERN.rawTraceAvailable : false,
+            native_pointer_dispatch_measured: isSendFlushScenario ? SEND_PATTERN.nativePointerDispatchMeasured : false,
+            send_trigger_mode: isSendFlushScenario ? SEND_PATTERN.triggerMode : "not-applicable",
+            microtask_flush_chain_enabled: isSendFlushScenario ? SEND_PATTERN.microtaskFlushChainEnabled : false,
+            framework_commit_traversal_enabled: isSendFlushScenario ? SEND_PATTERN.frameworkCommitTraversalEnabled : false,
+            microtask_chain_length: isSendFlushScenario ? config.microtaskChainLength : 0,
+            microtask_payload_shape: isSendFlushScenario ? config.microtaskPayloadShape : "not-applicable",
+            commit_update_count: isSendFlushScenario ? config.commitUpdateCount : 0,
+            appended_message_count: isSendFlushScenario ? config.appendedMessageCount : 0,
+            synthetic_pressure_multiplier: isSendFlushScenario ? config.syntheticPressureMultiplier : 1,
+            stream_code_block_count: finalStreamCode.blockCount,
+            stream_code_line_count: finalStreamCode.lineCount,
+            token_stream_hash: tokenStreamHash,
+            active_message_source_hash: activeMessageSourceHash,
+            action_sequence_hash: actionSequenceHash,
+            send_payload_hash: sendPayloadHash,
+            history_source_hash: historySourceHash,
+            workload_source_hash: workloadSourceHash,
+            semantic_block_sequence_hash: semanticBlockSequenceHash,
+            code_block_signature_hash: codeBlockSignatureHash,
+            final_rendered_text_hash: finalRenderedTextHash,
+            final_rendered_text_hash_definition: "active-message-rendered-textContent-fnv1a",
+            block_signature_hash: codeBlockSignatureHash,
+            future_output_pre_rendered: false
+          }
+        };
+      }
+
+      if (!React || !ReactDOM || !ReactDOM.createRoot) {
+        configErrorsNode.textContent = "Config error:\nReact 18 local vendor bundle failed to load.";
+        return;
+      }
+      initialize();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "allowJs": true,
+    "checkJs": false,
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "lib": ["ES2022"],
+    "skipLibCheck": false,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": [
+    "runtime/core/**/*.ts",
+    "tests/runtime/**/*.ts",
+    "scripts/p2/**/*.mjs"
+  ],
+  "exclude": [
+    "node_modules",
+    ".tmp",
+    "dist",
+    "build",
+    "coverage"
+  ]
+}

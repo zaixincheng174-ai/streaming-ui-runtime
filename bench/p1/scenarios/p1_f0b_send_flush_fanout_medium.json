@@ -1,0 +1,43 @@
+{
+  "id": "p1_f0b_send_flush_fanout_medium",
+  "title": "P1-F0 F0-B send/flush fanout medium calibration",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "settle_ms": 5000,
+  "capture_ms": 12000,
+  "phases": [
+    {
+      "id": "send_flush_fanout_medium",
+      "label": "Dispatch a synthetic DOM pointerup/click and observe the medium send/flush/fanout model",
+      "duration_ms": 7000
+    },
+    {
+      "id": "post_fanout_observe",
+      "label": "Keep the page foreground-active after the medium fanout action completes",
+      "duration_ms": 5000
+    }
+  ],
+  "sop": [
+    "F0-B is medium fanout calibration.",
+    "F0-B is not product trace replay.",
+    "F0-B is not P2.",
+    "F0-B is not F0-C.",
+    "F0-B uses structural fanout variables only.",
+    "synthetic_pressure_multiplier must remain 1.",
+    "F0-B requires one smoke first; no 3x run is allowed until separately approved.",
+    "Load the P1-F0 target and confirm visible audit state shows config_valid=true and capture_allowed=true.",
+    "Confirm scenario_mode=p1-f0-send-flush-fanout, calibration_level=medium, payload_shape=medium-json, content_richness=medium, and synthetic_pressure_multiplier=1.",
+    "Confirm stable_keys=true, react_memo_enabled=true, deferred_rendering=false, and token_coalescing=false.",
+    "Press Enter only after the page is loaded and the Chrome window is foreground-active.",
+    "Do not interact with the page during capture; the target dispatches synthetic DOM pointerup/click events on the visible send button when it observes p0:capture:start.",
+    "Keep the Chrome window foreground-active for the full 12 second capture window."
+  ],
+  "notes_template": [
+    "f0b_medium_calibration=yes|no",
+    "config_valid=yes|no",
+    "foreground_visible=yes|no",
+    "one_sentence_observation"
+  ]
+}

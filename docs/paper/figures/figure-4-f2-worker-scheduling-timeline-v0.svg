@@ -1,0 +1,129 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="820" viewBox="0 0 1400 820" role="img" aria-labelledby="title desc">
+  <title id="title">Figure 4. F2 Monolithic vs Scheduled Worker Timeline</title>
+  <desc id="desc">Two stacked timeline panels comparing monolithic Worker execution with scheduled Worker execution and showing urgent projection acknowledgement and projection-commit latency.</desc>
+
+  <defs>
+    <marker id="arrow-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#4b5563"/>
+    </marker>
+    <marker id="arrow-urgent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#7f1d1d"/>
+    </marker>
+    <marker id="arrow-worker" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#334155"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1400" height="820" fill="#ffffff"/>
+
+  <text x="700" y="38" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="700" fill="#111827">Figure 4. F2 Monolithic vs Scheduled Worker Timeline</text>
+  <text x="700" y="68" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="15" fill="#4b5563">Scheduled Worker execution admits urgent projection between chunks; total Worker time increases while urgent projection latency drops.</text>
+
+  <rect x="60" y="95" width="1280" height="280" rx="14" fill="#fafafa" stroke="#d1d5db" stroke-width="2"/>
+  <text x="700" y="127" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700" fill="#111827">F2-A: Monolithic Worker</text>
+
+  <text x="96" y="170" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#374151">Main Thread lane</text>
+  <line x1="225" y1="166" x2="1280" y2="166" stroke="#e5e7eb" stroke-width="2"/>
+  <text x="96" y="250" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#334155">Worker lane</text>
+  <line x1="225" y1="246" x2="1280" y2="246" stroke="#e5e7eb" stroke-width="2"/>
+
+  <rect x="235" y="145" width="150" height="42" rx="8" fill="#f8fafc" stroke="#94a3b8"/>
+  <text x="310" y="162" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#111827">send heavy</text>
+  <text x="310" y="178" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#111827">transaction</text>
+  <line x1="310" y1="187" x2="310" y2="218" stroke="#334155" stroke-width="2" marker-end="url(#arrow-worker)"/>
+
+  <rect x="310" y="224" width="640" height="44" rx="9" fill="#dbeafe" stroke="#334155"/>
+  <text x="630" y="242" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700" fill="#111827">one monolithic heavy transaction</text>
+  <text x="630" y="260" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#334155">worker_heavy_txn_total_ms mean ≈ 26.8ms</text>
+
+  <rect x="515" y="145" width="178" height="42" rx="8" fill="#fef2f2" stroke="#991b1b"/>
+  <text x="604" y="162" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#7f1d1d">urgent projection</text>
+  <text x="604" y="178" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#7f1d1d">request while busy</text>
+  <line x1="604" y1="187" x2="604" y2="218" stroke="#7f1d1d" stroke-width="2" marker-end="url(#arrow-urgent)"/>
+
+  <line x1="604" y1="222" x2="604" y2="292" stroke="#7f1d1d" stroke-width="2" stroke-dasharray="5 5"/>
+  <text x="624" y="303" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#7f1d1d">urgent projection waits behind heavy work</text>
+
+  <rect x="950" y="145" width="170" height="42" rx="8" fill="#f8fafc" stroke="#94a3b8"/>
+  <text x="1035" y="162" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#111827">receive urgent</text>
+  <text x="1035" y="178" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#111827">projection later</text>
+
+  <line x1="604" y1="166" x2="950" y2="166" stroke="#7f1d1d" stroke-width="2" marker-end="url(#arrow-urgent)"/>
+  <text x="777" y="151" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#7f1d1d">urgent ack mean ≈ 20.933ms</text>
+  <text x="777" y="198" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#7f1d1d">projection-commit mean ≈ 22.867ms</text>
+
+  <rect x="1126" y="216" width="175" height="82" rx="10" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="1144" y="239" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#111827">worker_chunk_count = 1</text>
+  <text x="1144" y="260" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#111827">worker_yield_count = 0</text>
+  <text x="1144" y="281" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#111827">worker_preemptions = 0</text>
+
+  <rect x="60" y="405" width="1280" height="305" rx="14" fill="#fafafa" stroke="#d1d5db" stroke-width="2"/>
+  <text x="700" y="437" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700" fill="#111827">F2-B: Scheduled Worker</text>
+
+  <text x="96" y="480" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#374151">Main Thread lane</text>
+  <line x1="225" y1="476" x2="1280" y2="476" stroke="#e5e7eb" stroke-width="2"/>
+  <text x="96" y="568" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#334155">Worker lane</text>
+  <line x1="225" y1="564" x2="1280" y2="564" stroke="#e5e7eb" stroke-width="2"/>
+
+  <rect x="235" y="455" width="150" height="42" rx="8" fill="#f8fafc" stroke="#94a3b8"/>
+  <text x="310" y="472" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#111827">send heavy</text>
+  <text x="310" y="488" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#111827">transaction</text>
+  <line x1="310" y1="497" x2="310" y2="536" stroke="#334155" stroke-width="2" marker-end="url(#arrow-worker)"/>
+
+  <rect x="305" y="540" width="72" height="48" rx="8" fill="#dbeafe" stroke="#334155"/>
+  <text x="341" y="559" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#111827">chunk</text>
+  <text x="341" y="576" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#334155">1</text>
+  <rect x="387" y="540" width="34" height="48" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="4 4"/>
+  <text x="404" y="568" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="10" fill="#475569">yield</text>
+  <rect x="431" y="540" width="72" height="48" rx="8" fill="#dbeafe" stroke="#334155"/>
+  <text x="467" y="559" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#111827">chunk</text>
+  <text x="467" y="576" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#334155">2</text>
+  <rect x="513" y="540" width="34" height="48" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="4 4"/>
+  <text x="530" y="568" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="10" fill="#475569">yield</text>
+
+  <rect x="557" y="540" width="82" height="48" rx="8" fill="#fee2e2" stroke="#991b1b"/>
+  <text x="598" y="558" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="11" font-weight="700" fill="#7f1d1d">urgent</text>
+  <text x="598" y="574" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="11" font-weight="700" fill="#7f1d1d">projection</text>
+  <text x="598" y="603" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#7f1d1d">1 preemption</text>
+
+  <rect x="649" y="540" width="34" height="48" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="4 4"/>
+  <text x="666" y="568" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="10" fill="#475569">yield</text>
+  <rect x="693" y="540" width="72" height="48" rx="8" fill="#dbeafe" stroke="#334155"/>
+  <text x="729" y="559" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#111827">chunk</text>
+  <text x="729" y="576" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#334155">3</text>
+  <text x="800" y="570" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" fill="#6b7280">...</text>
+  <rect x="845" y="540" width="78" height="48" rx="8" fill="#dbeafe" stroke="#334155"/>
+  <text x="884" y="559" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#111827">chunk</text>
+  <text x="884" y="576" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#334155">313</text>
+
+  <line x1="305" y1="626" x2="923" y2="626" stroke="#334155" stroke-width="8" stroke-linecap="round"/>
+  <text x="614" y="649" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#334155">worker_heavy_txn_total_ms mean ≈ 48.533ms</text>
+
+  <rect x="492" y="455" width="178" height="42" rx="8" fill="#fef2f2" stroke="#991b1b"/>
+  <text x="581" y="472" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#7f1d1d">urgent projection</text>
+  <text x="581" y="488" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#7f1d1d">request during work</text>
+  <line x1="581" y1="497" x2="581" y2="535" stroke="#7f1d1d" stroke-width="2" marker-end="url(#arrow-urgent)"/>
+
+  <rect x="700" y="455" width="188" height="42" rx="8" fill="#f8fafc" stroke="#94a3b8"/>
+  <text x="794" y="472" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#111827">receive urgent</text>
+  <text x="794" y="488" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#111827">projection quickly</text>
+
+  <line x1="581" y1="476" x2="700" y2="476" stroke="#7f1d1d" stroke-width="2" marker-end="url(#arrow-urgent)"/>
+  <text x="640.5" y="460" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#7f1d1d">ack ≈ 0.900ms</text>
+  <text x="640.5" y="516" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#7f1d1d">projection-commit ≈ 3.333ms</text>
+
+  <rect x="980" y="540" width="280" height="82" rx="10" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="1000" y="563" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#111827">worker_chunk_count = 313</text>
+  <text x="1000" y="584" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#111827">worker_yield_count = 312</text>
+  <text x="1000" y="605" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#111827">worker_preemptions = 1</text>
+
+  <rect x="970" y="455" width="310" height="54" rx="10" fill="#f0fdf4" stroke="#166534" stroke-width="1.4"/>
+  <text x="1125" y="477" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#14532d">Responsiveness improves;</text>
+  <text x="1125" y="496" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#14532d">total Worker time increases.</text>
+
+  <rect x="70" y="725" width="1260" height="58" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="700" y="746" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12.5" fill="#4b5563">Figure 4. F2 compares monolithic Worker execution with scheduled/chunked Worker execution. F2-B increases total Worker heavy transaction time due to chunk/yield overhead,</text>
+  <text x="700" y="765" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12.5" fill="#4b5563">but admits urgent projection work between chunks, reducing same-clock urgent acknowledgement from ≈20.933ms to ≈0.900ms and urgent projection-commit latency from ≈22.867ms to ≈3.333ms.</text>
+
+  <text x="700" y="807" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#6b7280">Same-clock urgent metrics; not full pixel/display latency; not product replay.</text>
+</svg>

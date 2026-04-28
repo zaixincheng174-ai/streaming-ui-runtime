@@ -1,0 +1,27 @@
+{
+  "id": "s01_tail_append",
+  "title": "Tail-pinned steady append",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "settle_ms": 5000,
+  "capture_ms": 20000,
+  "phases": [
+    {
+      "id": "tail_append",
+      "label": "Remain tail-pinned while append continues",
+      "duration_ms": 20000
+    }
+  ],
+  "sop": [
+    "Load the target and confirm visible append activity is already happening before the run starts.",
+    "Remain pinned to the newest visible content for the entire capture window.",
+    "Do not scroll, resize, switch tabs, or interact outside the scenario instructions.",
+    "Keep the Chrome window foreground-active for the full run."
+  ],
+  "notes_template": [
+    "anchor_movement=none|minor|major",
+    "one_sentence_observation"
+  ]
+}

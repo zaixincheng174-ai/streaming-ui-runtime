@@ -1,0 +1,53 @@
+{
+  "schema_version": "p0d.controlled-target-v2.matrix.v1",
+  "purpose": "Controlled 2x2 matrix for mass x boundary attribution in P0-D.",
+  "common": {
+    "append_interval_ms": 80,
+    "capture_window_s": 20,
+    "block_style": "plain",
+    "replicates": 3
+  },
+  "cells": [
+    {
+      "cell_id": "C1_low_mass_low_boundary",
+      "mass_bucket": "low",
+      "boundary_bucket": "low",
+      "seed_blocks": 200,
+      "chars_per_block": 40
+    },
+    {
+      "cell_id": "C2_high_mass_low_boundary",
+      "mass_bucket": "high",
+      "boundary_bucket": "low",
+      "seed_blocks": 200,
+      "chars_per_block": 400
+    },
+    {
+      "cell_id": "C3_low_mass_high_boundary",
+      "mass_bucket": "low",
+      "boundary_bucket": "high",
+      "seed_blocks": 2000,
+      "chars_per_block": 40
+    },
+    {
+      "cell_id": "C4_high_mass_high_boundary",
+      "mass_bucket": "high",
+      "boundary_bucket": "high",
+      "seed_blocks": 2000,
+      "chars_per_block": 400
+    }
+  ],
+  "metrics": [
+    "run_task_p95_ms",
+    "run_task_max_ms",
+    "run_task_busy_pct",
+    "long_task_count_50ms",
+    "layout_event_count",
+    "paint_event_count"
+  ],
+  "interpretation": {
+    "boundary_axis": "Compare C1 -> C3.",
+    "mass_axis": "Compare C1 -> C2.",
+    "interaction": "Compare C4 against C2 and C3."
+  }
+}

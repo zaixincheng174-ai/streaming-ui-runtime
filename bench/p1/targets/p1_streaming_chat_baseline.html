@@ -1,0 +1,2487 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>P1-A Streaming Chat Baseline</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        line-height: 1.45;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: #f7f7f2;
+        color: #1b1d1a;
+      }
+
+      body {
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+      }
+
+      #status {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 12px;
+        align-items: center;
+        padding: 10px 14px;
+        border-bottom: 1px solid #d7d9cf;
+        background: #f7f7f2;
+        font: 12px/1.3 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      }
+
+      #status span {
+        white-space: nowrap;
+      }
+
+      #status .ready-ok {
+        color: #166534;
+      }
+
+      #status .ready-wait,
+      #status .error {
+        color: #991b1b;
+      }
+
+      #chat-scrollport {
+        overflow: auto;
+        background: #ffffff;
+      }
+
+      #message-list {
+        box-sizing: border-box;
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 18px 18px 28px;
+      }
+
+      .message {
+        display: grid;
+        grid-template-columns: 92px minmax(0, 1fr);
+        gap: 14px;
+        padding: 13px 0;
+        border-bottom: 1px solid #eceee7;
+      }
+
+      .role {
+        color: #5a6256;
+        font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        text-transform: uppercase;
+      }
+
+      .content {
+        min-width: 0;
+      }
+
+      .content h1,
+      .content h2,
+      .content h3 {
+        margin: 0 0 8px;
+        color: #111827;
+        font-weight: 650;
+        line-height: 1.2;
+      }
+
+      .content h1 {
+        font-size: 18px;
+      }
+
+      .content h2 {
+        font-size: 16px;
+      }
+
+      .content h3 {
+        font-size: 14px;
+      }
+
+      .content p {
+        margin: 0 0 10px;
+      }
+
+      .content ul {
+        margin: 0 0 10px 20px;
+        padding: 0;
+      }
+
+      .content li {
+        margin: 3px 0;
+      }
+
+      .content blockquote {
+        margin: 0 0 10px;
+        padding: 6px 10px;
+        border-left: 3px solid #a8b3a0;
+        color: #374151;
+        background: #f7faf4;
+      }
+
+      .content table {
+        margin: 0 0 12px;
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+
+      .content th,
+      .content td {
+        padding: 5px 7px;
+        border: 1px solid #d9dfd1;
+        text-align: left;
+      }
+
+      .content th {
+        background: #f1f5eb;
+        font-weight: 650;
+      }
+
+      .inline-code {
+        padding: 1px 4px;
+        border-radius: 4px;
+        background: #edf2f7;
+        color: #243b53;
+        font: 0.92em/1.4 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      }
+
+      pre {
+        margin: 0 0 12px;
+        overflow: auto;
+        border: 1px solid #d6deeb;
+        border-radius: 6px;
+        background: #101820;
+        color: #e6edf3;
+      }
+
+      pre code {
+        display: block;
+        padding: 10px 12px;
+        font: 12px/1.55 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        white-space: pre;
+      }
+
+      .tool-output {
+        border-color: #c9d5c0;
+        background: #f4f7ef;
+        color: #1f2a1d;
+      }
+
+      .tok-keyword {
+        color: #ffb86b;
+      }
+
+      .tok-string {
+        color: #a5d6a7;
+      }
+
+      .tok-comment {
+        color: #8b949e;
+      }
+
+      .tok-number {
+        color: #79c0ff;
+      }
+
+      .tok-key {
+        color: #d2a8ff;
+      }
+
+      .tok-flag {
+        color: #ffa657;
+      }
+
+      .tok-punctuation {
+        color: #c9d1d9;
+      }
+
+      #input-bar {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        align-items: end;
+        padding: 12px 14px;
+        border-top: 1px solid #d7d9cf;
+        background: #f7f7f2;
+      }
+
+      #active-input {
+        min-height: 48px;
+        max-height: 92px;
+        resize: vertical;
+        box-sizing: border-box;
+        padding: 9px 10px;
+        border: 1px solid #bfc7b7;
+        border-radius: 6px;
+        background: #ffffff;
+        color: #171717;
+        font: 14px/1.4 inherit;
+      }
+
+      #send-button {
+        height: 38px;
+        padding: 0 14px;
+        border: 1px solid #20261f;
+        border-radius: 6px;
+        background: #20261f;
+        color: #ffffff;
+        font: 13px/1 inherit;
+      }
+
+      .config-error {
+        max-width: 820px;
+        margin: 32px auto;
+        padding: 16px;
+        border: 1px solid #b91c1c;
+        border-radius: 6px;
+        background: #fef2f2;
+        color: #7f1d1d;
+      }
+
+      .config-error h1 {
+        margin: 0 0 12px;
+        font-size: 16px;
+      }
+
+      .config-error pre {
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="status" aria-label="P1-A audit status">
+      <span id="baseline-id">baseline_id=unknown</span>
+      <span id="scenario-mode">scenario_mode=unknown</span>
+      <span id="content-mix">content_mix=unknown</span>
+      <span id="input-probe">input_probe=false</span>
+      <span id="disable-highlight">disable_highlight=false</span>
+      <span id="disable-markdown-parse">disable_markdown_parse=false</span>
+      <span id="render-variant">render_variant=standard</span>
+      <span id="highlight-policy">highlight_policy=eager</span>
+      <span id="node-churn-probe">node_churn_probe=false</span>
+      <span id="active-render-strategy">active_render_strategy=full-rerender</span>
+      <span id="closed-code-reuse-semantics">closed_code_reuse_semantics=none</span>
+      <span id="history-messages">history_messages=0</span>
+      <span id="stream-tokens">stream_tokens=0</span>
+      <span id="token-interval">token_interval_ms=0</span>
+      <span id="history-code-pct">history_code_block_message_pct=0</span>
+      <span id="history-code-lines">history_avg_code_block_lines=0</span>
+      <span id="stream-code-count">stream_code_block_count=0</span>
+      <span id="stream-code-lines">stream_code_line_count=0</span>
+      <span id="history-tool-pct">history_tool_output_message_pct=0</span>
+      <span id="stream-tool-count">stream_tool_output_block_count=0</span>
+      <span id="stream-tool-lines">stream_tool_output_line_count=0</span>
+      <span id="tool-formats">tool_output_formats_present=none</span>
+      <span id="stream-tool-formats">stream_tool_output_formats_present=none</span>
+      <span id="history-rich-markdown-pct">history_rich_markdown_message_pct=0</span>
+      <span id="stream-heading-count">stream_heading_count=0</span>
+      <span id="stream-list-item-count">stream_list_item_count=0</span>
+      <span id="stream-markdown-table-count">stream_markdown_table_count=0</span>
+      <span id="stream-blockquote-count">stream_blockquote_count=0</span>
+      <span id="stream-inline-code-count">stream_inline_code_count=0</span>
+      <span id="active-unclosed-code-plain-count">active_unclosed_code_plain_count=0</span>
+      <span id="unclosed-code-highlight-skipped-count">unclosed_code_highlight_skipped_count=0</span>
+      <span id="closed-code-highlight-call-count">closed_code_highlight_call_count=0</span>
+      <span id="highlight-call-count">highlight_call_count=0</span>
+      <span id="created-highlight-span-count">created_highlight_span_count=0</span>
+      <span id="dom-nodes-created-this-tick">dom_nodes_created_this_tick=0</span>
+      <span id="dom-nodes-replaced-this-tick">dom_nodes_replaced_this_tick=0</span>
+      <span id="dom-nodes-in-closed-blocks-affected-this-tick">dom_nodes_in_closed_blocks_affected_this_tick=0</span>
+      <span id="dom-nodes-in-active-unclosed-block-affected-this-tick">dom_nodes_in_active_unclosed_block_affected_this_tick=0</span>
+      <span id="total-nodes-created">total_nodes_created=0</span>
+      <span id="total-nodes-replaced">total_nodes_replaced=0</span>
+      <span id="total-nodes-in-closed-blocks-churned">total_nodes_in_closed_blocks_churned=0</span>
+      <span id="total-nodes-in-active-unclosed-block-changed">total_nodes_in_active_unclosed_block_changed=0</span>
+      <span id="closed-block-churn-ratio">closed_block_churn_ratio=0</span>
+      <span id="active-message-closed-code-block-count">active_message_closed_code_block_count=0</span>
+      <span id="active-message-closed-code-block-render-count">active_message_closed_code_block_render_count=0</span>
+      <span id="active-message-closed-code-block-rerender-factor">active_message_closed_code_block_rerender_factor=0</span>
+      <span id="active-message-closed-code-dom-nodes-created">active_message_closed_code_dom_nodes_created=0</span>
+      <span id="active-message-closed-code-dom-nodes-replaced">active_message_closed_code_dom_nodes_replaced=0</span>
+      <span id="unique-closed-code-block-count">unique_closed_code_block_count=0</span>
+      <span id="closed-code-block-encounter-count">closed_code_block_encounter_count=0</span>
+      <span id="closed-code-block-actual-render-count">closed_code_block_actual_render_count=0</span>
+      <span id="closed-code-block-reuse-count">closed_code_block_reuse_count=0</span>
+      <span id="closed-code-block-cache-hit-count">closed_code_block_cache_hit_count=0</span>
+      <span id="closed-code-block-cache-miss-count">closed_code_block_cache_miss_count=0</span>
+      <span id="actual-render-factor">actual_render_factor=0</span>
+      <span id="encounter-factor">encounter_factor=0</span>
+      <span id="final-rendered-text-hash">final_rendered_text_hash=0</span>
+      <span id="active-message-block-sequence-hash">active_message_block_sequence_hash=0</span>
+      <span id="code-block-signature-hash">code_block_signature_hash=0</span>
+      <span id="scripted-input-probe-count">scripted_input_probe_count=0</span>
+      <span id="scripted-input-probe-max">scripted_input_probe_max_ms=0</span>
+      <span id="ready-state">ready=false</span>
+      <span id="idle-state">idle_ms=0</span>
+      <span id="capture-index">capture_index=0</span>
+      <span id="stream-state">stream_state=idle</span>
+      <span id="token-count">token_count=0</span>
+      <span id="tail-misses">tail_miss_count=0</span>
+      <span id="last-error">last_error=none</span>
+    </div>
+    <main id="chat-scrollport" aria-label="P1-A streaming chat scrollport">
+      <section id="message-list" aria-label="Conversation history"></section>
+    </main>
+    <form id="input-bar">
+      <textarea id="active-input" aria-label="Active input" spellcheck="false">Draft prompt remains editable while the answer streams.</textarea>
+      <button id="send-button" type="button">Send</button>
+    </form>
+    <script>
+      const BASELINE_IDS = new Set(["naive-dom", "optimized-dom"]);
+      const SCENARIO_MODES = new Set(["tail-follow", "scrollback-resume"]);
+      const HIGHLIGHT_POLICIES = new Set(["eager", "streaming-plain-until-close"]);
+      const ACTIVE_RENDER_STRATEGIES = new Set(["full-rerender", "closed-code-stable-reuse"]);
+      const CONTENT_MIXES = new Set([
+        "standard",
+        "code-heavy",
+        "tool-heavy",
+        "tool-heavy-no-code",
+        "markdown-heavy-no-code"
+      ]);
+      const HISTORY_MESSAGE_OPTIONS = new Set([160, 500, 1000]);
+      const MIN_READY_IDLE_MS = 2000;
+      const TOKEN_SAMPLE_STEP = 100;
+      const INPUT_PROBE_INTERVAL_TOKENS = 200;
+      const REQUIRED_STREAM_TOKENS = 800;
+
+      function parsePositiveIntegerParam(params, name, errors, defaults = {}) {
+        const hasDefault = Object.prototype.hasOwnProperty.call(defaults, name);
+        if (!params.has(name)) {
+          if (hasDefault) {
+            return defaults[name];
+          }
+          errors.push(`missing ${name}`);
+          return null;
+        }
+
+        const rawValue = params.get(name) || "";
+        if (!/^[1-9][0-9]*$/.test(rawValue)) {
+          errors.push(`${name} must be a positive integer`);
+          return null;
+        }
+
+        const value = Number(rawValue);
+        if (!Number.isSafeInteger(value)) {
+          errors.push(`${name} exceeds the safe integer range`);
+          return null;
+        }
+        return value;
+      }
+
+      function parseEnumParam(params, name, allowed, errors, defaults = {}) {
+        const hasDefault = Object.prototype.hasOwnProperty.call(defaults, name);
+        if (!params.has(name)) {
+          if (hasDefault) {
+            return defaults[name];
+          }
+          errors.push(`missing ${name}`);
+          return null;
+        }
+
+        const value = params.get(name);
+        if (!allowed.has(value)) {
+          errors.push(`${name} must be one of: ${Array.from(allowed).join(", ")}`);
+          return null;
+        }
+        return value;
+      }
+
+      function parseBooleanParam(params, name, errors, defaults = {}) {
+        const hasDefault = Object.prototype.hasOwnProperty.call(defaults, name);
+        if (!params.has(name)) {
+          if (hasDefault) {
+            return defaults[name];
+          }
+          errors.push(`missing ${name}`);
+          return null;
+        }
+
+        const value = params.get(name);
+        if (value === "true") {
+          return true;
+        }
+        if (value === "false") {
+          return false;
+        }
+        errors.push(`${name} must be true or false`);
+        return null;
+      }
+
+      function resolveConfig() {
+        const params = new URLSearchParams(window.location.search);
+        const errors = [];
+        const defaults = {
+          history_messages: 160,
+          stream_tokens: REQUIRED_STREAM_TOKENS,
+          token_interval_ms: 20,
+          content_mix: "standard",
+          scenario_mode: "tail-follow",
+          input_probe: false,
+          disable_highlight: false,
+          disable_markdown_parse: false,
+          highlight_policy: "eager",
+          node_churn_probe: false,
+          active_render_strategy: "full-rerender",
+          seed: "p1a-v1"
+        };
+
+        const baselineId = parseEnumParam(params, "baseline_id", BASELINE_IDS, errors);
+        const historyMessages = parsePositiveIntegerParam(params, "history_messages", errors, defaults);
+        const streamTokens = parsePositiveIntegerParam(params, "stream_tokens", errors, defaults);
+        const tokenIntervalMs = parsePositiveIntegerParam(params, "token_interval_ms", errors, defaults);
+        const contentMix = parseEnumParam(params, "content_mix", CONTENT_MIXES, errors, defaults);
+        const scenarioMode = parseEnumParam(params, "scenario_mode", SCENARIO_MODES, errors, defaults);
+        const inputProbe = parseBooleanParam(params, "input_probe", errors, defaults);
+        const disableHighlight = parseBooleanParam(params, "disable_highlight", errors, defaults);
+        const disableMarkdownParse = parseBooleanParam(params, "disable_markdown_parse", errors, defaults);
+        const highlightPolicy = parseEnumParam(params, "highlight_policy", HIGHLIGHT_POLICIES, errors, defaults);
+        const nodeChurnProbe = parseBooleanParam(params, "node_churn_probe", errors, defaults);
+        const activeRenderStrategy = parseEnumParam(params, "active_render_strategy", ACTIVE_RENDER_STRATEGIES, errors, defaults);
+        const seed = params.get("seed") || defaults.seed;
+
+        if (!HISTORY_MESSAGE_OPTIONS.has(historyMessages)) {
+          errors.push("history_messages must be one of: 160, 500, 1000");
+        }
+        if (streamTokens !== REQUIRED_STREAM_TOKENS) {
+          errors.push("P1-A first slice requires stream_tokens=800");
+        }
+        if (tokenIntervalMs !== 20 && tokenIntervalMs !== 50) {
+          errors.push("token_interval_ms must be 20 or 50");
+        }
+
+        if (errors.length > 0) {
+          return {
+            error: [
+              "Invalid P1-A streaming chat query.",
+              ...errors.map((error) => `- ${error}`),
+              "",
+              "Required first-slice params:",
+              "baseline_id=naive-dom|optimized-dom",
+              "history_messages=160|500|1000",
+              "stream_tokens=800",
+              "token_interval_ms=20|50",
+              "content_mix=standard|code-heavy|tool-heavy|tool-heavy-no-code|markdown-heavy-no-code",
+              "scenario_mode=tail-follow|scrollback-resume",
+              "input_probe=false|true",
+              "",
+              "Optional P1-B diagnostic variant params:",
+              "disable_highlight=false|true",
+              "disable_markdown_parse=false|true",
+              "",
+              "Optional P1-C highlight policy params:",
+              "highlight_policy=eager|streaming-plain-until-close",
+              "node_churn_probe=false|true",
+              "active_render_strategy=full-rerender|closed-code-stable-reuse"
+            ].join("\n")
+          };
+        }
+
+        return {
+          config: {
+            baselineId,
+            historyMessages,
+            streamTokens,
+            tokenIntervalMs,
+            contentMix,
+            scenarioMode,
+            inputProbe,
+            disableHighlight,
+            disableMarkdownParse,
+            highlightPolicy,
+            nodeChurnProbe,
+            activeRenderStrategy,
+            seed
+          }
+        };
+      }
+
+      function renderConfigError(message) {
+        const panel = document.createElement("main");
+        panel.className = "config-error";
+
+        const heading = document.createElement("h1");
+        heading.textContent = "P1-A streaming baseline configuration error";
+
+        const details = document.createElement("pre");
+        details.textContent = message;
+
+        panel.append(heading, details);
+        document.body.replaceChildren(panel);
+      }
+
+      const resolved = resolveConfig();
+      if (resolved.error) {
+        renderConfigError(resolved.error);
+        throw new Error(resolved.error);
+      }
+
+      const config = resolved.config;
+      const statusNodes = {
+        baselineId: document.getElementById("baseline-id"),
+        scenarioMode: document.getElementById("scenario-mode"),
+        contentMix: document.getElementById("content-mix"),
+        inputProbe: document.getElementById("input-probe"),
+        disableHighlight: document.getElementById("disable-highlight"),
+        disableMarkdownParse: document.getElementById("disable-markdown-parse"),
+        renderVariant: document.getElementById("render-variant"),
+        highlightPolicy: document.getElementById("highlight-policy"),
+        nodeChurnProbe: document.getElementById("node-churn-probe"),
+        activeRenderStrategy: document.getElementById("active-render-strategy"),
+        closedCodeReuseSemantics: document.getElementById("closed-code-reuse-semantics"),
+        historyMessages: document.getElementById("history-messages"),
+        streamTokens: document.getElementById("stream-tokens"),
+        tokenInterval: document.getElementById("token-interval"),
+        historyCodePct: document.getElementById("history-code-pct"),
+        historyCodeLines: document.getElementById("history-code-lines"),
+        streamCodeCount: document.getElementById("stream-code-count"),
+        streamCodeLines: document.getElementById("stream-code-lines"),
+        historyToolPct: document.getElementById("history-tool-pct"),
+        streamToolCount: document.getElementById("stream-tool-count"),
+        streamToolLines: document.getElementById("stream-tool-lines"),
+        toolFormats: document.getElementById("tool-formats"),
+        streamToolFormats: document.getElementById("stream-tool-formats"),
+        historyRichMarkdownPct: document.getElementById("history-rich-markdown-pct"),
+        streamHeadingCount: document.getElementById("stream-heading-count"),
+        streamListItemCount: document.getElementById("stream-list-item-count"),
+        streamMarkdownTableCount: document.getElementById("stream-markdown-table-count"),
+        streamBlockquoteCount: document.getElementById("stream-blockquote-count"),
+        streamInlineCodeCount: document.getElementById("stream-inline-code-count"),
+        activeUnclosedCodePlainCount: document.getElementById("active-unclosed-code-plain-count"),
+        unclosedCodeHighlightSkippedCount: document.getElementById("unclosed-code-highlight-skipped-count"),
+        closedCodeHighlightCallCount: document.getElementById("closed-code-highlight-call-count"),
+        highlightCallCount: document.getElementById("highlight-call-count"),
+        createdHighlightSpanCount: document.getElementById("created-highlight-span-count"),
+        domNodesCreatedThisTick: document.getElementById("dom-nodes-created-this-tick"),
+        domNodesReplacedThisTick: document.getElementById("dom-nodes-replaced-this-tick"),
+        domNodesInClosedBlocksAffectedThisTick: document.getElementById("dom-nodes-in-closed-blocks-affected-this-tick"),
+        domNodesInActiveUnclosedBlockAffectedThisTick: document.getElementById("dom-nodes-in-active-unclosed-block-affected-this-tick"),
+        totalNodesCreated: document.getElementById("total-nodes-created"),
+        totalNodesReplaced: document.getElementById("total-nodes-replaced"),
+        totalNodesInClosedBlocksChurned: document.getElementById("total-nodes-in-closed-blocks-churned"),
+        totalNodesInActiveUnclosedBlockChanged: document.getElementById("total-nodes-in-active-unclosed-block-changed"),
+        closedBlockChurnRatio: document.getElementById("closed-block-churn-ratio"),
+        activeMessageClosedCodeBlockCount: document.getElementById("active-message-closed-code-block-count"),
+        activeMessageClosedCodeBlockRenderCount: document.getElementById("active-message-closed-code-block-render-count"),
+        activeMessageClosedCodeBlockRerenderFactor: document.getElementById("active-message-closed-code-block-rerender-factor"),
+        activeMessageClosedCodeDomNodesCreated: document.getElementById("active-message-closed-code-dom-nodes-created"),
+        activeMessageClosedCodeDomNodesReplaced: document.getElementById("active-message-closed-code-dom-nodes-replaced"),
+        uniqueClosedCodeBlockCount: document.getElementById("unique-closed-code-block-count"),
+        closedCodeBlockEncounterCount: document.getElementById("closed-code-block-encounter-count"),
+        closedCodeBlockActualRenderCount: document.getElementById("closed-code-block-actual-render-count"),
+        closedCodeBlockReuseCount: document.getElementById("closed-code-block-reuse-count"),
+        closedCodeBlockCacheHitCount: document.getElementById("closed-code-block-cache-hit-count"),
+        closedCodeBlockCacheMissCount: document.getElementById("closed-code-block-cache-miss-count"),
+        actualRenderFactor: document.getElementById("actual-render-factor"),
+        encounterFactor: document.getElementById("encounter-factor"),
+        finalRenderedTextHash: document.getElementById("final-rendered-text-hash"),
+        activeMessageBlockSequenceHash: document.getElementById("active-message-block-sequence-hash"),
+        codeBlockSignatureHash: document.getElementById("code-block-signature-hash"),
+        scriptedInputProbeCount: document.getElementById("scripted-input-probe-count"),
+        scriptedInputProbeMax: document.getElementById("scripted-input-probe-max"),
+        readyState: document.getElementById("ready-state"),
+        idleState: document.getElementById("idle-state"),
+        captureIndex: document.getElementById("capture-index"),
+        streamState: document.getElementById("stream-state"),
+        tokenCount: document.getElementById("token-count"),
+        tailMisses: document.getElementById("tail-misses"),
+        lastError: document.getElementById("last-error")
+      };
+      const scrollport = document.getElementById("chat-scrollport");
+      const messageList = document.getElementById("message-list");
+      const activeInput = document.getElementById("active-input");
+
+      const historyMessages = [];
+      const optimizedEntries = [];
+      let activeMessage = null;
+      let activeOptimizedEntry = null;
+      let streamTokens = [];
+      let streamSource = "";
+      let mountedHistory = false;
+      let ready = false;
+      let readyAtMs = 0;
+      let captureSequence = 0;
+      let tokenCount = 0;
+      let tailMissCount = 0;
+      let currentCaptureIndex = 0;
+      let streamState = "idle";
+      let lastError = "none";
+      let autoFollow = true;
+      let scrollbackStarted = false;
+      let resumeStarted = false;
+      let activeTimerId = null;
+      let activeCaptureIndex = 0;
+      let streamGeneration = 0;
+      let scriptedInputProbeCount = 0;
+      let scriptedInputProbeMaxMs = 0;
+      let scriptedInputProbeTotalMs = 0;
+      const contentAudit = {
+        historyCodeBlockMessagePct: 0,
+        historyAvgCodeBlockLines: 0,
+        streamCodeBlockCount: 0,
+        streamCodeLineCount: 0,
+        historyToolOutputMessagePct: 0,
+        streamToolOutputBlockCount: 0,
+        streamToolOutputLineCount: 0,
+        toolOutputFormatsPresent: "none",
+        streamToolOutputFormatsPresent: "none",
+        historyRichMarkdownMessagePct: 0,
+        streamHeadingCount: 0,
+        streamListItemCount: 0,
+        streamMarkdownTableCount: 0,
+        streamBlockquoteCount: 0,
+        streamInlineCodeCount: 0
+      };
+      let activeUnclosedCodePlainCount = 0;
+      let unclosedCodeHighlightSkippedCount = 0;
+      let closedCodeHighlightCallCount = 0;
+      let highlightCallCount = 0;
+      let createdHighlightSpanCount = 0;
+      let activeRenderStats = null;
+      let activeRenderNodeCategory = "normal";
+      let activeMessageRenderContext = null;
+      let activeClosedCodeBlockCache = new Map();
+      const nodeChurnMetrics = {
+        domNodesCreatedThisTick: 0,
+        domNodesReplacedThisTick: 0,
+        domNodesInClosedBlocksAffectedThisTick: 0,
+        domNodesInActiveUnclosedBlockAffectedThisTick: 0,
+        totalNodesCreated: 0,
+        totalNodesReplaced: 0,
+        totalNodesInClosedBlocksChurned: 0,
+        totalNodesInActiveUnclosedBlockChanged: 0,
+        activeMessageClosedCodeBlockCount: 0,
+        activeMessageClosedCodeBlockRenderCount: 0,
+        activeMessageClosedCodeDomNodesCreated: 0,
+        activeMessageClosedCodeDomNodesReplaced: 0
+      };
+      const closedCodeBlockMetrics = {
+        encounterCount: 0,
+        actualRenderCount: 0,
+        reuseCount: 0,
+        cacheHitCount: 0,
+        cacheMissCount: 0,
+        uniqueKeys: new Set(),
+        finalRenderedTextHash: 0,
+        activeMessageBlockSequenceHash: 0,
+        codeBlockSignatureHash: 0
+      };
+      const startedCaptures = new Set();
+      const completedCaptures = new Set();
+
+      function resetHighlightCounters() {
+        activeUnclosedCodePlainCount = 0;
+        unclosedCodeHighlightSkippedCount = 0;
+        closedCodeHighlightCallCount = 0;
+        highlightCallCount = 0;
+        createdHighlightSpanCount = 0;
+      }
+
+      function resetNodeChurnMetrics() {
+        activeRenderStats = null;
+        activeRenderNodeCategory = "normal";
+        for (const key of Object.keys(nodeChurnMetrics)) {
+          nodeChurnMetrics[key] = 0;
+        }
+      }
+
+      function resetClosedCodeBlockMetrics() {
+        activeMessageRenderContext = null;
+        activeClosedCodeBlockCache = new Map();
+        closedCodeBlockMetrics.encounterCount = 0;
+        closedCodeBlockMetrics.actualRenderCount = 0;
+        closedCodeBlockMetrics.reuseCount = 0;
+        closedCodeBlockMetrics.cacheHitCount = 0;
+        closedCodeBlockMetrics.cacheMissCount = 0;
+        closedCodeBlockMetrics.uniqueKeys.clear();
+        closedCodeBlockMetrics.finalRenderedTextHash = 0;
+        closedCodeBlockMetrics.activeMessageBlockSequenceHash = 0;
+        closedCodeBlockMetrics.codeBlockSignatureHash = 0;
+      }
+
+      function closedBlockChurnRatio() {
+        const denominator = nodeChurnMetrics.totalNodesCreated + nodeChurnMetrics.totalNodesReplaced;
+        return denominator > 0
+          ? nodeChurnMetrics.totalNodesInClosedBlocksChurned / denominator
+          : 0;
+      }
+
+      function activeMessageClosedCodeBlockRerenderFactor() {
+        return nodeChurnMetrics.activeMessageClosedCodeBlockCount > 0
+          ? nodeChurnMetrics.activeMessageClosedCodeBlockRenderCount / nodeChurnMetrics.activeMessageClosedCodeBlockCount
+          : 0;
+      }
+
+      function uniqueClosedCodeBlockCount() {
+        return closedCodeBlockMetrics.uniqueKeys.size;
+      }
+
+      function actualRenderFactor() {
+        const uniqueCount = uniqueClosedCodeBlockCount();
+        return uniqueCount > 0
+          ? closedCodeBlockMetrics.actualRenderCount / uniqueCount
+          : 0;
+      }
+
+      function encounterFactor() {
+        const uniqueCount = uniqueClosedCodeBlockCount();
+        return uniqueCount > 0
+          ? closedCodeBlockMetrics.encounterCount / uniqueCount
+          : 0;
+      }
+
+      function closedCodeReuseSemantics() {
+        return config.activeRenderStrategy === "closed-code-stable-reuse"
+          ? "actual-dom-node-reuse"
+          : "none";
+      }
+
+      function renderVariantName() {
+        if (config.disableMarkdownParse && config.disableHighlight) {
+          return "markdown-parse-off_highlight-off";
+        }
+        if (config.disableMarkdownParse) {
+          return "markdown-parse-off_highlight-on";
+        }
+        if (config.disableHighlight) {
+          return "markdown-parse-on_highlight-off";
+        }
+        return "markdown-parse-on_highlight-on";
+      }
+
+      function updateStatus() {
+        const idleMs = readyAtMs > 0 ? Math.max(0, performance.now() - readyAtMs) : 0;
+        statusNodes.baselineId.textContent = `baseline_id=${config.baselineId}`;
+        statusNodes.scenarioMode.textContent = `scenario_mode=${config.scenarioMode}`;
+        statusNodes.contentMix.textContent = `content_mix=${config.contentMix}`;
+        statusNodes.inputProbe.textContent = `input_probe=${config.inputProbe}`;
+        statusNodes.disableHighlight.textContent = `disable_highlight=${config.disableHighlight}`;
+        statusNodes.disableMarkdownParse.textContent = `disable_markdown_parse=${config.disableMarkdownParse}`;
+        statusNodes.renderVariant.textContent = `render_variant=${renderVariantName()}`;
+        statusNodes.highlightPolicy.textContent = `highlight_policy=${config.highlightPolicy}`;
+        statusNodes.nodeChurnProbe.textContent = `node_churn_probe=${config.nodeChurnProbe}`;
+        statusNodes.activeRenderStrategy.textContent = `active_render_strategy=${config.activeRenderStrategy}`;
+        statusNodes.closedCodeReuseSemantics.textContent = `closed_code_reuse_semantics=${closedCodeReuseSemantics()}`;
+        statusNodes.historyMessages.textContent = `history_messages=${config.historyMessages}`;
+        statusNodes.streamTokens.textContent = `stream_tokens=${config.streamTokens}`;
+        statusNodes.tokenInterval.textContent = `token_interval_ms=${config.tokenIntervalMs}`;
+        statusNodes.historyCodePct.textContent = `history_code_block_message_pct=${contentAudit.historyCodeBlockMessagePct.toFixed(1)}`;
+        statusNodes.historyCodeLines.textContent = `history_avg_code_block_lines=${contentAudit.historyAvgCodeBlockLines.toFixed(1)}`;
+        statusNodes.streamCodeCount.textContent = `stream_code_block_count=${contentAudit.streamCodeBlockCount}`;
+        statusNodes.streamCodeLines.textContent = `stream_code_line_count=${contentAudit.streamCodeLineCount}`;
+        statusNodes.historyToolPct.textContent = `history_tool_output_message_pct=${contentAudit.historyToolOutputMessagePct.toFixed(1)}`;
+        statusNodes.streamToolCount.textContent = `stream_tool_output_block_count=${contentAudit.streamToolOutputBlockCount}`;
+        statusNodes.streamToolLines.textContent = `stream_tool_output_line_count=${contentAudit.streamToolOutputLineCount}`;
+        statusNodes.toolFormats.textContent = `tool_output_formats_present=${contentAudit.toolOutputFormatsPresent}`;
+        statusNodes.streamToolFormats.textContent = `stream_tool_output_formats_present=${contentAudit.streamToolOutputFormatsPresent}`;
+        statusNodes.historyRichMarkdownPct.textContent = `history_rich_markdown_message_pct=${contentAudit.historyRichMarkdownMessagePct.toFixed(1)}`;
+        statusNodes.streamHeadingCount.textContent = `stream_heading_count=${contentAudit.streamHeadingCount}`;
+        statusNodes.streamListItemCount.textContent = `stream_list_item_count=${contentAudit.streamListItemCount}`;
+        statusNodes.streamMarkdownTableCount.textContent = `stream_markdown_table_count=${contentAudit.streamMarkdownTableCount}`;
+        statusNodes.streamBlockquoteCount.textContent = `stream_blockquote_count=${contentAudit.streamBlockquoteCount}`;
+        statusNodes.streamInlineCodeCount.textContent = `stream_inline_code_count=${contentAudit.streamInlineCodeCount}`;
+        statusNodes.activeUnclosedCodePlainCount.textContent = `active_unclosed_code_plain_count=${activeUnclosedCodePlainCount}`;
+        statusNodes.unclosedCodeHighlightSkippedCount.textContent = `unclosed_code_highlight_skipped_count=${unclosedCodeHighlightSkippedCount}`;
+        statusNodes.closedCodeHighlightCallCount.textContent = `closed_code_highlight_call_count=${closedCodeHighlightCallCount}`;
+        statusNodes.highlightCallCount.textContent = `highlight_call_count=${highlightCallCount}`;
+        statusNodes.createdHighlightSpanCount.textContent = `created_highlight_span_count=${createdHighlightSpanCount}`;
+        statusNodes.domNodesCreatedThisTick.textContent = `dom_nodes_created_this_tick=${nodeChurnMetrics.domNodesCreatedThisTick}`;
+        statusNodes.domNodesReplacedThisTick.textContent = `dom_nodes_replaced_this_tick=${nodeChurnMetrics.domNodesReplacedThisTick}`;
+        statusNodes.domNodesInClosedBlocksAffectedThisTick.textContent = `dom_nodes_in_closed_blocks_affected_this_tick=${nodeChurnMetrics.domNodesInClosedBlocksAffectedThisTick}`;
+        statusNodes.domNodesInActiveUnclosedBlockAffectedThisTick.textContent = `dom_nodes_in_active_unclosed_block_affected_this_tick=${nodeChurnMetrics.domNodesInActiveUnclosedBlockAffectedThisTick}`;
+        statusNodes.totalNodesCreated.textContent = `total_nodes_created=${nodeChurnMetrics.totalNodesCreated}`;
+        statusNodes.totalNodesReplaced.textContent = `total_nodes_replaced=${nodeChurnMetrics.totalNodesReplaced}`;
+        statusNodes.totalNodesInClosedBlocksChurned.textContent = `total_nodes_in_closed_blocks_churned=${nodeChurnMetrics.totalNodesInClosedBlocksChurned}`;
+        statusNodes.totalNodesInActiveUnclosedBlockChanged.textContent = `total_nodes_in_active_unclosed_block_changed=${nodeChurnMetrics.totalNodesInActiveUnclosedBlockChanged}`;
+        statusNodes.closedBlockChurnRatio.textContent = `closed_block_churn_ratio=${closedBlockChurnRatio().toFixed(6)}`;
+        statusNodes.activeMessageClosedCodeBlockCount.textContent = `active_message_closed_code_block_count=${nodeChurnMetrics.activeMessageClosedCodeBlockCount}`;
+        statusNodes.activeMessageClosedCodeBlockRenderCount.textContent = `active_message_closed_code_block_render_count=${nodeChurnMetrics.activeMessageClosedCodeBlockRenderCount}`;
+        statusNodes.activeMessageClosedCodeBlockRerenderFactor.textContent = `active_message_closed_code_block_rerender_factor=${activeMessageClosedCodeBlockRerenderFactor().toFixed(6)}`;
+        statusNodes.activeMessageClosedCodeDomNodesCreated.textContent = `active_message_closed_code_dom_nodes_created=${nodeChurnMetrics.activeMessageClosedCodeDomNodesCreated}`;
+        statusNodes.activeMessageClosedCodeDomNodesReplaced.textContent = `active_message_closed_code_dom_nodes_replaced=${nodeChurnMetrics.activeMessageClosedCodeDomNodesReplaced}`;
+        statusNodes.uniqueClosedCodeBlockCount.textContent = `unique_closed_code_block_count=${uniqueClosedCodeBlockCount()}`;
+        statusNodes.closedCodeBlockEncounterCount.textContent = `closed_code_block_encounter_count=${closedCodeBlockMetrics.encounterCount}`;
+        statusNodes.closedCodeBlockActualRenderCount.textContent = `closed_code_block_actual_render_count=${closedCodeBlockMetrics.actualRenderCount}`;
+        statusNodes.closedCodeBlockReuseCount.textContent = `closed_code_block_reuse_count=${closedCodeBlockMetrics.reuseCount}`;
+        statusNodes.closedCodeBlockCacheHitCount.textContent = `closed_code_block_cache_hit_count=${closedCodeBlockMetrics.cacheHitCount}`;
+        statusNodes.closedCodeBlockCacheMissCount.textContent = `closed_code_block_cache_miss_count=${closedCodeBlockMetrics.cacheMissCount}`;
+        statusNodes.actualRenderFactor.textContent = `actual_render_factor=${actualRenderFactor().toFixed(6)}`;
+        statusNodes.encounterFactor.textContent = `encounter_factor=${encounterFactor().toFixed(6)}`;
+        statusNodes.finalRenderedTextHash.textContent = `final_rendered_text_hash=${closedCodeBlockMetrics.finalRenderedTextHash}`;
+        statusNodes.activeMessageBlockSequenceHash.textContent = `active_message_block_sequence_hash=${closedCodeBlockMetrics.activeMessageBlockSequenceHash}`;
+        statusNodes.codeBlockSignatureHash.textContent = `code_block_signature_hash=${closedCodeBlockMetrics.codeBlockSignatureHash}`;
+        statusNodes.scriptedInputProbeCount.textContent = `scripted_input_probe_count=${scriptedInputProbeCount}`;
+        statusNodes.scriptedInputProbeMax.textContent = `scripted_input_probe_max_ms=${scriptedInputProbeMaxMs.toFixed(3)}`;
+        statusNodes.readyState.textContent = `ready=${ready}`;
+        statusNodes.readyState.className = ready ? "ready-ok" : "ready-wait";
+        statusNodes.idleState.textContent = `idle_ms=${Math.floor(idleMs)}`;
+        statusNodes.idleState.className = idleMs >= MIN_READY_IDLE_MS ? "ready-ok" : "ready-wait";
+        statusNodes.captureIndex.textContent = `capture_index=${currentCaptureIndex}`;
+        statusNodes.streamState.textContent = `stream_state=${streamState}`;
+        statusNodes.tokenCount.textContent = `token_count=${tokenCount}`;
+        statusNodes.tailMisses.textContent = `tail_miss_count=${tailMissCount}`;
+        statusNodes.lastError.textContent = `last_error=${lastError}`;
+        statusNodes.lastError.className = lastError === "none" ? "" : "error";
+      }
+
+      function markP1(captureIndex, suffix) {
+        performance.mark(`p1:capture:${captureIndex}:${suffix}`);
+      }
+
+      function hashString(value) {
+        let hash = 2166136261;
+        for (let index = 0; index < value.length; index += 1) {
+          hash ^= value.charCodeAt(index);
+          hash = Math.imul(hash, 16777619);
+        }
+        return hash >>> 0;
+      }
+
+      function childNodesOf(node) {
+        if (node.childNodes && typeof node.childNodes.length === "number") {
+          return Array.from(node.childNodes);
+        }
+        return Array.isArray(node.children) ? node.children : [];
+      }
+
+      function subtreeNodeCount(node) {
+        if (!node) {
+          return 0;
+        }
+        let count = 1;
+        for (const child of childNodesOf(node)) {
+          count += subtreeNodeCount(child);
+        }
+        return count;
+      }
+
+      function renderedTextOf(node) {
+        return node?.textContent || "";
+      }
+
+      function countCreatedNode() {
+        if (!activeRenderStats) {
+          return;
+        }
+        activeRenderStats.totalNodes += 1;
+        if (activeRenderNodeCategory === "closed-code") {
+          activeRenderStats.closedCodeNodes += 1;
+        } else if (activeRenderNodeCategory === "active-unclosed-code") {
+          activeRenderStats.activeUnclosedCodeNodes += 1;
+        }
+      }
+
+      function countReusedClosedCodeNodes(count) {
+        if (!activeRenderStats) {
+          return;
+        }
+        activeRenderStats.reusedClosedCodeNodes += count;
+      }
+
+      function withRenderNodeCategory(category, callback) {
+        const previousCategory = activeRenderNodeCategory;
+        activeRenderNodeCategory = category;
+        try {
+          return callback();
+        } finally {
+          activeRenderNodeCategory = previousCategory;
+        }
+      }
+
+      function createSpan(className, text) {
+        const span = document.createElement("span");
+        countCreatedNode();
+        span.className = className;
+        span.textContent = text;
+        return span;
+      }
+
+      function appendInline(parent, text) {
+        const parts = text.split("`");
+        for (let index = 0; index < parts.length; index += 1) {
+          const value = parts[index];
+          if (value.length === 0) {
+            continue;
+          }
+          if (index % 2 === 1) {
+            parent.appendChild(createSpan("inline-code", value));
+          } else {
+            countCreatedNode();
+            parent.appendChild(document.createTextNode(value));
+          }
+        }
+      }
+
+      function startsBlock(line) {
+        return (
+          /^#{1,3}\s+/.test(line) ||
+          /^-\s+/.test(line) ||
+          /^```/.test(line) ||
+          /^::tool-output\s+/.test(line) ||
+          /^>\s+/.test(line)
+        );
+      }
+
+      function parseMarkdownTable(lines, startIndex) {
+        if (
+          startIndex + 1 >= lines.length ||
+          !/^\|.*\|$/.test(lines[startIndex]) ||
+          !/^\|\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$/.test(lines[startIndex + 1])
+        ) {
+          return null;
+        }
+
+        const rows = [];
+        let index = startIndex;
+        while (index < lines.length && /^\|.*\|$/.test(lines[index])) {
+          rows.push(lines[index]
+            .replace(/^\|/, "")
+            .replace(/\|$/, "")
+            .split("|")
+            .map((cell) => cell.trim()));
+          index += 1;
+        }
+
+        return {
+          node: {
+            type: "table",
+            headers: rows[0],
+            rows: rows.slice(2)
+          },
+          nextIndex: index
+        };
+      }
+
+      function parseMarkdown(source) {
+        const lines = source.replace(/\r\n/g, "\n").split("\n");
+        const nodes = [];
+        let index = 0;
+
+        while (index < lines.length) {
+          const line = lines[index];
+          if (line.trim() === "") {
+            index += 1;
+            continue;
+          }
+
+          const fence = line.match(/^```([A-Za-z0-9_-]+)?\s*$/);
+          if (fence) {
+            const language = fence[1] || "text";
+            index += 1;
+            const codeLines = [];
+            while (index < lines.length && !/^```\s*$/.test(lines[index])) {
+              codeLines.push(lines[index]);
+              index += 1;
+            }
+            const closed = index < lines.length;
+            if (index < lines.length) {
+              index += 1;
+            }
+            nodes.push({
+              type: language === "tool-output" || language === "tool" ? "tool" : "code",
+              language,
+              text: codeLines.join("\n"),
+              closed
+            });
+            continue;
+          }
+
+          const toolBlock = line.match(/^::tool-output\s+([A-Za-z0-9_-]+)\s*$/);
+          if (toolBlock) {
+            const format = toolBlock[1];
+            index += 1;
+            const toolLines = [];
+            while (index < lines.length && !/^::end-tool-output\s*$/.test(lines[index])) {
+              toolLines.push(lines[index]);
+              index += 1;
+            }
+            if (index < lines.length) {
+              index += 1;
+            }
+            nodes.push({
+              type: "tool",
+              language: "tool-output",
+              format,
+              text: toolLines.join("\n")
+            });
+            continue;
+          }
+
+          const heading = line.match(/^(#{1,3})\s+(.+)$/);
+          if (heading) {
+            nodes.push({
+              type: "heading",
+              level: heading[1].length,
+              text: heading[2]
+            });
+            index += 1;
+            continue;
+          }
+
+          if (/^-\s+/.test(line)) {
+            const items = [];
+            while (index < lines.length && /^-\s+/.test(lines[index])) {
+              items.push(lines[index].replace(/^-\s+/, ""));
+              index += 1;
+            }
+            nodes.push({ type: "list", items });
+            continue;
+          }
+
+          if (/^>\s+/.test(line)) {
+            const quoteLines = [];
+            while (index < lines.length && /^>\s+/.test(lines[index])) {
+              quoteLines.push(lines[index].replace(/^>\s+/, ""));
+              index += 1;
+            }
+            nodes.push({ type: "blockquote", text: quoteLines.join(" ") });
+            continue;
+          }
+
+          const table = parseMarkdownTable(lines, index);
+          if (table) {
+            nodes.push(table.node);
+            index = table.nextIndex;
+            continue;
+          }
+
+          const paragraphLines = [];
+          while (
+            index < lines.length &&
+            lines[index].trim() !== "" &&
+            !startsBlock(lines[index])
+          ) {
+            paragraphLines.push(lines[index]);
+            index += 1;
+          }
+          if (paragraphLines.length === 0) {
+            paragraphLines.push(lines[index]);
+            index += 1;
+          }
+          nodes.push({ type: "paragraph", text: paragraphLines.join(" ") });
+        }
+
+        return nodes;
+      }
+
+      function tokenClass(language, token) {
+        const jsKeywords = new Set([
+          "const", "let", "var", "function", "return", "if", "else", "for", "while",
+          "await", "async", "true", "false", "null", "new", "class", "import", "from"
+        ]);
+        const shellCommands = new Set(["node", "npm", "bash", "curl", "cat", "grep", "rg", "export"]);
+
+        if (/^\/\/.*$/.test(token) || /^#.*$/.test(token) || /^\/\*/.test(token)) {
+          return "tok-comment";
+        }
+        if (/^["'`]/.test(token)) {
+          return "tok-string";
+        }
+        if (/^\d+(\.\d+)?$/.test(token)) {
+          return "tok-number";
+        }
+        if (language === "json" && /^"[^"]+"\s*:$/.test(token)) {
+          return "tok-key";
+        }
+        if ((language === "js" || language === "ts" || language === "javascript") && jsKeywords.has(token)) {
+          return "tok-keyword";
+        }
+        if ((language === "sh" || language === "bash") && (shellCommands.has(token) || /^--?[A-Za-z0-9_-]+$/.test(token))) {
+          return /^--?/.test(token) ? "tok-flag" : "tok-keyword";
+        }
+        if (/^[{}[\]();:,.=+\-*/<>]+$/.test(token)) {
+          return "tok-punctuation";
+        }
+        return "";
+      }
+
+      function appendHighlightedCode(parent, language, code, options = {}) {
+        if (config.disableHighlight) {
+          parent.textContent = code;
+          return;
+        }
+
+        highlightCallCount += 1;
+        if (options.closed !== false) {
+          closedCodeHighlightCallCount += 1;
+        }
+        const regex = /(\/\/.*|#.*|\/\*[^]*?\*\/|"(?:\\.|[^"\\])*"\s*:|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`|\b\d+(?:\.\d+)?\b|\b[A-Za-z_$][A-Za-z0-9_$-]*\b|[{}[\]();:,.=+\-*/<>]+|\s+|.)/g;
+        let match = regex.exec(code);
+        while (match) {
+          const token = match[0];
+          const className = tokenClass(language, token);
+          if (className) {
+            createdHighlightSpanCount += 1;
+            parent.appendChild(createSpan(className, token));
+          } else {
+            countCreatedNode();
+            parent.appendChild(document.createTextNode(token));
+          }
+          match = regex.exec(code);
+        }
+      }
+
+      function createCodeBlockElement(language, text, options = {}) {
+        const pre = document.createElement("pre");
+        countCreatedNode();
+        const code = document.createElement("code");
+        countCreatedNode();
+        if (options.plain) {
+          code.textContent = text;
+          countCreatedNode();
+        } else {
+          appendHighlightedCode(code, language, text, { closed: options.closed });
+        }
+        pre.appendChild(code);
+        return {
+          node: pre,
+          nodeCount: subtreeNodeCount(pre)
+        };
+      }
+
+      function codeBlockKey(ordinal, language, text) {
+        return `${ordinal}:${language}:${hashString(text)}`;
+      }
+
+      function recordClosedCodeBlockEncounter(language, text) {
+        if (!activeMessageRenderContext) {
+          return null;
+        }
+
+        const ordinal = activeMessageRenderContext.closedCodeOrdinal;
+        activeMessageRenderContext.closedCodeOrdinal += 1;
+        const contentHash = hashString(text);
+        const key = codeBlockKey(ordinal, language, text);
+        activeMessageRenderContext.blockSequenceParts.push(`code:${ordinal}:${language}:${contentHash}`);
+        activeMessageRenderContext.codeBlockSignatureParts.push(`${ordinal}:${language}:${contentHash}`);
+        closedCodeBlockMetrics.encounterCount += 1;
+        closedCodeBlockMetrics.uniqueKeys.add(key);
+        return { ordinal, key };
+      }
+
+      function appendCodeBlock(parent, language, text, options = {}) {
+        const category = options.closed === false ? "active-unclosed-code" : "closed-code";
+        let closedCodeIdentity = null;
+        if (options.closed !== false) {
+          closedCodeIdentity = recordClosedCodeBlockEncounter(language, text);
+          if (closedCodeIdentity && activeMessageRenderContext?.stableReuse) {
+            const cached = activeClosedCodeBlockCache.get(closedCodeIdentity.key);
+            if (cached) {
+              closedCodeBlockMetrics.cacheHitCount += 1;
+              closedCodeBlockMetrics.reuseCount += 1;
+              countReusedClosedCodeNodes(cached.nodeCount);
+              parent.appendChild(cached.node);
+              if (activeRenderStats) {
+                activeRenderStats.closedCodeBlockCount += 1;
+              }
+              return;
+            }
+            closedCodeBlockMetrics.cacheMissCount += 1;
+          }
+        }
+
+        let rendered = null;
+        withRenderNodeCategory(category, () => {
+          rendered = createCodeBlockElement(language, text, options);
+          parent.appendChild(rendered.node);
+        });
+        if (options.closed !== false) {
+          closedCodeBlockMetrics.actualRenderCount += 1;
+          if (closedCodeIdentity && activeMessageRenderContext?.stableReuse) {
+            activeClosedCodeBlockCache.set(closedCodeIdentity.key, {
+              node: rendered.node,
+              nodeCount: rendered.nodeCount
+            });
+          }
+          if (activeRenderStats) {
+            activeRenderStats.closedCodeBlockCount += 1;
+          }
+        } else if (activeMessageRenderContext) {
+          activeMessageRenderContext.blockSequenceParts.push(`code-open:${language}:${hashString(text)}`);
+        }
+      }
+
+      function shouldRenderUnclosedCodePlain(node) {
+        return (
+          !config.disableMarkdownParse &&
+          !config.disableHighlight &&
+          config.highlightPolicy === "streaming-plain-until-close" &&
+          node.closed === false
+        );
+      }
+
+      function shouldTrackActiveMessageRender(source) {
+        return (
+          activeCaptureIndex > 0 &&
+          streamState === "streaming" &&
+          activeMessage !== null &&
+          source === activeMessage.source
+        );
+      }
+
+      function shouldProbeActiveMessageRender(source) {
+        return config.nodeChurnProbe && shouldTrackActiveMessageRender(source);
+      }
+
+      function shouldUseClosedCodeStableReuse(source) {
+        return (
+          config.activeRenderStrategy === "closed-code-stable-reuse" &&
+          config.baselineId === "optimized-dom" &&
+          !config.disableMarkdownParse &&
+          shouldTrackActiveMessageRender(source)
+        );
+      }
+
+      function startActiveMessageRenderContext(source) {
+        if (!shouldTrackActiveMessageRender(source)) {
+          return null;
+        }
+        return {
+          stableReuse: shouldUseClosedCodeStableReuse(source),
+          closedCodeOrdinal: 0,
+          blockSequenceParts: [],
+          codeBlockSignatureParts: []
+        };
+      }
+
+      function startRenderProbe(container, source) {
+        if (!shouldProbeActiveMessageRender(source)) {
+          return null;
+        }
+        const previousStats = container.__p1RenderStats || {
+          totalNodes: 0,
+          closedCodeNodes: 0,
+          activeUnclosedCodeNodes: 0,
+          closedCodeBlockCount: 0
+        };
+        return {
+          container,
+          previousStats,
+          totalNodes: 0,
+          closedCodeNodes: 0,
+          activeUnclosedCodeNodes: 0,
+          reusedClosedCodeNodes: 0,
+          closedCodeBlockCount: 0
+        };
+      }
+
+      function maxAssignMetric(key, value) {
+        if (value > nodeChurnMetrics[key]) {
+          nodeChurnMetrics[key] = value;
+        }
+      }
+
+      function finishRenderProbe(stats) {
+        if (!stats) {
+          return;
+        }
+        const previous = stats.previousStats;
+        const createdThisTick = stats.totalNodes;
+        const presentTotalNodes = stats.totalNodes + stats.reusedClosedCodeNodes;
+        const presentClosedCodeNodes = stats.closedCodeNodes + stats.reusedClosedCodeNodes;
+        const replacedThisTick = Math.max(0, previous.totalNodes - stats.reusedClosedCodeNodes);
+        const replacedClosedCodeNodes = Math.max(0, previous.closedCodeNodes - stats.reusedClosedCodeNodes);
+        const closedAffectedThisTick = stats.closedCodeNodes + replacedClosedCodeNodes;
+        const activeUnclosedAffectedThisTick = stats.activeUnclosedCodeNodes + previous.activeUnclosedCodeNodes;
+
+        maxAssignMetric("domNodesCreatedThisTick", createdThisTick);
+        maxAssignMetric("domNodesReplacedThisTick", replacedThisTick);
+        maxAssignMetric("domNodesInClosedBlocksAffectedThisTick", closedAffectedThisTick);
+        maxAssignMetric("domNodesInActiveUnclosedBlockAffectedThisTick", activeUnclosedAffectedThisTick);
+
+        nodeChurnMetrics.totalNodesCreated += createdThisTick;
+        nodeChurnMetrics.totalNodesReplaced += replacedThisTick;
+        nodeChurnMetrics.totalNodesInClosedBlocksChurned += closedAffectedThisTick;
+        nodeChurnMetrics.totalNodesInActiveUnclosedBlockChanged += activeUnclosedAffectedThisTick;
+        nodeChurnMetrics.activeMessageClosedCodeBlockCount = Math.max(
+          nodeChurnMetrics.activeMessageClosedCodeBlockCount,
+          stats.closedCodeBlockCount
+        );
+        nodeChurnMetrics.activeMessageClosedCodeBlockRenderCount += stats.closedCodeBlockCount;
+        nodeChurnMetrics.activeMessageClosedCodeDomNodesCreated += stats.closedCodeNodes;
+        nodeChurnMetrics.activeMessageClosedCodeDomNodesReplaced += replacedClosedCodeNodes;
+
+        stats.container.__p1RenderStats = {
+          totalNodes: presentTotalNodes,
+          closedCodeNodes: presentClosedCodeNodes,
+          activeUnclosedCodeNodes: stats.activeUnclosedCodeNodes,
+          closedCodeBlockCount: stats.closedCodeBlockCount
+        };
+      }
+
+      function appendMarkdownParseDisabled(parent, source) {
+        if (config.disableHighlight) {
+          const pre = document.createElement("pre");
+          pre.className = "raw-markdown";
+          pre.textContent = source;
+          parent.appendChild(pre);
+          return;
+        }
+
+        const lines = source.replace(/\r\n/g, "\n").split("\n");
+        let index = 0;
+        let plainLines = [];
+
+        function flushPlainLines() {
+          if (plainLines.length === 0) {
+            return;
+          }
+          const pre = document.createElement("pre");
+          pre.className = "raw-markdown";
+          pre.textContent = plainLines.join("\n");
+          parent.appendChild(pre);
+          plainLines = [];
+        }
+
+        while (index < lines.length) {
+          const fence = lines[index].match(/^```([A-Za-z0-9_-]+)?\s*$/);
+          if (!fence) {
+            plainLines.push(lines[index]);
+            index += 1;
+            continue;
+          }
+
+          flushPlainLines();
+          const language = fence[1] || "text";
+          index += 1;
+          const codeLines = [];
+          while (index < lines.length && !/^```\s*$/.test(lines[index])) {
+            codeLines.push(lines[index]);
+            index += 1;
+          }
+          if (index < lines.length) {
+            index += 1;
+          }
+          appendCodeBlock(parent, language, codeLines.join("\n"));
+        }
+
+        flushPlainLines();
+      }
+
+      function renderMarkdownInto(container, source) {
+        const renderProbe = startRenderProbe(container, source);
+        const renderContext = startActiveMessageRenderContext(source);
+        activeRenderStats = renderProbe;
+        activeMessageRenderContext = renderContext;
+        container.replaceChildren();
+        try {
+          if (config.disableMarkdownParse) {
+            appendMarkdownParseDisabled(container, source);
+            return;
+          }
+
+          const nodes = parseMarkdown(source);
+
+          for (const node of nodes) {
+            if (node.type === "heading") {
+              if (renderContext) {
+                renderContext.blockSequenceParts.push(`heading:${node.level}:${hashString(node.text)}`);
+              }
+              const heading = document.createElement(`h${node.level}`);
+              countCreatedNode();
+              appendInline(heading, node.text);
+              container.appendChild(heading);
+            } else if (node.type === "paragraph") {
+              if (renderContext) {
+                renderContext.blockSequenceParts.push(`paragraph:${hashString(node.text)}`);
+              }
+              const paragraph = document.createElement("p");
+              countCreatedNode();
+              appendInline(paragraph, node.text);
+              container.appendChild(paragraph);
+            } else if (node.type === "list") {
+              if (renderContext) {
+                renderContext.blockSequenceParts.push(`list:${node.items.length}:${hashString(node.items.join("\n"))}`);
+              }
+              const list = document.createElement("ul");
+              countCreatedNode();
+              for (const item of node.items) {
+                const li = document.createElement("li");
+                countCreatedNode();
+                appendInline(li, item);
+                list.appendChild(li);
+              }
+              container.appendChild(list);
+            } else if (node.type === "tool") {
+              if (renderContext) {
+                renderContext.blockSequenceParts.push(`tool:${node.format || node.language || "tool"}:${hashString(node.text)}`);
+              }
+              const pre = document.createElement("pre");
+              countCreatedNode();
+              pre.className = "tool-output";
+              const code = document.createElement("code");
+              countCreatedNode();
+              code.textContent = node.text;
+              countCreatedNode();
+              pre.appendChild(code);
+              container.appendChild(pre);
+            } else if (node.type === "blockquote") {
+              if (renderContext) {
+                renderContext.blockSequenceParts.push(`blockquote:${hashString(node.text)}`);
+              }
+              const quote = document.createElement("blockquote");
+              countCreatedNode();
+              appendInline(quote, node.text);
+              container.appendChild(quote);
+            } else if (node.type === "table") {
+              if (renderContext) {
+                renderContext.blockSequenceParts.push(`table:${node.headers.length}:${node.rows.length}:${hashString(JSON.stringify([node.headers, node.rows]))}`);
+              }
+              const table = document.createElement("table");
+              countCreatedNode();
+              const thead = document.createElement("thead");
+              countCreatedNode();
+              const headRow = document.createElement("tr");
+              countCreatedNode();
+              for (const header of node.headers) {
+                const th = document.createElement("th");
+                countCreatedNode();
+                appendInline(th, header);
+                headRow.appendChild(th);
+              }
+              thead.appendChild(headRow);
+              table.appendChild(thead);
+
+              const tbody = document.createElement("tbody");
+              countCreatedNode();
+              for (const row of node.rows) {
+                const tr = document.createElement("tr");
+                countCreatedNode();
+                for (const cell of row) {
+                  const td = document.createElement("td");
+                  countCreatedNode();
+                  appendInline(td, cell);
+                  tr.appendChild(td);
+                }
+                tbody.appendChild(tr);
+              }
+              table.appendChild(tbody);
+              container.appendChild(table);
+            } else if (node.type === "code") {
+              if (shouldRenderUnclosedCodePlain(node)) {
+                activeUnclosedCodePlainCount += 1;
+                unclosedCodeHighlightSkippedCount += 1;
+                appendCodeBlock(container, node.language, node.text, { plain: true, closed: false });
+              } else {
+                appendCodeBlock(container, node.language, node.text, { closed: node.closed });
+              }
+            }
+          }
+        } finally {
+          if (renderContext) {
+            closedCodeBlockMetrics.finalRenderedTextHash = hashString(renderedTextOf(container));
+            closedCodeBlockMetrics.activeMessageBlockSequenceHash = hashString(renderContext.blockSequenceParts.join("|"));
+            closedCodeBlockMetrics.codeBlockSignatureHash = hashString(renderContext.codeBlockSignatureParts.join("|"));
+          }
+          finishRenderProbe(renderProbe);
+          activeRenderStats = null;
+          activeMessageRenderContext = null;
+        }
+      }
+
+      function makeMessage(sequence, role, source) {
+        return { sequence, role, source };
+      }
+
+      function makeCodeLines(sequence, lineCount, language) {
+        const lines = [];
+        if (language === "json") {
+          lines.push("{");
+          for (let line = 1; line <= lineCount - 2; line += 1) {
+            const suffix = line === lineCount - 2 ? "" : ",";
+            lines.push(`  "metric_${String(line).padStart(2, "0")}": ${sequence * 100 + line}${suffix}`);
+          }
+          lines.push("}");
+          return lines;
+        }
+
+        if (language === "sh") {
+          for (let line = 1; line <= lineCount; line += 1) {
+            lines.push(`node scripts/p1/task-${sequence}.mjs --row ${line} --mode deterministic`);
+          }
+          return lines;
+        }
+
+        for (let line = 1; line <= lineCount; line += 1) {
+          lines.push(`const value_${sequence}_${line} = normalizeToken(${sequence + line});`);
+        }
+        return lines;
+      }
+
+      function fencedBlock(language, lines) {
+        return ["```" + language, ...lines, "```"].join("\n");
+      }
+
+      function toolOutputLines(sequence, format) {
+        if (format === "json") {
+          return [
+            "format: json",
+            "{",
+            `  "tool": "retrieval-${sequence}",`,
+            `  "rows": ${24 + (sequence % 13)},`,
+            "  \"status\": \"ok\"",
+            "}"
+          ];
+        }
+        if (format === "terminal") {
+          return [
+            "format: terminal",
+            `$ rg --json "needle-${sequence}" ./workspace`,
+            `./src/item-${sequence}.ts:12:export const item = ${sequence};`,
+            `./src/item-${sequence}.ts:19:return item + 1;`,
+            "exit_code=0"
+          ];
+        }
+        if (format === "markdown-table") {
+          return [
+            "format: markdown-table",
+            "| file | rows | status |",
+            "| --- | ---: | --- |",
+            `| report-${sequence}.md | ${10 + (sequence % 9)} | parsed |`,
+            `| trace-${sequence}.json | ${20 + (sequence % 11)} | indexed |`
+          ];
+        }
+        return [
+          "format: file-listing",
+          `src/session/${sequence}/index.ts`,
+          `src/session/${sequence}/renderer.ts`,
+          `logs/session-${sequence}.jsonl`,
+          `artifacts/session-${sequence}/summary.md`
+        ];
+      }
+
+      function noCodeToolOutputLines(sequence, format) {
+        if (format === "json") {
+          return [
+            "format: json",
+            "{",
+            `  "tool": "retrieval-${sequence}",`,
+            `  "records": ${40 + (sequence % 17)},`,
+            `  "cursor": "cursor-${sequence}",`,
+            "  \"state\": \"complete\",",
+            "  \"warnings\": [],",
+            `  "checksum": "${sequence * 41}"`,
+            "}"
+          ];
+        }
+        if (format === "terminal") {
+          return [
+            "format: terminal",
+            `$ find ./sessions/${sequence} -maxdepth 2 -type f`,
+            `./sessions/${sequence}/manifest.json`,
+            `./sessions/${sequence}/events.jsonl`,
+            `./sessions/${sequence}/stdout.log`,
+            `./sessions/${sequence}/stderr.log`,
+            `rows_scanned=${120 + (sequence % 23)}`,
+            "warnings=0",
+            "exit_code=0"
+          ];
+        }
+        if (format === "markdown-table") {
+          return [
+            "format: markdown-table",
+            "| artifact | rows | status |",
+            "| --- | ---: | --- |",
+            `| manifest-${sequence}.json | ${12 + (sequence % 9)} | loaded |`,
+            `| stdout-${sequence}.log | ${20 + (sequence % 11)} | indexed |`,
+            `| stderr-${sequence}.log | ${2 + (sequence % 5)} | checked |`,
+            `| summary-${sequence}.md | ${8 + (sequence % 7)} | ready |`
+          ];
+        }
+        return [
+          "format: file-listing",
+          `sessions/${sequence}/manifest.json`,
+          `sessions/${sequence}/events.jsonl`,
+          `sessions/${sequence}/stdout.log`,
+          `sessions/${sequence}/stderr.log`,
+          `artifacts/${sequence}/table.md`,
+          `artifacts/${sequence}/summary.md`,
+          `artifacts/${sequence}/metadata.json`,
+          `artifacts/${sequence}/attachments/list.txt`
+        ];
+      }
+
+      function noCodeToolBlock(sequence, format) {
+        return [
+          `::tool-output ${format}`,
+          ...noCodeToolOutputLines(sequence, format),
+          "::end-tool-output"
+        ].join("\n");
+      }
+
+      function markdownTable(sequence) {
+        return [
+          "| section | metric | status |",
+          "| --- | ---: | --- |",
+          `| checkpoint-${sequence} | ${sequence % 13} | ready |`,
+          `| stream-${sequence} | ${20 + (sequence % 17)} | active |`
+        ].join("\n");
+      }
+
+      function standardHistorySource(sequence) {
+        const bucket = sequence % 5;
+        if (bucket === 0) {
+          return [
+            `# History checkpoint ${sequence}`,
+            "",
+            `The assistant maintains a stable tail while handling message ${sequence} with \`inlineState${sequence % 7}\` and deterministic content.`,
+            "",
+            "- preserve prior context",
+            "- keep the input responsive",
+            "- avoid dropping streamed output"
+          ].join("\n");
+        }
+        if (bucket === 1) {
+          return [
+            `## Tool result ${sequence}`,
+            "",
+            "```tool-output",
+            `tool: ledger-search-${sequence % 9}`,
+            `rows: ${20 + (sequence % 11)}`,
+            "status: ok",
+            `checksum: ${sequence * 37}`,
+            "```"
+          ].join("\n");
+        }
+        if (bucket === 2) {
+          return [
+            `The user asks for a compact explanation of batch ${sequence}.`,
+            "",
+            "```js",
+            `const row${sequence} = { id: ${sequence}, visible: true };`,
+            `function format${sequence}(value) {`,
+            "  return String(value).trim().toUpperCase();",
+            "}",
+            "```"
+          ].join("\n");
+        }
+        if (bucket === 3) {
+          return [
+            `### JSON payload ${sequence}`,
+            "",
+            "```json",
+            "{",
+            `  "message_id": ${sequence},`,
+            `  "kind": "history",`,
+            `  "priority": ${sequence % 4},`,
+            "  \"complete\": true",
+            "}",
+            "```"
+          ].join("\n");
+        }
+        return [
+          `Paragraph ${sequence} covers long-running stream context with markdown rendering and code-adjacent prose.`,
+          "",
+          "- first item uses `inline_code`",
+          "- second item keeps variable height",
+          "- third item adds enough body text to exercise wrapping and layout"
+        ].join("\n");
+      }
+
+      function codeHeavyHistorySource(sequence) {
+        const bucket = sequence % 5;
+        const language = bucket === 0 ? "js" : bucket === 2 ? "ts" : "json";
+        if (bucket === 0 || bucket === 2 || bucket === 3) {
+          return [
+            `# Code-heavy checkpoint ${sequence}`,
+            "",
+            `This history message contains a 30-line fenced ${language} block and inline \`code_${sequence}\`.`,
+            "",
+            "- preserve streaming semantics",
+            "- keep syntax highlighting active",
+            "- keep the full history mounted",
+            "",
+            fencedBlock(language, makeCodeLines(sequence, 30, language))
+          ].join("\n");
+        }
+
+        if (bucket === 1) {
+          return [
+            `## Review note ${sequence}`,
+            "",
+            "The assistant compares parsed code regions with surrounding prose while keeping markdown structure stable.",
+            "",
+            "- code-heavy non-code control row",
+            "- deterministic message height"
+          ].join("\n");
+        }
+
+        return [
+          `### Tool side note ${sequence}`,
+          "",
+          "```tool-output",
+          ...toolOutputLines(sequence, "terminal"),
+          "```"
+        ].join("\n");
+      }
+
+      function toolHeavyHistorySource(sequence) {
+        const bucket = sequence % 5;
+        if (bucket === 0 || bucket === 1) {
+          const formats = ["json", "terminal", "markdown-table", "file-listing"];
+          const format = formats[sequence % formats.length];
+          return [
+            `## Tool-heavy result ${sequence}`,
+            "",
+            `The result block below represents ${format} tool output for deterministic audit coverage.`,
+            "",
+            "```tool-output",
+            ...toolOutputLines(sequence, format),
+            "```"
+          ].join("\n");
+        }
+
+        if (bucket === 2) {
+          return [
+            `Paragraph ${sequence} summarizes tool-heavy context with \`inline_tool_state\`.`,
+            "",
+            "- retain long history",
+            "- keep variable message height",
+            "- do not collapse tool output semantics"
+          ].join("\n");
+        }
+
+        if (bucket === 3) {
+          return [
+            `### Lightweight code reference ${sequence}`,
+            "",
+            fencedBlock("js", makeCodeLines(sequence, 8, "js"))
+          ].join("\n");
+        }
+
+        return [
+          `Plain tool-heavy follow-up ${sequence}`,
+          "",
+          "The user asks for a short synthesis after several tool outputs.",
+          "",
+          "- current file set remains visible",
+          "- terminal output remains represented elsewhere"
+        ].join("\n");
+      }
+
+      function toolHeavyNoCodeHistorySource(sequence) {
+        const bucket = sequence % 5;
+        if (bucket === 0 || bucket === 1 || bucket === 2) {
+          const formats = ["json", "terminal", "markdown-table", "file-listing"];
+          const format = formats[sequence % formats.length];
+          return [
+            `## Tool-heavy no-code result ${sequence}`,
+            "",
+            `The structured result below uses ${format} content without fenced code or syntax highlighting.`,
+            "",
+            noCodeToolBlock(sequence, format)
+          ].join("\n");
+        }
+
+        return [
+          `Tool-heavy no-code synthesis ${sequence}`,
+          "",
+          "The assistant summarizes prior tool output with `inline_tool_state` while keeping code blocks absent.",
+          "",
+          "- structured output remains visible",
+          "- no fenced code blocks are present",
+          "- syntax highlighting is not invoked"
+        ].join("\n");
+      }
+
+      function markdownHeavyNoCodeHistorySource(sequence) {
+        const bucket = sequence % 5;
+        if (bucket === 0 || bucket === 1 || bucket === 2) {
+          return [
+            `# Markdown-heavy no-code checkpoint ${sequence}`,
+            "",
+            `The assistant keeps rich markdown active with \`inline_state_${sequence}\` and no fenced code.`,
+            "",
+            "- first structured bullet keeps tail height variable",
+            "- second structured bullet includes `inline_marker`",
+            "- third structured bullet remains deterministic",
+            "",
+            "> Blockquote context carries reviewer-facing output without code fences.",
+            "",
+            markdownTable(sequence)
+          ].join("\n");
+        }
+
+        return [
+          `Paragraph ${sequence} keeps the markdown-heavy no-code history varied.`,
+          "",
+          "- no syntax highlighting is required",
+          "- no fenced code blocks are present"
+        ].join("\n");
+      }
+
+      function historySource(sequence) {
+        if (config.contentMix === "code-heavy") {
+          return codeHeavyHistorySource(sequence);
+        }
+        if (config.contentMix === "tool-heavy") {
+          return toolHeavyHistorySource(sequence);
+        }
+        if (config.contentMix === "tool-heavy-no-code") {
+          return toolHeavyNoCodeHistorySource(sequence);
+        }
+        if (config.contentMix === "markdown-heavy-no-code") {
+          return markdownHeavyNoCodeHistorySource(sequence);
+        }
+        return standardHistorySource(sequence);
+      }
+
+      function analyzeContentForAudit(source) {
+        const lines = source.replace(/\r\n/g, "\n").split("\n");
+        let codeBlockCount = 0;
+        let codeLineCount = 0;
+        let toolOutputBlockCount = 0;
+        let toolOutputLineCount = 0;
+        let headingCount = 0;
+        let listItemCount = 0;
+        let markdownTableCount = 0;
+        let blockquoteCount = 0;
+        let inlineCodeCount = 0;
+        const toolOutputFormats = new Set();
+
+        for (let index = 0; index < lines.length; index += 1) {
+          const line = lines[index];
+          if (/^#{1,3}\s+/.test(line)) {
+            headingCount += 1;
+          }
+          if (/^-\s+/.test(line)) {
+            listItemCount += 1;
+          }
+          if (/^>\s+/.test(line)) {
+            blockquoteCount += 1;
+          }
+          const inlineMatches = line.match(/`[^`]+`/g);
+          if (inlineMatches) {
+            inlineCodeCount += inlineMatches.length;
+          }
+          if (
+            /^\|.*\|$/.test(line) &&
+            index + 1 < lines.length &&
+            /^\|\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$/.test(lines[index + 1])
+          ) {
+            markdownTableCount += 1;
+          }
+
+          const noCodeToolBlock = line.match(/^::tool-output\s+([A-Za-z0-9_-]+)\s*$/);
+          if (noCodeToolBlock) {
+            toolOutputBlockCount += 1;
+            toolOutputFormats.add(noCodeToolBlock[1]);
+            index += 1;
+            while (index < lines.length && !/^::end-tool-output\s*$/.test(lines[index])) {
+              toolOutputLineCount += 1;
+              const format = lines[index].match(/^format:\s*([A-Za-z0-9_-]+)/);
+              if (format) {
+                toolOutputFormats.add(format[1]);
+              }
+              index += 1;
+            }
+            continue;
+          }
+
+          const fence = lines[index].match(/^```([A-Za-z0-9_-]+)?\s*$/);
+          if (!fence) {
+            continue;
+          }
+
+          const language = fence[1] || "text";
+          const blockLines = [];
+          index += 1;
+          while (index < lines.length && !/^```\s*$/.test(lines[index])) {
+            blockLines.push(lines[index]);
+            index += 1;
+          }
+
+          if (language === "tool-output" || language === "tool") {
+            toolOutputBlockCount += 1;
+            toolOutputLineCount += blockLines.length;
+            for (const line of blockLines) {
+              const format = line.match(/^format:\s*([A-Za-z0-9_-]+)/);
+              if (format) {
+                toolOutputFormats.add(format[1]);
+              }
+            }
+          } else {
+            codeBlockCount += 1;
+            codeLineCount += blockLines.length;
+          }
+        }
+
+        return {
+          codeBlockCount,
+          codeLineCount,
+          toolOutputBlockCount,
+          toolOutputLineCount,
+          toolOutputFormats,
+          headingCount,
+          listItemCount,
+          markdownTableCount,
+          blockquoteCount,
+          inlineCodeCount
+        };
+      }
+
+      function formatPct(numerator, denominator) {
+        return denominator > 0 ? (numerator / denominator) * 100 : 0;
+      }
+
+      function setToolOutputFormats(formats) {
+        contentAudit.toolOutputFormatsPresent = formats.size > 0
+          ? Array.from(formats).sort().join(",")
+          : "none";
+      }
+
+      function setStreamToolOutputFormats(formats) {
+        contentAudit.streamToolOutputFormatsPresent = formats.size > 0
+          ? Array.from(formats).sort().join(",")
+          : "none";
+      }
+
+      function computeHistoryAudit() {
+        let codeMessageCount = 0;
+        let codeLineCount = 0;
+        let toolMessageCount = 0;
+        let richMarkdownMessageCount = 0;
+        const formats = new Set();
+
+        for (const message of historyMessages) {
+          const audit = analyzeContentForAudit(message.source);
+          if (audit.codeBlockCount > 0) {
+            codeMessageCount += 1;
+            codeLineCount += audit.codeLineCount;
+          }
+          if (audit.toolOutputBlockCount > 0) {
+            toolMessageCount += 1;
+          }
+          if (
+            audit.headingCount > 0 ||
+            audit.listItemCount > 0 ||
+            audit.markdownTableCount > 0 ||
+            audit.blockquoteCount > 0 ||
+            audit.inlineCodeCount > 0
+          ) {
+            richMarkdownMessageCount += 1;
+          }
+          for (const format of audit.toolOutputFormats) {
+            formats.add(format);
+          }
+        }
+
+        contentAudit.historyCodeBlockMessagePct = formatPct(codeMessageCount, historyMessages.length);
+        contentAudit.historyAvgCodeBlockLines = codeMessageCount > 0 ? codeLineCount / codeMessageCount : 0;
+        contentAudit.historyToolOutputMessagePct = formatPct(toolMessageCount, historyMessages.length);
+        contentAudit.historyRichMarkdownMessagePct = formatPct(richMarkdownMessageCount, historyMessages.length);
+        setToolOutputFormats(formats);
+      }
+
+      function computeStreamAudit(tokens) {
+        const audit = analyzeContentForAudit(tokens.join(""));
+        const streamFormats = new Set(audit.toolOutputFormats);
+        const formats = new Set(contentAudit.toolOutputFormatsPresent === "none"
+          ? []
+          : contentAudit.toolOutputFormatsPresent.split(","));
+
+        for (const format of audit.toolOutputFormats) {
+          formats.add(format);
+        }
+
+        contentAudit.streamCodeBlockCount = audit.codeBlockCount;
+        contentAudit.streamCodeLineCount = audit.codeLineCount;
+        contentAudit.streamToolOutputBlockCount = audit.toolOutputBlockCount;
+        contentAudit.streamToolOutputLineCount = audit.toolOutputLineCount;
+        contentAudit.streamHeadingCount = audit.headingCount;
+        contentAudit.streamListItemCount = audit.listItemCount;
+        contentAudit.streamMarkdownTableCount = audit.markdownTableCount;
+        contentAudit.streamBlockquoteCount = audit.blockquoteCount;
+        contentAudit.streamInlineCodeCount = audit.inlineCodeCount;
+        setToolOutputFormats(formats);
+        setStreamToolOutputFormats(streamFormats);
+      }
+
+      function buildHistory() {
+        for (let index = 1; index <= config.historyMessages; index += 1) {
+          const role = index % 3 === 0 ? "user" : "assistant";
+          historyMessages.push(makeMessage(index, role, historySource(index)));
+        }
+        computeHistoryAudit();
+      }
+
+      function renderMessage(message) {
+        const row = document.createElement("article");
+        row.className = "message";
+        row.dataset.sequence = String(message.sequence);
+        row.dataset.role = message.role;
+
+        const role = document.createElement("div");
+        role.className = "role";
+        role.textContent = message.role;
+
+        const content = document.createElement("div");
+        content.className = "content";
+        renderMarkdownInto(content, message.source);
+
+        row.append(role, content);
+        return { row, content, message };
+      }
+
+      function renderAllMessagesNaive() {
+        const fragment = document.createDocumentFragment();
+        for (const message of historyMessages) {
+          fragment.appendChild(renderMessage(message).row);
+        }
+        if (activeMessage) {
+          fragment.appendChild(renderMessage(activeMessage).row);
+        }
+        messageList.replaceChildren(fragment);
+      }
+
+      function mountOptimizedHistory() {
+        const fragment = document.createDocumentFragment();
+        for (const message of historyMessages) {
+          const entry = renderMessage(message);
+          optimizedEntries.push(entry);
+          fragment.appendChild(entry.row);
+        }
+        messageList.replaceChildren(fragment);
+      }
+
+      function seedSurface() {
+        buildHistory();
+        computeStreamAudit(buildStreamTokens(config.streamTokens));
+        if (config.baselineId === "naive-dom") {
+          renderAllMessagesNaive();
+        } else {
+          mountOptimizedHistory();
+        }
+        scrollport.scrollTop = scrollport.scrollHeight;
+        mountedHistory = true;
+
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            ready = mountedHistory;
+            readyAtMs = performance.now();
+            updateStatus();
+          });
+        });
+      }
+
+      function standardStreamSectionTokens(sectionIndex) {
+        const suffix = String(sectionIndex).padStart(2, "0");
+        return [
+          `# Streaming section ${suffix}\n\n`,
+          "The ", "assistant ", "streams ", "a ", "mixed ", "markdown ", "answer ", "while ", "the ", "input ", "box ", "remains ", "present. ",
+          "It ", "includes ", "`inline_state_", suffix, "` ", "and ", "structured ", "content.\n\n",
+          "- token ", "cadence ", "is ", "deterministic\n",
+          "- tail ", "follow ", "must ", "remain ", "stable\n",
+          "- parsing ", "and ", "highlighting ", "still ", "run\n\n",
+          "```js\n",
+          "const ", `value${sectionIndex}`, " = ", String(sectionIndex), ";\n",
+          "function ", `render${sectionIndex}`, "(token) {\n",
+          "  return ", "String", "(token)", ".trim", "();\n",
+          "}\n",
+          "```\n\n",
+          "```json\n",
+          "{\n",
+          `  "section": ${sectionIndex},\n`,
+          "  \"streaming\": true,\n",
+          "  \"kind\": \"p1a\"\n",
+          "}\n",
+          "```\n\n",
+          "```tool-output\n",
+          `tool: diagnostic-${sectionIndex}\n`,
+          "status: ok\n",
+          `rows: ${12 + (sectionIndex % 8)}\n`,
+          "```\n\n"
+        ];
+      }
+
+      function codeHeavyStreamSectionTokens(sectionIndex) {
+        const suffix = String(sectionIndex).padStart(2, "0");
+        const language = sectionIndex % 3 === 0 ? "json" : sectionIndex % 3 === 1 ? "js" : "sh";
+        return [
+          `# Code-heavy streaming section ${suffix}\n\n`,
+          "The ", "assistant ", "streams ", "code-heavy ", "markdown ", "while ", "keeping ", "`inline_code` ", "active.\n\n",
+          "- each ", "section ", "includes ", "a ", "30-line ", "fenced ", "code ", "block\n",
+          "- syntax ", "highlighting ", "uses ", "the ", "same ", "local ", "path\n\n",
+          "```", language, "\n",
+          ...makeCodeLines(1000 + sectionIndex, 30, language).map((line) => `${line}\n`),
+          "```\n\n"
+        ];
+      }
+
+      function toolHeavyStreamSectionTokens(sectionIndex) {
+        const suffix = String(sectionIndex).padStart(2, "0");
+        const formats = ["json", "terminal", "markdown-table", "file-listing"];
+        const format = formats[(sectionIndex - 1) % formats.length];
+        return [
+          `# Tool-heavy streaming section ${suffix}\n\n`,
+          "The ", "assistant ", "streams ", "tool-output-heavy ", "content ", "with ", "`inline_tool_state` ", "and ", "deterministic ", "formats.\n\n",
+          "- JSON, ", "terminal, ", "markdown-table, ", "and ", "file-listing ", "formats ", "are ", "cycled\n\n",
+          "```tool-output\n",
+          ...toolOutputLines(2000 + sectionIndex, format).map((line) => `${line}\n`),
+          "```\n\n"
+        ];
+      }
+
+      function toolHeavyNoCodeStreamSectionTokens(sectionIndex) {
+        const suffix = String(sectionIndex).padStart(2, "0");
+        const formats = ["json", "terminal", "markdown-table", "file-listing"];
+        const format = formats[(sectionIndex - 1) % formats.length];
+        return [
+          `# Tool-heavy no-code section ${suffix}\n\n`,
+          "The ", "assistant ", "streams ", "structured ", "tool ", "output ", "without ", "fenced ", "code ", "or ", "syntax ", "highlighting.\n\n",
+          `::tool-output ${format}\n`,
+          ...noCodeToolOutputLines(3000 + sectionIndex, format).map((line) => `${line}\n`),
+          "::end-tool-output\n\n"
+        ];
+      }
+
+      function markdownHeavyNoCodeStreamSectionTokens(sectionIndex) {
+        const suffix = String(sectionIndex).padStart(2, "0");
+        return [
+          `# Markdown-heavy no-code section ${suffix}\n\n`,
+          "The ", "assistant ", "streams ", "rich ", "markdown ", "with ", "`inline_state_", suffix, "` ", "and ", "no ", "fenced ", "code.\n\n",
+          "- structured ", "bullet ", "one ", "keeps ", "`inline_one` ", "visible\n",
+          "- structured ", "bullet ", "two ", "adds ", "multi-row ", "context\n",
+          "- structured ", "bullet ", "three ", "keeps ", "tail ", "height ", "variable\n",
+          "- structured ", "bullet ", "four ", "records ", "`inline_four` ", "state\n",
+          "- structured ", "bullet ", "five ", "adds ", "review ", "context\n",
+          "- structured ", "bullet ", "six ", "keeps ", "layout ", "active\n",
+          "- structured ", "bullet ", "seven ", "keeps ", "markdown ", "dense\n",
+          "- structured ", "bullet ", "eight ", "closes ", "the ", "list\n\n",
+          "> Blockquote ", suffix, " carries reviewer-facing context with `inline_quote` and no code fence.\n\n",
+          "| section | item | status |\n",
+          "| --- | ---: | --- |\n",
+          "| ", suffix, " | ", String(sectionIndex), " | ready |\n",
+          "| ", suffix, " | ", String(sectionIndex + 1), " | active |\n\n"
+        ];
+      }
+
+      function streamSectionTokens(sectionIndex) {
+        if (config.contentMix === "code-heavy") {
+          return codeHeavyStreamSectionTokens(sectionIndex);
+        }
+        if (config.contentMix === "tool-heavy") {
+          return toolHeavyStreamSectionTokens(sectionIndex);
+        }
+        if (config.contentMix === "tool-heavy-no-code") {
+          return toolHeavyNoCodeStreamSectionTokens(sectionIndex);
+        }
+        if (config.contentMix === "markdown-heavy-no-code") {
+          return markdownHeavyNoCodeStreamSectionTokens(sectionIndex);
+        }
+        return standardStreamSectionTokens(sectionIndex);
+      }
+
+      function fillerTokens(remaining) {
+        const source = [
+          "Final ", "stream ", "paragraph ", "keeps ", "markdown ", "valid ", "and ", "closes ", "without ", "opening ", "a ", "new ", "fence. ",
+          "- trailing ", "list ", "item ", "with ", "`inline_code`", "\n"
+        ];
+        const result = [];
+        while (result.length < remaining) {
+          result.push(source[result.length % source.length]);
+        }
+        return result;
+      }
+
+      function buildStreamTokens(count) {
+        const tokens = [];
+        let sectionIndex = 1;
+        while (tokens.length < count) {
+          const section = streamSectionTokens(sectionIndex);
+          if (tokens.length + section.length <= count) {
+            tokens.push(...section);
+          } else {
+            tokens.push(...fillerTokens(count - tokens.length));
+          }
+          sectionIndex += 1;
+        }
+        return tokens.slice(0, count);
+      }
+
+      function prepareStreamMessage(captureIndex) {
+        streamTokens = buildStreamTokens(config.streamTokens);
+        computeStreamAudit(streamTokens);
+        streamSource = "";
+        tokenCount = 0;
+        tailMissCount = 0;
+        scriptedInputProbeCount = 0;
+        scriptedInputProbeMaxMs = 0;
+        scriptedInputProbeTotalMs = 0;
+        resetHighlightCounters();
+        resetNodeChurnMetrics();
+        resetClosedCodeBlockMetrics();
+        autoFollow = true;
+        scrollbackStarted = false;
+        resumeStarted = false;
+        if (activeOptimizedEntry?.row?.isConnected) {
+          activeOptimizedEntry.row.remove();
+        }
+        activeOptimizedEntry = null;
+        activeMessage = makeMessage(config.historyMessages + captureIndex, "assistant", "");
+
+        if (config.baselineId === "naive-dom") {
+          renderAllMessagesNaive();
+        } else {
+          const entry = renderMessage(activeMessage);
+          activeOptimizedEntry = entry;
+          messageList.appendChild(entry.row);
+        }
+        scrollport.scrollTop = scrollport.scrollHeight;
+      }
+
+      function markContentAudit(captureIndex) {
+        markP1(captureIndex, `audit:content_mix=${config.contentMix}`);
+        markP1(captureIndex, `audit:history_messages=${config.historyMessages}`);
+        markP1(captureIndex, `audit:disable_highlight=${config.disableHighlight}`);
+        markP1(captureIndex, `audit:disable_markdown_parse=${config.disableMarkdownParse}`);
+        markP1(captureIndex, `audit:render_variant=${renderVariantName()}`);
+        markP1(captureIndex, `audit:highlight_policy=${config.highlightPolicy}`);
+        markP1(captureIndex, `audit:node_churn_probe=${config.nodeChurnProbe}`);
+        markP1(captureIndex, `audit:active_render_strategy=${config.activeRenderStrategy}`);
+        markP1(captureIndex, `audit:closed_code_reuse_semantics=${closedCodeReuseSemantics()}`);
+        markP1(captureIndex, `audit:history_code_block_message_pct=${contentAudit.historyCodeBlockMessagePct.toFixed(1)}`);
+        markP1(captureIndex, `audit:history_avg_code_block_lines=${contentAudit.historyAvgCodeBlockLines.toFixed(1)}`);
+        markP1(captureIndex, `audit:stream_code_block_count=${contentAudit.streamCodeBlockCount}`);
+        markP1(captureIndex, `audit:stream_code_line_count=${contentAudit.streamCodeLineCount}`);
+        markP1(captureIndex, `audit:history_tool_output_message_pct=${contentAudit.historyToolOutputMessagePct.toFixed(1)}`);
+        markP1(captureIndex, `audit:stream_tool_output_block_count=${contentAudit.streamToolOutputBlockCount}`);
+        markP1(captureIndex, `audit:stream_tool_output_line_count=${contentAudit.streamToolOutputLineCount}`);
+        markP1(captureIndex, `audit:tool_output_formats_present=${contentAudit.toolOutputFormatsPresent}`);
+        markP1(captureIndex, `audit:stream_tool_output_formats_present=${contentAudit.streamToolOutputFormatsPresent}`);
+        markP1(captureIndex, `audit:history_rich_markdown_message_pct=${contentAudit.historyRichMarkdownMessagePct.toFixed(1)}`);
+        markP1(captureIndex, `audit:stream_heading_count=${contentAudit.streamHeadingCount}`);
+        markP1(captureIndex, `audit:stream_list_item_count=${contentAudit.streamListItemCount}`);
+        markP1(captureIndex, `audit:stream_markdown_table_count=${contentAudit.streamMarkdownTableCount}`);
+        markP1(captureIndex, `audit:stream_blockquote_count=${contentAudit.streamBlockquoteCount}`);
+        markP1(captureIndex, `audit:stream_inline_code_count=${contentAudit.streamInlineCodeCount}`);
+        markP1(captureIndex, `audit:scripted_input_probe_enabled=${config.inputProbe}`);
+      }
+
+      function clearActiveTimer() {
+        if (activeTimerId !== null) {
+          window.clearTimeout(activeTimerId);
+          activeTimerId = null;
+        }
+      }
+
+      function cancelActiveStream(reason, { emitIncompleteMark }) {
+        clearActiveTimer();
+        streamGeneration += 1;
+
+        if (
+          activeCaptureIndex > 0 &&
+          !completedCaptures.has(activeCaptureIndex) &&
+          streamState === "streaming"
+        ) {
+          const cancelledCaptureIndex = activeCaptureIndex;
+          if (emitIncompleteMark) {
+            markP1(cancelledCaptureIndex, `stream:incomplete:${reason}:token-count=${tokenCount}`);
+            markP1(cancelledCaptureIndex, `metric:tail_miss_count=${tailMissCount}`);
+          }
+          lastError = `stream-incomplete ${reason} token_count=${tokenCount}`;
+          streamState = "incomplete";
+        }
+
+        activeCaptureIndex = 0;
+        updateStatus();
+      }
+
+      function renderStreamToken() {
+        activeMessage.source = streamSource;
+        if (config.baselineId === "naive-dom") {
+          renderAllMessagesNaive();
+        } else if (activeOptimizedEntry) {
+          renderMarkdownInto(activeOptimizedEntry.content, activeMessage.source);
+        }
+      }
+
+      function maybeRunScriptedInputProbe(captureIndex) {
+        if (!config.inputProbe || tokenCount % INPUT_PROBE_INTERVAL_TOKENS !== 0) {
+          return;
+        }
+
+        const probeStartMs = performance.now();
+        activeInput.value = `scripted probe capture=${captureIndex} token=${tokenCount}`;
+        activeInput.selectionStart = activeInput.value.length;
+        activeInput.selectionEnd = activeInput.value.length;
+        const observedLength = activeInput.value.length;
+        const probeDurationMs = performance.now() - probeStartMs;
+
+        scriptedInputProbeCount += 1;
+        scriptedInputProbeTotalMs += probeDurationMs;
+        if (probeDurationMs > scriptedInputProbeMaxMs) {
+          scriptedInputProbeMaxMs = probeDurationMs;
+        }
+
+        markP1(
+          captureIndex,
+          `scripted_input_probe:sample-${scriptedInputProbeCount}:token-${tokenCount}:observed-length=${observedLength}`
+        );
+      }
+
+      function followTailAndMeasure() {
+        if (autoFollow) {
+          scrollport.scrollTop = scrollport.scrollHeight;
+          const tailThreshold = scrollport.scrollHeight - scrollport.clientHeight - 2;
+          if (scrollport.scrollTop < tailThreshold) {
+            tailMissCount += 1;
+          }
+        }
+      }
+
+      function maybeApplyScrollbackMode(captureIndex) {
+        if (config.scenarioMode !== "scrollback-resume") {
+          return;
+        }
+        if (!scrollbackStarted && tokenCount >= 300) {
+          scrollbackStarted = true;
+          autoFollow = false;
+          scrollport.scrollTop = Math.max(0, Math.floor(scrollport.scrollHeight * 0.45));
+          markP1(captureIndex, "scrollback:start");
+        }
+        if (!resumeStarted && tokenCount >= 600) {
+          resumeStarted = true;
+          autoFollow = true;
+          scrollport.scrollTop = scrollport.scrollHeight;
+          markP1(captureIndex, "scrollback:resume-tail");
+        }
+      }
+
+      function completeStream(captureIndex, generation) {
+        if (generation !== streamGeneration || activeCaptureIndex !== captureIndex) {
+          return;
+        }
+
+        clearActiveTimer();
+        streamState = "complete";
+        completedCaptures.add(captureIndex);
+        markP1(captureIndex, `metric:final-token-count=${tokenCount}`);
+        markP1(captureIndex, `metric:tail_miss_count=${tailMissCount}`);
+        markP1(captureIndex, `metric:scripted_input_probe_count=${scriptedInputProbeCount}`);
+        markP1(captureIndex, `metric:scripted_input_probe_max_ms=${scriptedInputProbeMaxMs.toFixed(3)}`);
+        markP1(captureIndex, `metric:scripted_input_probe_total_ms=${scriptedInputProbeTotalMs.toFixed(3)}`);
+        markP1(captureIndex, `metric:active_unclosed_code_plain_count=${activeUnclosedCodePlainCount}`);
+        markP1(captureIndex, `metric:unclosed_code_highlight_skipped_count=${unclosedCodeHighlightSkippedCount}`);
+        markP1(captureIndex, `metric:closed_code_highlight_call_count=${closedCodeHighlightCallCount}`);
+        markP1(captureIndex, `metric:highlight_call_count=${highlightCallCount}`);
+        markP1(captureIndex, `metric:created_highlight_span_count=${createdHighlightSpanCount}`);
+        markP1(captureIndex, `metric:dom_nodes_created_this_tick=${nodeChurnMetrics.domNodesCreatedThisTick}`);
+        markP1(captureIndex, `metric:dom_nodes_replaced_this_tick=${nodeChurnMetrics.domNodesReplacedThisTick}`);
+        markP1(captureIndex, `metric:dom_nodes_in_closed_blocks_affected_this_tick=${nodeChurnMetrics.domNodesInClosedBlocksAffectedThisTick}`);
+        markP1(captureIndex, `metric:dom_nodes_in_active_unclosed_block_affected_this_tick=${nodeChurnMetrics.domNodesInActiveUnclosedBlockAffectedThisTick}`);
+        markP1(captureIndex, `metric:total_nodes_created=${nodeChurnMetrics.totalNodesCreated}`);
+        markP1(captureIndex, `metric:total_nodes_replaced=${nodeChurnMetrics.totalNodesReplaced}`);
+        markP1(captureIndex, `metric:total_nodes_in_closed_blocks_churned=${nodeChurnMetrics.totalNodesInClosedBlocksChurned}`);
+        markP1(captureIndex, `metric:total_nodes_in_active_unclosed_block_changed=${nodeChurnMetrics.totalNodesInActiveUnclosedBlockChanged}`);
+        markP1(captureIndex, `metric:closed_block_churn_ratio=${closedBlockChurnRatio().toFixed(6)}`);
+        markP1(captureIndex, `metric:active_message_closed_code_block_count=${nodeChurnMetrics.activeMessageClosedCodeBlockCount}`);
+        markP1(captureIndex, `metric:active_message_closed_code_block_render_count=${nodeChurnMetrics.activeMessageClosedCodeBlockRenderCount}`);
+        markP1(captureIndex, `metric:active_message_closed_code_block_rerender_factor=${activeMessageClosedCodeBlockRerenderFactor().toFixed(6)}`);
+        markP1(captureIndex, `metric:active_message_closed_code_dom_nodes_created=${nodeChurnMetrics.activeMessageClosedCodeDomNodesCreated}`);
+        markP1(captureIndex, `metric:active_message_closed_code_dom_nodes_replaced=${nodeChurnMetrics.activeMessageClosedCodeDomNodesReplaced}`);
+        markP1(captureIndex, `metric:unique_closed_code_block_count=${uniqueClosedCodeBlockCount()}`);
+        markP1(captureIndex, `metric:closed_code_block_encounter_count=${closedCodeBlockMetrics.encounterCount}`);
+        markP1(captureIndex, `metric:closed_code_block_actual_render_count=${closedCodeBlockMetrics.actualRenderCount}`);
+        markP1(captureIndex, `metric:closed_code_block_reuse_count=${closedCodeBlockMetrics.reuseCount}`);
+        markP1(captureIndex, `metric:closed_code_block_cache_hit_count=${closedCodeBlockMetrics.cacheHitCount}`);
+        markP1(captureIndex, `metric:closed_code_block_cache_miss_count=${closedCodeBlockMetrics.cacheMissCount}`);
+        markP1(captureIndex, `metric:actual_render_factor=${actualRenderFactor().toFixed(6)}`);
+        markP1(captureIndex, `metric:encounter_factor=${encounterFactor().toFixed(6)}`);
+        markP1(captureIndex, `metric:final_rendered_text_hash=${closedCodeBlockMetrics.finalRenderedTextHash}`);
+        markP1(captureIndex, `metric:active_message_block_sequence_hash=${closedCodeBlockMetrics.activeMessageBlockSequenceHash}`);
+        markP1(captureIndex, `metric:code_block_signature_hash=${closedCodeBlockMetrics.codeBlockSignatureHash}`);
+        markP1(captureIndex, "stream:end");
+        activeCaptureIndex = 0;
+        updateStatus();
+      }
+
+      function streamNextToken(captureIndex, generation) {
+        activeTimerId = null;
+        if (
+          generation !== streamGeneration ||
+          activeCaptureIndex !== captureIndex ||
+          completedCaptures.has(captureIndex)
+        ) {
+          return;
+        }
+        if (tokenCount >= streamTokens.length) {
+          completeStream(captureIndex, generation);
+          return;
+        }
+
+        streamSource += streamTokens[tokenCount];
+        tokenCount += 1;
+        renderStreamToken();
+        maybeRunScriptedInputProbe(captureIndex);
+        maybeApplyScrollbackMode(captureIndex);
+        followTailAndMeasure();
+
+        if (tokenCount % TOKEN_SAMPLE_STEP === 0) {
+          markP1(captureIndex, `stream:token-${tokenCount}`);
+        }
+        if (tokenCount >= streamTokens.length) {
+          completeStream(captureIndex, generation);
+          return;
+        }
+
+        if (tokenCount % 20 === 0) {
+          updateStatus();
+        }
+        activeTimerId = window.setTimeout(
+          () => streamNextToken(captureIndex, generation),
+          config.tokenIntervalMs
+        );
+      }
+
+      function startStreamForCapture(captureIndex) {
+        cancelActiveStream("new-capture", { emitIncompleteMark: false });
+        if (startedCaptures.has(captureIndex) || completedCaptures.has(captureIndex)) {
+          return;
+        }
+
+        const idleMs = readyAtMs > 0 ? performance.now() - readyAtMs : 0;
+        currentCaptureIndex = captureIndex;
+        if (!ready || idleMs < MIN_READY_IDLE_MS) {
+          lastError = `not-ready idle_ms=${Math.floor(idleMs)}`;
+          streamState = "error";
+          markP1(captureIndex, `error:not-ready:idle-ms=${Math.floor(idleMs)}`);
+          updateStatus();
+          return;
+        }
+
+        startedCaptures.add(captureIndex);
+        streamGeneration += 1;
+        activeCaptureIndex = captureIndex;
+        lastError = "none";
+        streamState = "streaming";
+        markP1(captureIndex, `ready:idle-ms=${Math.floor(idleMs)}`);
+        markP1(captureIndex, "stream:start");
+        prepareStreamMessage(captureIndex);
+        markContentAudit(captureIndex);
+        updateStatus();
+        streamNextToken(captureIndex, streamGeneration);
+      }
+
+      const observer = new PerformanceObserver((entries) => {
+        for (const entry of entries.getEntries()) {
+          if (entry.name === "p0:capture:start") {
+            captureSequence += 1;
+            startStreamForCapture(captureSequence);
+          } else if (entry.name === "p0:capture:end") {
+            cancelActiveStream("capture-end", { emitIncompleteMark: true });
+          }
+        }
+      });
+
+      observer.observe({ entryTypes: ["mark"] });
+      seedSurface();
+      updateStatus();
+      window.setInterval(updateStatus, 500);
+      activeInput.addEventListener("input", updateStatus);
+    </script>
+  </body>
+</html>

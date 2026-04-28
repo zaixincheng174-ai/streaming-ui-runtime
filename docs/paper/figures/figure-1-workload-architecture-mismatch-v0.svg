@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="760" viewBox="0 0 1400 760" role="img" aria-labelledby="title desc">
+  <title id="title">Figure 1. Workload-Architecture Mismatch</title>
+  <desc id="desc">Two-panel conceptual architecture diagram contrasting a current document-oriented main-thread path with a proposed streaming UI runtime direction using worker-resident state and bounded projection.</desc>
+
+  <defs>
+    <marker id="arrow-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#4b5563"/>
+    </marker>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#334155"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1400" height="760" fill="#ffffff"/>
+
+  <text x="700" y="42" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="700" fill="#111827">Figure 1. Workload-Architecture Mismatch</text>
+  <text x="700" y="72" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="15" fill="#4b5563">Long-lived AI surfaces are append-heavy, viewport-centric, and session-scale; the runtime boundary should keep visible projection bounded.</text>
+
+  <rect x="50" y="105" width="625" height="560" rx="14" fill="#fafafa" stroke="#d1d5db" stroke-width="2"/>
+  <rect x="725" y="105" width="625" height="560" rx="14" fill="#fafafa" stroke="#d1d5db" stroke-width="2"/>
+
+  <text x="362.5" y="140" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700" fill="#111827">Current document-oriented stack</text>
+  <text x="1037.5" y="140" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700" fill="#111827">Proposed streaming UI runtime direction</text>
+
+  <rect x="92" y="166" width="541" height="360" rx="12" fill="#ffffff" stroke="#9ca3af" stroke-width="1.5"/>
+  <rect x="112" y="180" width="501" height="28" rx="6" fill="#f3f4f6" stroke="#d1d5db"/>
+  <text x="362.5" y="199" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#374151">Main Thread lane: app coordination + presentation</text>
+
+  <rect x="145" y="228" width="435" height="48" rx="8" fill="#f8fafc" stroke="#94a3b8"/>
+  <text x="362.5" y="257" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#111827">User action / stream update</text>
+
+  <line x1="362.5" y1="276" x2="362.5" y2="303" stroke="#4b5563" stroke-width="2" marker-end="url(#arrow-gray)"/>
+  <rect x="145" y="304" width="435" height="54" rx="8" fill="#fff7ed" stroke="#b45309"/>
+  <text x="362.5" y="326" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#111827">Main-thread app state / context propagation</text>
+  <text x="362.5" y="345" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#6b7280">session-scale coordination can enter the update path</text>
+
+  <line x1="362.5" y1="358" x2="362.5" y2="384" stroke="#4b5563" stroke-width="2" marker-end="url(#arrow-gray)"/>
+  <rect x="145" y="385" width="435" height="54" rx="8" fill="#fff7ed" stroke="#b45309"/>
+  <text x="362.5" y="407" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#111827">Subscriber fanout / derived computation</text>
+  <text x="362.5" y="426" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#6b7280">large session/fanout despite bounded viewport</text>
+
+  <line x1="362.5" y1="439" x2="362.5" y2="465" stroke="#4b5563" stroke-width="2" marker-end="url(#arrow-gray)"/>
+  <rect x="145" y="466" width="435" height="48" rx="8" fill="#fef2f2" stroke="#991b1b"/>
+  <text x="362.5" y="495" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#111827">Run microtasks / app coordination</text>
+
+  <line x1="362.5" y1="514" x2="362.5" y2="541" stroke="#4b5563" stroke-width="2" marker-end="url(#arrow-gray)"/>
+  <rect x="145" y="542" width="435" height="48" rx="8" fill="#f8fafc" stroke="#94a3b8"/>
+  <text x="362.5" y="571" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#111827">DOM / VDOM visible update</text>
+
+  <rect x="115" y="606" width="495" height="38" rx="8" fill="#fef2f2" stroke="#991b1b" stroke-width="1.4"/>
+  <text x="133" y="630" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#7f1d1d">Main-thread long-task risk</text>
+  <text x="337" y="630" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#4b5563">presentation and session-scale work share the lane</text>
+
+  <rect x="755" y="166" width="390" height="408" rx="12" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5"/>
+  <rect x="1165" y="166" width="150" height="408" rx="12" fill="#ffffff" stroke="#9ca3af" stroke-width="1.5"/>
+  <line x1="1155" y1="166" x2="1155" y2="574" stroke="#9ca3af" stroke-width="1.4" stroke-dasharray="8 8"/>
+
+  <rect x="778" y="180" width="344" height="28" rx="6" fill="#eef2f7" stroke="#cbd5e1"/>
+  <text x="950" y="199" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#334155">Worker lane: session state + scheduling</text>
+
+  <rect x="1180" y="180" width="120" height="28" rx="6" fill="#f3f4f6" stroke="#d1d5db"/>
+  <text x="1240" y="199" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#374151">Main Thread</text>
+
+  <rect x="790" y="228" width="320" height="48" rx="8" fill="#f8fafc" stroke="#94a3b8"/>
+  <text x="950" y="257" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#111827">User action / stream op</text>
+
+  <line x1="950" y1="276" x2="950" y2="303" stroke="#334155" stroke-width="2" marker-end="url(#arrow-blue)"/>
+  <rect x="790" y="304" width="320" height="48" rx="8" fill="#eef6ff" stroke="#475569"/>
+  <text x="950" y="333" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#111827">Serialized op / transaction</text>
+
+  <line x1="950" y1="352" x2="950" y2="379" stroke="#334155" stroke-width="2" marker-end="url(#arrow-blue)"/>
+  <rect x="790" y="380" width="320" height="56" rx="8" fill="#eef6ff" stroke="#475569"/>
+  <text x="950" y="403" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#111827">Worker-resident op-log + session state</text>
+  <text x="950" y="423" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#475569">worker-resident state / session truth</text>
+
+  <line x1="950" y1="436" x2="950" y2="462" stroke="#334155" stroke-width="2" marker-end="url(#arrow-blue)"/>
+  <rect x="790" y="463" width="320" height="58" rx="8" fill="#eef6ff" stroke="#475569"/>
+  <text x="950" y="486" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#111827">Worker-side transaction scheduler</text>
+  <text x="950" y="506" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#475569">urgent projection before background work</text>
+
+  <line x1="1110" y1="492" x2="1180" y2="492" stroke="#334155" stroke-width="2.4" marker-end="url(#arrow-blue)"/>
+  <rect x="1180" y="390" width="120" height="58" rx="8" fill="#f8fafc" stroke="#94a3b8"/>
+  <text x="1240" y="413" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700" fill="#111827">Bounded</text>
+  <text x="1240" y="431" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700" fill="#111827">visible</text>
+  <text x="1240" y="449" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700" fill="#111827">projection</text>
+
+  <line x1="1240" y1="448" x2="1240" y2="475" stroke="#4b5563" stroke-width="2" marker-end="url(#arrow-gray)"/>
+  <rect x="1180" y="476" width="120" height="62" rx="8" fill="#f8fafc" stroke="#94a3b8"/>
+  <text x="1240" y="500" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700" fill="#111827">Projection</text>
+  <text x="1240" y="519" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700" fill="#111827">commit only</text>
+
+  <rect x="775" y="592" width="255" height="42" rx="8" fill="#f0fdf4" stroke="#166534" stroke-width="1.4"/>
+  <text x="795" y="617" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#14532d">Session-scale work moved off main thread</text>
+
+  <rect x="1048" y="592" width="255" height="42" rx="8" fill="#f0fdf4" stroke="#166534" stroke-width="1.4"/>
+  <text x="1068" y="617" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#14532d">Fail-closed validation before commit</text>
+
+  <rect x="70" y="692" width="1260" height="38" rx="10" fill="#f9fafb" stroke="#e5e7eb"/>
+  <text x="700" y="716" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#4b5563">Conceptual diagram. P2 pure core is frozen as a scaffold; real Worker/Main runtime remains future work.</text>
+
+  <text x="93" y="86" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700" fill="#4b5563">Workload labels:</text>
+  <rect x="210" y="69" width="110" height="26" rx="13" fill="#f3f4f6" stroke="#d1d5db"/>
+  <text x="265" y="87" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#374151">append-heavy</text>
+  <rect x="330" y="69" width="125" height="26" rx="13" fill="#f3f4f6" stroke="#d1d5db"/>
+  <text x="392.5" y="87" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#374151">viewport-centric</text>
+  <rect x="465" y="69" width="110" height="26" rx="13" fill="#f3f4f6" stroke="#d1d5db"/>
+  <text x="520" y="87" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#374151">session-scale</text>
+
+  <rect x="1125" y="69" width="145" height="26" rx="13" fill="#eef6ff" stroke="#cbd5e1"/>
+  <text x="1197.5" y="87" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#334155">bounded projection</text>
+</svg>

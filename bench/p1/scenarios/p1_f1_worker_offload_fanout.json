@@ -1,0 +1,43 @@
+{
+  "id": "p1_f1_worker_offload_fanout",
+  "title": "P1-F1 Worker-offloaded send/flush fanout A/B",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "settle_ms": 5000,
+  "capture_ms": 12000,
+  "phases": [
+    {
+      "id": "worker_offload_fanout",
+      "label": "Dispatch synthetic send and offload derived fanout work to a dedicated Worker",
+      "duration_ms": 7000
+    },
+    {
+      "id": "post_projection_observe",
+      "label": "Keep the page foreground-active after bounded projection commit",
+      "duration_ms": 5000
+    }
+  ],
+  "sop": [
+    "F1 Worker B is an A/B solution test against the committed F0-D main-thread baseline.",
+    "F1 is not P2.",
+    "F1 is not Canvas/WebGPU.",
+    "F1 is not a renderer benchmark.",
+    "F1 must use the same F0-D structural workload and synthetic_pressure_multiplier=1.",
+    "Load the P1-F1 target and confirm visible audit state shows config_valid=true and capture_allowed=true.",
+    "Confirm baseline_id=p1-worker-offload-fanout and scenario_mode=p1-f1-worker-offload-ab.",
+    "Confirm worker_offload_enabled=true, worker_mode=dedicated-worker, equivalent_work_required=true, and no_precompute_before_click=true.",
+    "Confirm all F0-D structural config fields match the approved F0-D baseline.",
+    "Press Enter only after the page is loaded and Chrome is foreground-active.",
+    "Do not interact with the page during capture; the target dispatches synthetic DOM pointerup/click events on p0:capture:start.",
+    "The main thread must not synchronously wait for Worker completion.",
+    "Worker counters and checksum must prove equivalent work before any performance interpretation."
+  ],
+  "notes_template": [
+    "f1_worker_offload=yes|no",
+    "config_valid=yes|no",
+    "foreground_visible=yes|no",
+    "one_sentence_observation"
+  ]
+}

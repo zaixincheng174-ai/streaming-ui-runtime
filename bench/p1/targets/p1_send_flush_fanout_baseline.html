@@ -1,0 +1,874 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>P1-F0 Send Flush Fanout Baseline</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f5f3;
+      color: #181a1f;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #f5f5f3;
+    }
+
+    .shell {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      min-height: 100vh;
+    }
+
+    header {
+      border-bottom: 1px solid #d9d9d2;
+      background: #ffffff;
+      padding: 14px 20px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 650;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin-top: 4px;
+      color: #5a5f69;
+      font-size: 13px;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(360px, 520px) 1fr;
+      gap: 16px;
+      padding: 16px;
+      min-height: 0;
+    }
+
+    .panel {
+      background: #ffffff;
+      border: 1px solid #d9d9d2;
+      border-radius: 8px;
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    .panel h2 {
+      margin: 0;
+      padding: 12px 14px;
+      border-bottom: 1px solid #e7e7e1;
+      font-size: 14px;
+      font-weight: 650;
+    }
+
+    .audit-grid,
+    .metric-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 6px;
+      padding: 12px 14px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .audit-grid span,
+    .metric-grid span {
+      display: block;
+      overflow-wrap: anywhere;
+    }
+
+    .error {
+      color: #a5281b;
+      font-weight: 650;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-rows: minmax(0, 1fr) auto;
+      min-height: 0;
+    }
+
+    .history {
+      overflow: auto;
+      padding: 16px;
+    }
+
+    .message {
+      border-bottom: 1px solid #ecece6;
+      padding: 10px 0;
+    }
+
+    .message-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #4b5563;
+      margin-bottom: 4px;
+    }
+
+    .message-body {
+      font-size: 13px;
+      line-height: 1.45;
+      color: #22252c;
+      white-space: pre-wrap;
+    }
+
+    .composer {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      border-top: 1px solid #d9d9d2;
+      background: #ffffff;
+      padding: 12px;
+    }
+
+    .composer input {
+      flex: 1;
+      min-width: 0;
+      border: 1px solid #c8c9c1;
+      border-radius: 6px;
+      padding: 10px 12px;
+      font: inherit;
+    }
+
+    .composer button {
+      border: 1px solid #1f2937;
+      border-radius: 6px;
+      background: #1f2937;
+      color: #ffffff;
+      font: inherit;
+      font-weight: 650;
+      padding: 10px 14px;
+      cursor: pointer;
+    }
+
+    .composer button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <h1>P1-F0 Send Flush Fanout Baseline</h1>
+      <div class="subtitle">Production React model of send-time microtask flush, state fanout, and subscriber notification.</div>
+    </header>
+    <main>
+      <section class="panel">
+        <h2>Audit</h2>
+        <div class="audit-grid" id="readiness-status">
+          <span id="ready-state">ready=false</span>
+          <span id="idle-state">idle_ms=0</span>
+          <span id="stream-state">stream_state=idle</span>
+          <span id="token-count">token_count=0</span>
+        </div>
+        <div class="audit-grid" id="audit-status"></div>
+        <h2>Runtime Metrics</h2>
+        <div class="metric-grid" id="metric-status"></div>
+      </section>
+      <section class="panel workspace">
+        <div class="history" id="history-scroll">
+          <div id="root"></div>
+        </div>
+        <form class="composer" id="composer">
+          <input id="send-input" value="Send fanout calibration payload" aria-label="Message">
+          <button type="submit" id="send-button">Send</button>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <script src="/vendor/react18/react.production.min.js"></script>
+  <script src="/vendor/react18/react-dom.production.min.js"></script>
+  <script>
+    (() => {
+      "use strict";
+
+      const React = window.React;
+      const ReactDOM = window.ReactDOM;
+
+      const DEFAULTS = Object.freeze({
+        baseline_id: "p1-send-flush-fanout",
+        scenario_mode: "p1-f0-send-flush-fanout",
+        calibration_level: "light",
+        session_size: 100,
+        module_count: 4,
+        subscribers_per_module: 8,
+        fanout_width: 16,
+        queued_effect_count: 32,
+        state_nodes_touched: 128,
+        flush_batch_size: 32,
+        commit_update_count: 1,
+        microtask_chain_length: 2,
+        payload_shape: "small-json",
+        history_mount_size: 100,
+        content_richness: "light",
+        synthetic_pressure_multiplier: 1,
+        derived_work_enabled: false,
+        selector_passes_per_subscriber: 0,
+        queue_drain_steps_per_module: 0,
+        state_read_stride: 1,
+        derived_hash_rounds: 0,
+        projection_update_count: 0,
+        stable_keys: true,
+        react_memo_enabled: true,
+        deferred_rendering: false,
+        token_coalescing: false,
+        future_output_pre_rendered: false
+      });
+      const ALLOWED_CALIBRATION_LEVELS = Object.freeze(["light", "medium", "derived"]);
+      const ALLOWED_PAYLOAD_SHAPES = Object.freeze(["small-json", "medium-json", "derived-json"]);
+      const ALLOWED_CONTENT_RICHNESS = Object.freeze(["light", "medium", "derived"]);
+
+      const auditContainer = document.getElementById("audit-status");
+      const metricContainer = document.getElementById("metric-status");
+      const readinessNodes = {
+        readyState: document.getElementById("ready-state"),
+        idleState: document.getElementById("idle-state"),
+        streamState: document.getElementById("stream-state"),
+        tokenCount: document.getElementById("token-count")
+      };
+      const sendButton = document.getElementById("send-button");
+      const composer = document.getElementById("composer");
+      const mountedAt = performance.now();
+
+      function hashString(value) {
+        let hash = 2166136261;
+        for (let index = 0; index < value.length; index += 1) {
+          hash ^= value.charCodeAt(index);
+          hash = Math.imul(hash, 16777619);
+        }
+        return hash >>> 0;
+      }
+
+      function parseBooleanParam(params, key, defaultValue, errors) {
+        if (!params.has(key)) {
+          return defaultValue;
+        }
+        const value = params.get(key);
+        if (value === "true") {
+          return true;
+        }
+        if (value === "false") {
+          return false;
+        }
+        errors.push(`${key}:invalid-boolean`);
+        return defaultValue;
+      }
+
+      function parseIntegerParam(params, key, defaultValue, errors) {
+        if (!params.has(key)) {
+          return defaultValue;
+        }
+        const raw = params.get(key);
+        if (raw === null || raw.trim() === "") {
+          errors.push(`${key}:missing`);
+          return defaultValue;
+        }
+        const parsed = Number(raw);
+        if (!Number.isInteger(parsed) || parsed < 0) {
+          errors.push(`${key}:invalid-number`);
+          return defaultValue;
+        }
+        return parsed;
+      }
+
+      function parseStringParam(params, key, defaultValue, allowedValues, errors) {
+        if (!params.has(key)) {
+          return defaultValue;
+        }
+        const value = params.get(key);
+        if (value === null || value.trim() === "") {
+          errors.push(`${key}:missing`);
+          return defaultValue;
+        }
+        if (allowedValues && !allowedValues.includes(value)) {
+          errors.push(`${key}:unsupported:${value}`);
+          return value;
+        }
+        return value;
+      }
+
+      function buildConfig() {
+        const params = new URLSearchParams(window.location.search);
+        const errors = [];
+        const config = {
+          baseline_id: parseStringParam(params, "baseline_id", DEFAULTS.baseline_id, [DEFAULTS.baseline_id], errors),
+          scenario_mode: parseStringParam(params, "scenario_mode", DEFAULTS.scenario_mode, [DEFAULTS.scenario_mode], errors),
+          calibration_level: parseStringParam(params, "calibration_level", DEFAULTS.calibration_level, ALLOWED_CALIBRATION_LEVELS, errors),
+          session_size: parseIntegerParam(params, "session_size", DEFAULTS.session_size, errors),
+          module_count: parseIntegerParam(params, "module_count", DEFAULTS.module_count, errors),
+          subscribers_per_module: parseIntegerParam(params, "subscribers_per_module", DEFAULTS.subscribers_per_module, errors),
+          fanout_width: parseIntegerParam(params, "fanout_width", DEFAULTS.fanout_width, errors),
+          queued_effect_count: parseIntegerParam(params, "queued_effect_count", DEFAULTS.queued_effect_count, errors),
+          state_nodes_touched: parseIntegerParam(params, "state_nodes_touched", DEFAULTS.state_nodes_touched, errors),
+          flush_batch_size: parseIntegerParam(params, "flush_batch_size", DEFAULTS.flush_batch_size, errors),
+          commit_update_count: parseIntegerParam(params, "commit_update_count", DEFAULTS.commit_update_count, errors),
+          microtask_chain_length: parseIntegerParam(params, "microtask_chain_length", DEFAULTS.microtask_chain_length, errors),
+          payload_shape: parseStringParam(params, "payload_shape", DEFAULTS.payload_shape, ALLOWED_PAYLOAD_SHAPES, errors),
+          history_mount_size: parseIntegerParam(params, "history_mount_size", DEFAULTS.history_mount_size, errors),
+          content_richness: parseStringParam(params, "content_richness", DEFAULTS.content_richness, ALLOWED_CONTENT_RICHNESS, errors),
+          synthetic_pressure_multiplier: parseIntegerParam(params, "synthetic_pressure_multiplier", DEFAULTS.synthetic_pressure_multiplier, errors),
+          derived_work_enabled: parseBooleanParam(params, "derived_work_enabled", DEFAULTS.derived_work_enabled, errors),
+          selector_passes_per_subscriber: parseIntegerParam(params, "selector_passes_per_subscriber", DEFAULTS.selector_passes_per_subscriber, errors),
+          queue_drain_steps_per_module: parseIntegerParam(params, "queue_drain_steps_per_module", DEFAULTS.queue_drain_steps_per_module, errors),
+          state_read_stride: parseIntegerParam(params, "state_read_stride", DEFAULTS.state_read_stride, errors),
+          derived_hash_rounds: parseIntegerParam(params, "derived_hash_rounds", DEFAULTS.derived_hash_rounds, errors),
+          projection_update_count: parseIntegerParam(params, "projection_update_count", DEFAULTS.projection_update_count, errors),
+          stable_keys: parseBooleanParam(params, "stable_keys", DEFAULTS.stable_keys, errors),
+          react_memo_enabled: parseBooleanParam(params, "react_memo_enabled", DEFAULTS.react_memo_enabled, errors),
+          deferred_rendering: parseBooleanParam(params, "deferred_rendering", DEFAULTS.deferred_rendering, errors),
+          token_coalescing: parseBooleanParam(params, "token_coalescing", DEFAULTS.token_coalescing, errors),
+          future_output_pre_rendered: false
+        };
+
+        if (config.synthetic_pressure_multiplier !== 1) {
+          errors.push("synthetic_pressure_multiplier:must-equal-1");
+        }
+        if (config.deferred_rendering) {
+          errors.push("deferred_rendering:blocked");
+        }
+        if (!config.stable_keys) {
+          errors.push("stable_keys:must-be-true");
+        }
+        if (!config.react_memo_enabled) {
+          errors.push("react_memo_enabled:must-be-true");
+        }
+        if (config.token_coalescing) {
+          errors.push("token_coalescing:blocked");
+        }
+        if (config.calibration_level === "derived") {
+          for (const key of [
+            "derived_work_enabled",
+            "selector_passes_per_subscriber",
+            "queue_drain_steps_per_module",
+            "state_read_stride",
+            "derived_hash_rounds",
+            "projection_update_count"
+          ]) {
+            if (!params.has(key)) {
+              errors.push(`${key}:missing-for-derived`);
+            }
+          }
+          if (!config.derived_work_enabled) {
+            errors.push("derived_work_enabled:must-be-true-for-derived");
+          }
+          if (config.payload_shape !== "derived-json") {
+            errors.push("payload_shape:must-be-derived-json-for-derived");
+          }
+          if (config.content_richness !== "derived") {
+            errors.push("content_richness:must-be-derived-for-derived");
+          }
+          for (const key of [
+            "selector_passes_per_subscriber",
+            "queue_drain_steps_per_module",
+            "state_read_stride",
+            "derived_hash_rounds",
+            "projection_update_count"
+          ]) {
+            if (config[key] <= 0) {
+              errors.push(`${key}:must-be-positive-for-derived`);
+            }
+          }
+        } else if (config.derived_work_enabled) {
+          errors.push("derived_work_enabled:requires-derived-calibration");
+        }
+
+        for (const key of [
+          "session_size",
+          "module_count",
+          "subscribers_per_module",
+          "fanout_width",
+          "queued_effect_count",
+          "state_nodes_touched",
+          "flush_batch_size",
+          "commit_update_count",
+          "microtask_chain_length",
+          "history_mount_size"
+        ]) {
+          if (config[key] <= 0) {
+            errors.push(`${key}:must-be-positive`);
+          }
+        }
+
+        const config_valid = errors.length === 0;
+        return {
+          ...config,
+          config_valid,
+          capture_allowed: config_valid,
+          config_errors: errors.length === 0 ? "none" : errors.join("|")
+        };
+      }
+
+      const config = buildConfig();
+      const actionSequence = [
+        "f0:start",
+        "f0:trigger:start",
+        "f0:synthetic-pointerup",
+        "f0:synthetic-click",
+        "f0:trigger:end",
+        "f0:flush:start",
+        "f0:microtask:start",
+        "f0:flush:end",
+        "f0:end"
+      ].join("|");
+
+      function createHistory(size) {
+        const messages = [];
+        for (let index = 0; index < size; index += 1) {
+          messages.push({
+            id: `history-${index}`,
+            title: `Session item ${index + 1}`,
+            body: `light fanout history node ${index + 1}: module=${index % Math.max(1, config.module_count)} subscriber=${index % Math.max(1, config.subscribers_per_module)}`
+          });
+        }
+        return messages;
+      }
+
+      function createModules() {
+        const modules = [];
+        const safeModuleCount = Math.max(1, config.module_count);
+        const safeSubscribers = Math.max(1, config.subscribers_per_module);
+        const safeSessionSize = Math.max(1, config.session_size);
+        for (let moduleIndex = 0; moduleIndex < safeModuleCount; moduleIndex += 1) {
+          const subscribers = [];
+          for (let subscriberIndex = 0; subscriberIndex < safeSubscribers; subscriberIndex += 1) {
+            subscribers.push({
+              id: `module-${moduleIndex}-subscriber-${subscriberIndex}`,
+              offset: (moduleIndex * safeSubscribers + subscriberIndex) % safeSessionSize
+            });
+          }
+          modules.push({
+            id: `module-${moduleIndex}`,
+            index: moduleIndex,
+            family: moduleIndex % 2 === 0 ? "conversation-state" : "tool-state",
+            subscribers
+          });
+        }
+        return modules;
+      }
+
+      const historyMessages = createHistory(config.history_mount_size);
+      const modules = createModules();
+      const stateRecords = historyMessages.map((message, index) => ({
+        id: message.id,
+        index,
+        titleHash: hashString(message.title),
+        bodyHash: hashString(message.body),
+        weight: (index * 31 + config.flush_batch_size + config.module_count) % 997
+      }));
+      const workloadSource = JSON.stringify({
+        scenario_mode: config.scenario_mode,
+        calibration_level: config.calibration_level,
+        session_size: config.session_size,
+        module_count: config.module_count,
+        subscribers_per_module: config.subscribers_per_module,
+        fanout_width: config.fanout_width,
+        queued_effect_count: config.queued_effect_count,
+        state_nodes_touched: config.state_nodes_touched,
+        flush_batch_size: config.flush_batch_size,
+        commit_update_count: config.commit_update_count,
+        microtask_chain_length: config.microtask_chain_length,
+        payload_shape: config.payload_shape,
+        history_mount_size: config.history_mount_size,
+        content_richness: config.content_richness,
+        derived_work_enabled: config.derived_work_enabled,
+        selector_passes_per_subscriber: config.selector_passes_per_subscriber,
+        queue_drain_steps_per_module: config.queue_drain_steps_per_module,
+        state_read_stride: config.state_read_stride,
+        derived_hash_rounds: config.derived_hash_rounds,
+        projection_update_count: config.projection_update_count
+      });
+
+      const audit = {
+        baseline_id: config.baseline_id,
+        scenario_mode: config.scenario_mode,
+        calibration_level: config.calibration_level,
+        config_valid: config.config_valid,
+        capture_allowed: config.capture_allowed,
+        config_errors: config.config_errors,
+        synthetic_pressure_multiplier: config.synthetic_pressure_multiplier,
+        future_output_pre_rendered: false,
+        stable_keys: config.stable_keys,
+        react_memo_enabled: config.react_memo_enabled,
+        deferred_rendering: config.deferred_rendering,
+        token_coalescing: config.token_coalescing,
+        session_size: config.session_size,
+        module_count: config.module_count,
+        subscribers_per_module: config.subscribers_per_module,
+        fanout_width: config.fanout_width,
+        queued_effect_count: config.queued_effect_count,
+        state_nodes_touched: config.state_nodes_touched,
+        flush_batch_size: config.flush_batch_size,
+        commit_update_count: config.commit_update_count,
+        microtask_chain_length: config.microtask_chain_length,
+        payload_shape: config.payload_shape,
+        history_mount_size: config.history_mount_size,
+        content_richness: config.content_richness,
+        derived_work_enabled: config.derived_work_enabled,
+        selector_passes_per_subscriber: config.selector_passes_per_subscriber,
+        queue_drain_steps_per_module: config.queue_drain_steps_per_module,
+        state_read_stride: config.state_read_stride,
+        derived_hash_rounds: config.derived_hash_rounds,
+        projection_update_count: config.projection_update_count,
+        action_sequence_hash: hashString(actionSequence),
+        workload_source_hash: hashString(workloadSource)
+      };
+
+      const counters = {
+        f0_marks_complete: false,
+        module_flush_count: 0,
+        subscriber_notify_count: 0,
+        queued_effect_count_observed: 0,
+        state_nodes_touched_observed: 0,
+        react_commit_count: 0,
+        derived_selector_eval_count: 0,
+        queue_drain_step_count: 0,
+        projection_update_count_observed: 0,
+        derived_hash_rounds_observed: 0,
+        react_root_render_count: 0,
+        react_component_render_count: 0,
+        long_task_count_50ms: 0
+      };
+
+      let captureIndex = 0;
+      let runStarted = false;
+      let expectedReactCommitCount = 0;
+      let completedReactCommitCount = 0;
+      let pendingReactCommitAccumulator = 0;
+      let setStateApi = null;
+      let appMounted = false;
+      let ready = false;
+      let readyAt = null;
+      let sendHandledForRun = false;
+
+      function updateStatus() {
+        const idleMs = ready && readyAt !== null ? Math.max(0, performance.now() - readyAt) : 0;
+        readinessNodes.readyState.textContent = `ready=${ready}`;
+        readinessNodes.idleState.textContent = `idle_ms=${Math.round(idleMs)}`;
+        // The helper uses stream_state as a generic pre-capture state gate; F0 is action-triggered, not streaming.
+        readinessNodes.streamState.textContent = "stream_state=idle";
+        readinessNodes.tokenCount.textContent = "token_count=0";
+
+        const auditLines = Object.entries(audit).map(([key, value]) => {
+          const className = key === "config_errors" && value !== "none" ? " class=\"error\"" : "";
+          return `<span${className}>${key}=${String(value)}</span>`;
+        });
+        auditContainer.innerHTML = auditLines.join("");
+
+        const metricLines = Object.entries(counters).map(([key, value]) => (
+          `<span>${key}=${String(value)}</span>`
+        ));
+        metricContainer.innerHTML = metricLines.join("");
+      }
+
+      function updateReadiness() {
+        const setupReady = config.config_valid &&
+          config.capture_allowed &&
+          appMounted &&
+          sendButton instanceof HTMLButtonElement &&
+          !sendButton.disabled &&
+          audit.baseline_id === "p1-send-flush-fanout" &&
+          audit.scenario_mode === "p1-f0-send-flush-fanout";
+        if (setupReady && !ready) {
+          const elapsedSinceMount = performance.now() - mountedAt;
+          if (elapsedSinceMount >= 2000) {
+            ready = true;
+            readyAt = mountedAt;
+          }
+        }
+        updateStatus();
+        if (!ready) {
+          window.setTimeout(updateReadiness, 100);
+        }
+      }
+
+      function mark(name) {
+        performance.mark(`p1:capture:${captureIndex}:${name}`);
+      }
+
+      function markAudit() {
+        for (const [key, value] of Object.entries(audit)) {
+          mark(`audit:${key}=${String(value)}`);
+        }
+      }
+
+      function markMetric(key, value) {
+        mark(`metric:${key}=${String(value)}`);
+      }
+
+      function markMetrics() {
+        for (const [key, value] of Object.entries(counters)) {
+          markMetric(key, value);
+        }
+      }
+
+      function stateRecordAt(index) {
+        return stateRecords[index % stateRecords.length];
+      }
+
+      function applyDerivedHashRounds(local, record, module, subscriber, pass) {
+        let value = local;
+        for (let round = 0; round < config.derived_hash_rounds; round += 1) {
+          value = hashString(`${value}:${record.id}:${record.bodyHash}:${module.family}:${subscriber.id}:${pass}:${round}`);
+          counters.derived_hash_rounds_observed += 1;
+        }
+        return value;
+      }
+
+      function notifySubscriber(module, subscriber, touchedBudget, accumulator) {
+        mark("f0:subscriber-notify:start");
+        const width = Math.max(1, config.fanout_width);
+        const sessionSize = Math.max(1, config.session_size);
+        let local = accumulator;
+        let touched = 0;
+        if (config.derived_work_enabled) {
+          for (let pass = 0; pass < config.selector_passes_per_subscriber; pass += 1) {
+            counters.derived_selector_eval_count += 1;
+            for (let index = 0; index < width && touchedBudget.count < config.state_nodes_touched; index += 1) {
+              const nodeIndex = (subscriber.offset + ((index + pass) * config.state_read_stride) + touchedBudget.count) % sessionSize;
+              const record = stateRecordAt(nodeIndex);
+              local = (local + record.titleHash + record.weight + hashString(`${module.id}:${subscriber.id}:${nodeIndex}:${pass}`)) >>> 0;
+              local = applyDerivedHashRounds(local, record, module, subscriber, pass);
+              touched += 1;
+              touchedBudget.count += 1;
+            }
+          }
+        } else {
+          for (let index = 0; index < width && touchedBudget.count < config.state_nodes_touched; index += 1) {
+            const nodeIndex = (subscriber.offset + index + touchedBudget.count) % sessionSize;
+            local = (local + hashString(`${module.id}:${subscriber.id}:${nodeIndex}`)) >>> 0;
+            touched += 1;
+            touchedBudget.count += 1;
+          }
+        }
+        counters.subscriber_notify_count += 1;
+        counters.state_nodes_touched_observed += touched;
+        mark("f0:subscriber-notify:end");
+        return local;
+      }
+
+      function drainModuleQueue(module, accumulator) {
+        if (!config.derived_work_enabled) {
+          return accumulator;
+        }
+        let local = accumulator;
+        for (let step = 0; step < config.queue_drain_steps_per_module; step += 1) {
+          const record = stateRecordAt((module.index * config.queue_drain_steps_per_module) + (step * config.state_read_stride));
+          local = (local ^ hashString(`${module.id}:queue:${step}:${record.id}:${record.bodyHash}:${local}`)) >>> 0;
+          counters.queue_drain_step_count += 1;
+        }
+        return local;
+      }
+
+      function runProjectionUpdates(accumulator) {
+        if (!config.derived_work_enabled) {
+          return accumulator;
+        }
+        let local = accumulator;
+        for (let index = 0; index < config.projection_update_count; index += 1) {
+          const record = stateRecordAt((index * config.state_read_stride) + local);
+          local = hashString(`projection:${index}:${record.id}:${record.weight}:${local}`);
+          counters.projection_update_count_observed += 1;
+        }
+        return local;
+      }
+
+      function scheduleReactCommit(accumulator, commitIndex) {
+        if (commitIndex >= config.commit_update_count) {
+          return;
+        }
+        mark("f0:react-commit:start");
+        if (setStateApi) {
+          setStateApi.appendResult(accumulator, commitIndex);
+        }
+      }
+
+      function flushModules() {
+        mark("f0:flush:start");
+        let accumulator = 0;
+        const touchedBudget = { count: 0 };
+        for (const module of modules) {
+          mark(`f0:module-flush:start:${module.id}`);
+          counters.module_flush_count += 1;
+          accumulator = drainModuleQueue(module, accumulator);
+          for (const subscriber of module.subscribers) {
+            accumulator = notifySubscriber(module, subscriber, touchedBudget, accumulator);
+          }
+          mark(`f0:module-flush:end:${module.id}`);
+        }
+
+        for (let index = 0; index < config.queued_effect_count; index += 1) {
+          accumulator = (accumulator ^ hashString(`effect:${index}:${accumulator}`)) >>> 0;
+          counters.queued_effect_count_observed += 1;
+        }
+        accumulator = runProjectionUpdates(accumulator);
+
+        expectedReactCommitCount = config.commit_update_count;
+        completedReactCommitCount = 0;
+        pendingReactCommitAccumulator = accumulator;
+        mark("f0:flush:end");
+        scheduleReactCommit(accumulator, 0);
+      }
+
+      function runMicrotaskChain(step) {
+        if (step === 0) {
+          mark("f0:microtask:start");
+        }
+        if (step < config.microtask_chain_length - 1) {
+          queueMicrotask(() => runMicrotaskChain(step + 1));
+          return;
+        }
+        flushModules();
+      }
+
+      function triggerFanoutAction() {
+        if (!config.capture_allowed || runStarted) {
+          return;
+        }
+        runStarted = true;
+        sendHandledForRun = false;
+        counters.f0_marks_complete = false;
+        mark("f0:start");
+        mark("f0:trigger:start");
+
+        const PointerEventCtor = window.PointerEvent || window.Event;
+        mark("f0:synthetic-pointerup");
+        sendButton.dispatchEvent(new PointerEventCtor("pointerup", { bubbles: true, cancelable: true }));
+        mark("f0:synthetic-click");
+        sendButton.dispatchEvent(new window.Event("click", { bubbles: true, cancelable: true }));
+        mark("f0:trigger:end");
+      }
+
+      function handleSend(event) {
+        event.preventDefault();
+        if (!config.capture_allowed || !runStarted || sendHandledForRun) {
+          return;
+        }
+        sendHandledForRun = true;
+        queueMicrotask(() => runMicrotaskChain(0));
+      }
+
+      const MessageView = React.memo(function MessageView({ message }) {
+        counters.react_component_render_count += 1;
+        return React.createElement(
+          "article",
+          { className: "message" },
+          React.createElement("div", { className: "message-title" }, message.title),
+          React.createElement("div", { className: "message-body" }, message.body)
+        );
+      });
+
+      const HistoryList = React.memo(function HistoryList({ messages }) {
+        counters.react_component_render_count += 1;
+        return React.createElement(
+          React.Fragment,
+          null,
+          messages.map((message) => React.createElement(MessageView, { key: message.id, message }))
+        );
+      });
+
+      function App() {
+        counters.react_root_render_count += 1;
+        const [messages, setMessages] = React.useState(historyMessages);
+        const [commitVersion, setCommitVersion] = React.useState(0);
+
+        React.useLayoutEffect(() => {
+          appMounted = true;
+          updateReadiness();
+        }, []);
+
+        React.useLayoutEffect(() => {
+          setStateApi = {
+            appendResult(accumulator, commitIndex) {
+              setMessages((currentMessages) => [
+                ...currentMessages,
+                {
+                  id: `fanout-result-${commitIndex + 1}-${accumulator}`,
+                  title: `Fanout result ${commitIndex + 1}`,
+                  body: `flush_batch_size=${config.flush_batch_size} modules=${config.module_count} subscribers=${config.subscribers_per_module} accumulator=${accumulator}`
+                }
+              ]);
+              setCommitVersion((version) => version + 1);
+            }
+          };
+          return () => {
+            setStateApi = null;
+          };
+        }, [commitVersion]);
+
+        React.useLayoutEffect(() => {
+          if (commitVersion > 0 && completedReactCommitCount < expectedReactCommitCount) {
+            counters.react_commit_count += 1;
+            completedReactCommitCount += 1;
+            mark("f0:react-commit:end");
+            if (completedReactCommitCount === expectedReactCommitCount) {
+              mark("f0:end");
+              counters.f0_marks_complete = true;
+              markMetrics();
+              updateStatus();
+            } else {
+              scheduleReactCommit(pendingReactCommitAccumulator, completedReactCommitCount);
+            }
+          }
+        }, [commitVersion]);
+
+        return React.createElement(HistoryList, { messages });
+      }
+
+      function observeCaptureMarks() {
+        if (!("PerformanceObserver" in window)) {
+          return;
+        }
+        const observer = new PerformanceObserver((list) => {
+          for (const entry of list.getEntries()) {
+            if (entry.name === "p0:capture:start") {
+              captureIndex += 1;
+              runStarted = false;
+              markAudit();
+              updateStatus();
+              if (config.capture_allowed) {
+                queueMicrotask(triggerFanoutAction);
+              }
+            }
+          }
+        });
+        observer.observe({ type: "mark", buffered: true });
+      }
+
+      composer.addEventListener("submit", handleSend);
+      sendButton.addEventListener("pointerup", () => {});
+      sendButton.addEventListener("click", handleSend);
+      sendButton.disabled = !config.capture_allowed;
+      window.__p1F0SendFlushFanout = { audit, counters, config, workloadSource };
+      updateStatus();
+      observeCaptureMarks();
+
+      if (!React || !ReactDOM || !ReactDOM.createRoot) {
+        audit.config_valid = false;
+        audit.capture_allowed = false;
+        audit.config_errors = audit.config_errors === "none"
+          ? "react_vendor:missing"
+          : `${audit.config_errors}|react_vendor:missing`;
+        updateStatus();
+        return;
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById("root"));
+      root.render(React.createElement(App));
+      updateReadiness();
+    })();
+  </script>
+</body>
+</html>

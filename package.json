@@ -1,0 +1,14 @@
+{
+  "name": "streaming-ui-runtime",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit --project tsconfig.json",
+    "test:runtime": "node --test tests/runtime/*.test.ts",
+    "check:runtime-guards": "node scripts/p2/check_runtime_guards.mjs",
+    "check:p2-tooling": "npm run typecheck && npm run test:runtime && npm run check:runtime-guards"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
