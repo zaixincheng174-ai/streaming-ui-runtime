@@ -1,0 +1,104 @@
+{
+  "schema_version": "p5a.synthetic-impossible-zone-matrix.v0",
+  "purpose": "Deterministic P5-A workload matrix for synthetic long-session UI pressure generator and baseline inventory audits.",
+  "scenario_defaults": {
+    "interactions": [
+      "typing_proxy",
+      "send_click_proxy",
+      "scroll_jump_return"
+    ],
+    "synthetic_content_only": true
+  },
+  "scenarios": [
+    {
+      "scenario_id": "p5a_v1000_ctx_small",
+      "visible_block_count": 1000,
+      "active_context_mode": "small",
+      "active_context_window": 128,
+      "append_batch_size": 64,
+      "tail_mutation_count": 12,
+      "recall_probe_count": 16,
+      "artifact_placeholder_ratio": 0.02
+    },
+    {
+      "scenario_id": "p5a_v1000_ctx_medium",
+      "visible_block_count": 1000,
+      "active_context_mode": "medium",
+      "active_context_window": 1000,
+      "append_batch_size": 64,
+      "tail_mutation_count": 12,
+      "recall_probe_count": 16,
+      "artifact_placeholder_ratio": 0.02
+    },
+    {
+      "scenario_id": "p5a_v1000_ctx_full",
+      "visible_block_count": 1000,
+      "active_context_mode": "full",
+      "active_context_window": 1000,
+      "append_batch_size": 64,
+      "tail_mutation_count": 12,
+      "recall_probe_count": 16,
+      "artifact_placeholder_ratio": 0.02
+    },
+    {
+      "scenario_id": "p5a_v5000_ctx_small",
+      "visible_block_count": 5000,
+      "active_context_mode": "small",
+      "active_context_window": 128,
+      "append_batch_size": 128,
+      "tail_mutation_count": 24,
+      "recall_probe_count": 24,
+      "artifact_placeholder_ratio": 0.02
+    },
+    {
+      "scenario_id": "p5a_v5000_ctx_medium",
+      "visible_block_count": 5000,
+      "active_context_mode": "medium",
+      "active_context_window": 1000,
+      "append_batch_size": 128,
+      "tail_mutation_count": 24,
+      "recall_probe_count": 24,
+      "artifact_placeholder_ratio": 0.02
+    },
+    {
+      "scenario_id": "p5a_v5000_ctx_full",
+      "visible_block_count": 5000,
+      "active_context_mode": "full",
+      "active_context_window": 5000,
+      "append_batch_size": 128,
+      "tail_mutation_count": 24,
+      "recall_probe_count": 24,
+      "artifact_placeholder_ratio": 0.02
+    },
+    {
+      "scenario_id": "p5a_v10000_ctx_small",
+      "visible_block_count": 10000,
+      "active_context_mode": "small",
+      "active_context_window": 128,
+      "append_batch_size": 256,
+      "tail_mutation_count": 32,
+      "recall_probe_count": 32,
+      "artifact_placeholder_ratio": 0.02
+    },
+    {
+      "scenario_id": "p5a_v10000_ctx_medium",
+      "visible_block_count": 10000,
+      "active_context_mode": "medium",
+      "active_context_window": 1000,
+      "append_batch_size": 256,
+      "tail_mutation_count": 32,
+      "recall_probe_count": 32,
+      "artifact_placeholder_ratio": 0.02
+    },
+    {
+      "scenario_id": "p5a_v10000_ctx_full",
+      "visible_block_count": 10000,
+      "active_context_mode": "full",
+      "active_context_window": 10000,
+      "append_batch_size": 256,
+      "tail_mutation_count": 32,
+      "recall_probe_count": 32,
+      "artifact_placeholder_ratio": 0.02
+    }
+  ]
+}
