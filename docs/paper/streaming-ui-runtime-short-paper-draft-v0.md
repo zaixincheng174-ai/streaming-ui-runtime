@@ -2,13 +2,15 @@
 
 ## Abstract
 
-Long-lived AI interfaces are increasingly append-heavy, viewport-centric, and session-scale. They are not ordinary document pages: users keep interacting with a growing transcript, trace, or review surface while the underlying session state continues to expand. Product-motivated traces show a recurring shape in ordinary actions: `click/pointerup` leading to `Run microtasks` and multi-bundle state/context coordination. This suggests that action-triggered state/fanout work can produce main-thread responsiveness problems independent of renderer throughput alone. We evaluate this mechanism through a bounded evidence chain. F0-D reproduces the bottleneck in a controlled derived-fanout workload with `f0_run_task_max_ms` mean ≈ `68.633ms`. F1 moves equivalent derived fanout off the main thread, reducing main max task mean to ≈ `2.679ms` and removing main-thread long tasks. F2 then compares monolithic Worker execution with scheduled/chunked Worker processing, reducing urgent acknowledgement latency from ≈ `20.933ms` to ≈ `0.900ms` and urgent projection-commit latency from ≈ `22.867ms` to ≈ `3.333ms`, while increasing Worker total time. These results support a runtime direction built around worker-resident state, transaction scheduling, and bounded projection. P2 pure core v0 is a frozen engineering scaffold for that direction. This is not product source replay, not a final production runtime, and not a Canvas/WebGPU claim.
+Long-lived AI interfaces are increasingly append-heavy, viewport-centric, long-lived, and tail-mutating. They are not ordinary document pages: users keep interacting with a growing transcript, trace, or review surface while the underlying session state continues to expand. The core thesis is a workload-architecture mismatch: document/tree-oriented UI stacks can cause ordinary interactions to trigger session-scale coordination/fanout pressure. Product-motivated traces show `click/pointerup` leading to `Run microtasks` and multi-bundle state/context coordination, but those traces motivate and constrain the thesis rather than serving as publishable benchmark proof. We evaluate the mechanism through a bounded evidence chain: F0-D reproduces the bottleneck in a controlled derived-fanout workload with `f0_run_task_max_ms` mean ≈ `68.633ms`; F1 moves equivalent derived fanout off the main thread, reducing main max task mean to ≈ `2.679ms`; and F2 reduces urgent acknowledgement latency from ≈ `20.933ms` to ≈ `0.900ms` and urgent projection-commit latency from ≈ `22.867ms` to ≈ `3.333ms` with scheduled Worker execution. P3 then extends the architecture chain through bounded Worker/projection/rendering/transaction/commit-cycle boundaries. P3.5 refines the external-validity framing: symptoms are product-strategy dependent across responsiveness, active-context fidelity, visible transcript continuity, and coordination cost. This v0.2 draft is a HotOS/workshop/position-style short paper, not a full EuroSys/SOSP-style evaluation paper, not product source replay, not a final production runtime, and not a Canvas/WebGPU or P4 authorization claim.
 
 ## 1. Introduction
 
 AI surfaces are not ordinary pages. A long-lived AI session can begin like a chat, grow into a transcript, become an agent trace or code review surface, accumulate tool results, and still remain interactive. The dominant operation is often append, not replace. Tokens, messages, logs, citations, intermediate results, and review artifacts keep joining an already-large session.
 
 The visible viewport may show only a narrow slice, but the session state behind that slice can be large and long-lived. Users scroll, click, select, expand traces, issue follow-up prompts, and inspect historical context while the session keeps growing. The UI is viewport-centric, but the state model is session-scale.
+
+This paper's core claim is deliberately sharper than "DOM/VDOM is slow." Long-lived AI surfaces expose a workload-architecture mismatch because append-heavy, viewport-centric, long-lived, tail-mutating workloads are being served by document/tree-oriented UI stacks, causing ordinary interactions to trigger session-scale coordination/fanout pressure.
 
 **Figure 1. Workload-architecture mismatch in long-lived AI surfaces.**  
 Long-lived AI surfaces are append-heavy and viewport-centric, but their session state and derived fanout can grow far beyond the visible region. In a document-oriented stack, action-triggered state/fanout work may run on the main thread before a visible update. The proposed runtime direction moves session-scale state and scheduling into a Worker and sends only bounded, validated projections to the main thread.
@@ -19,6 +21,10 @@ Current DOM/VDOM stacks are powerful document-oriented tools, but this workload 
 
 This paper argues for a runtime direction rather than a renderer-first replacement: worker-resident session state and fanout, transaction scheduling for urgent and background work, and bounded projection back to the main thread. The main thread remains important, but its role should shift toward committing safe, current, bounded visible projections rather than owning every session-scale coordination step.
 
+P3.5 does not replace that thesis. It qualifies it: real products can express this pressure through different product strategies and tradeoffs. A surface can be responsive while sacrificing reliable early active-context access; another can show a similar microtask/app-coordination mechanism with lower subjective severity. This paper therefore separates mechanism signal, subjective UX severity, visible transcript continuity, active model-context fidelity, and app-side coordination cost.
+
+The target paper type is a HotOS/workshop/position-style short paper. The goal is to make a bounded workload/runtime argument with explicit evidence classes, not to claim the evaluation completeness of a mature full systems paper.
+
 Table 1 summarizes the bounded evidence chain.
 
 | Stage | Question | Evidence / Method | Key Result | Safe Interpretation | Boundary |
@@ -28,6 +34,8 @@ Table 1 summarizes the bounded evidence chain.
 | F1 | Can equivalent derived fanout leave the main thread? | Worker B 3x with equivalence counters. | Main max task mean ≈ `2.679ms`; long task count = `0`. | Worker offload is a credible solution lever for derived/session-scale fanout. | Not proof all UI work can move off-main-thread. |
 | F2 | Does Worker-side scheduling matter after offload? | Paired monolithic vs scheduled Worker A/B. | Urgent ack ≈ `20.933ms -> 0.900ms`; urgent projection-commit ≈ `22.867ms -> 3.333ms`. | Scheduled Worker improves urgent responsiveness. | Not throughput win; not full pixel latency. |
 | P2 Pure Core | What runtime direction follows? | Frozen pure core scaffold. | Protocol/state/scheduler/projection correctness kernel frozen. | Engineering scaffold for future runtime gates. | Not production runtime. |
+| P3 Boundary Chain | Can the runtime direction be extended into bounded Worker/projection/rendering/transaction/commit-cycle contracts? | Real Worker boundary, bounded projection, OffscreenCanvas smoke, rendering transactions, admission, minimal scheduling, commit-cycle and anchor transition records. | P3 frozen after P3-L with committed, test-backed architecture boundaries. | Architecture proof for bounded runtime contracts. | Not production renderer, viewport manager, scroll restoration, performance benchmark, product UI, or P4 eligibility. |
+| P3.5 External Validity | Is the product story uniformly ChatGPT-shaped? | Privacy-bounded ChatGPT, Claude, and Gemini triage. | ChatGPT is high-severity reference; Claude is same mechanism family with lower subjective severity; Gemini is responsive/context-windowing divergence. | Product-strategy-dependent interpretation. | Not publishable benchmark evidence; not product ranking; not exact architecture. |
 
 Table 2 states the claim boundaries that should govern the rest of the paper.
 
@@ -38,16 +46,18 @@ Table 2 states the claim boundaries that should govern the rest of the paper.
 | F1 | Equivalent derived work can move off-main-thread. | All UI work can move to Worker. | Real Worker boundary / more workload classes. |
 | F2 | Scheduled Worker reduces urgent projection-commit latency. | Total throughput improvement / exact pixel latency. | Multi-urgent stress / display pipeline timing. |
 | P2 Pure Core | Frozen correctness scaffold. | Production runtime. | Real Worker/main/projection gates. |
+| P3 Boundary Chain | Bounded Worker/projection/rendering/transaction/commit-cycle architecture evidence. | Production loop, renderer correctness, viewport manager, scroll restoration, performance superiority. | Synthetic/P5 benchmark and later implementation gates. |
+| P3.5 External Validity | Product-strategy-dependent pressure across bounded commercial-system observations. | Universal AI-product behavior, product ranking, exact architecture, exact source ownership. | Controlled synthetic benchmark that separates visible history and active context. |
 | Rendering backend | Renderer is not the first lever in current evidence. | Canvas/WebGPU irrelevant forever. | Presentation backend experiments after runtime boundary. |
 | Production readiness | None. | Accessibility/product readiness. | Accessibility, focus/caret/input, integration tests. |
 | Generalization | Current controlled workload family. | All AI surfaces. | Broader workload matrix. |
 
 The paper contributes:
 
-1. a workload/architecture diagnosis for long-lived AI surfaces as append-heavy, viewport-centric, session-scale workloads;
-2. a controlled reproduction methodology showing that action-triggered derived fanout can produce stable main-thread long tasks;
-3. a solution-lever evaluation showing that equivalent worker offload removes main-thread long tasks and that worker-side scheduling reduces urgent projection-commit latency;
-4. a frozen pure-core runtime scaffold that turns the evidence chain into a fail-closed contract kernel for worker-resident state, transaction scheduling, and bounded projection, without claiming production runtime readiness.
+1. a workload characterization of long-lived AI surfaces as append-heavy, viewport-centric, session-scale, tail-mutating workloads with distinct visible-history and active-context dimensions;
+2. a controlled mechanism / architecture evidence chain connecting product-side symptoms to fanout, scheduling, projection, and bounded runtime contracts through P0/P1/P2/P3, while keeping evidence classes separate;
+3. a worker-resident, transaction-scheduled, bounded-projection runtime direction for controlling session-scale coordination on the interaction path;
+4. a bounded external-validity interpretation across ChatGPT, Claude, and Gemini, or anonymized commercial systems in a public draft, showing that product manifestations differ and that benchmark design must account for product strategy.
 
 ## 2. Background and Workload Model
 
@@ -64,6 +74,8 @@ Third, it is viewport-centric. The user sees a bounded region at any moment. Ide
 Fourth, it has heterogeneous block structure. AI surfaces contain messages, markdown, code, tool calls, status blocks, citations, logs, agent traces, partial outputs, and review artifacts. Each block type can have different update and rendering behavior.
 
 Fifth, it has concurrent interaction. User input, scrolling, clicking, selection, expansion, and new output can overlap. Urgent visible actions should not wait behind background session work.
+
+P3.5 adds a sixth modeling requirement: visible transcript continuity and active model-context continuity are not the same axis. A product can preserve a long visible transcript while using active-context windowing or memory policy that makes older visible content unreliable as model context. Future benchmarks therefore need to vary visible transcript length, active-context fidelity, append-heavy output, send/click interaction paths, scroll/old-history interaction, artifact/card/separate-surface routing, background scheduling, and the main-thread interaction critical path. This is a benchmark-design implication, not a completed benchmark result in this paper.
 
 This workload overlaps with existing systems but is not identical to them. Virtual lists reduce DOM node count, but do not by themselves remove session-scale state/fanout work from the main thread. Text editors have strong buffer and viewport models, but AI surfaces are usually heterogeneous semantic traces rather than only editable text buffers. Terminals are append-heavy and viewport-centric, but AI surfaces have richer block semantics, interaction, and derived metadata. Chat applications are superficially similar, but long-lived AI sessions include streaming, tool calls, agent traces, code/log blocks, and long review surfaces.
 
@@ -99,33 +111,37 @@ This work sits near several mature system families. The goal is not to argue tha
 
 Virtualized lists and viewport rendering reduce mounted DOM nodes and visible rendering work. They are highly relevant for transcripts, long lists, and scrollback-like views. They do not necessarily move session-scale state/fanout, derived metadata, subscriber updates, or action-triggered microtask work off the main thread. This paper focuses on runtime placement and bounded projection, not only DOM node count.
 
-Editor architectures separate document buffers from viewport rendering. That buffer/viewport separation directly inspires this paper's worker-resident state and bounded projection direction. The difference is workload shape: long-lived AI surfaces include heterogeneous semantic blocks, tool calls, citations, agent traces, streaming outputs, and provenance metadata. Many AI surfaces are not simply editable text buffers.
+CodeMirror and Monaco represent editor-grade surfaces with mature buffer, viewport, and incremental-update models. That buffer/viewport separation directly inspires this paper's worker-resident state and bounded projection direction. The difference is workload shape: long-lived AI surfaces include heterogeneous semantic blocks, tool calls, citations, agent traces, streaming outputs, artifact routing, provenance metadata, and active model-context concerns. Many AI surfaces are not simply editable text buffers.
 
-Terminal and scrollback systems are append-heavy and viewport-centric. AI surfaces share the retained-history and bounded-view intuition, but they require richer semantic structure and interaction: messages, code/log blocks, citations, tool outputs, provenance, expansion, and scheduling between background session work and urgent visible projection.
+xterm.js and terminal scrollback systems are close analogies for append-heavy retained history and bounded viewport. AI surfaces share the retained-history and bounded-view intuition, but they require richer semantic structure and interaction: messages, code/log blocks, citations, tool outputs, provenance, expansion, and scheduling between background session work and urgent visible projection.
 
-React concurrent features and render scheduling may help prioritize rendering and avoid blocking some UI updates. They are relevant baselines for future evaluation. Render scheduling alone, however, does not define worker-resident session state, a cross-thread transaction protocol, or a bounded projection contract. The paper does not claim React is bad; it claims session-scale state/fanout placement can be a bottleneck that render prioritization alone may not remove.
+Zed / GPUI-style app/runtime systems are relevant because they treat UI performance as an application/runtime architecture problem rather than only a DOM optimization problem. This paper's narrower contribution is not a general app framework claim; it is a workload-specific framing for long-lived AI surfaces and a bounded projection / transaction scheduling direction.
 
-Workerized state and off-main-thread architectures are also known directions. This paper's contribution is not merely "use a Worker." F1 evaluates equivalent worker offload for controlled derived fanout, and F2 evaluates Worker-side transaction scheduling after offload. P2 pure core freezes a workload-specific contract around protocol validation, op-log/state-store, transaction scheduling, bounded projection, recovery, metrics, and fail-closed correctness.
+Flutter, React, and general UI frameworks remain capable systems. React concurrent features and render scheduling may help prioritize rendering and avoid blocking some UI updates, and they are relevant baselines for future evaluation. Render scheduling alone, however, does not define worker-resident session state, a cross-thread transaction protocol, or a bounded projection contract. The paper does not claim React is bad; it claims session-scale state/fanout placement can be a bottleneck that render prioritization alone may not remove.
+
+Workerized state and off-main-thread architectures are also known directions. This paper's contribution is not merely "use a Worker." F1 evaluates equivalent worker offload for controlled derived fanout, and F2 evaluates Worker-side transaction scheduling after offload. P2 pure core and P3 boundary work freeze a workload-specific contract around protocol validation, op-log/state-store, transaction scheduling, bounded projection, rendering transactionization, admission, commit-cycle records, and fail-closed correctness.
 
 Browser scheduling APIs and cooperative scheduling are related to F2's chunk/yield/preemption idea. The paper does not depend on one browser scheduling API. Future work should compare scheduling primitives, overhead, fairness, starvation, and multi-urgent behavior; the current F2 claim is limited to same-clock urgent acknowledgement and projection-commit latency in a controlled workload.
 
-Canvas, OffscreenCanvas, and WebGPU are relevant presentation backends for large visual surfaces. They may become useful after the runtime boundary is correct. Current evidence points first to state/fanout/scheduling and projection boundaries, not renderer throughput. Canvas/WebGPU are deferred, not dismissed.
+Document/canvas-first systems such as Google Docs- or Figma-style surfaces are also adjacent when presentation throughput, document scale, or visual collaboration dominates. This paper does not claim those systems are the wrong direction for all workloads. It claims the current evidence points first to state/fanout/scheduling and projection boundaries for long-lived AI surfaces. Canvas, OffscreenCanvas, and WebGPU may become useful after the runtime boundary is correct; they are deferred, not dismissed, and not authorized by P3.5.
 
 | Area | Helps With | Does Not Necessarily Solve | This Paper's Position |
 |---|---|---|---|
 | Virtualized lists | Mounted DOM nodes and visible list rendering. | Session-scale state/fanout or derived metadata on main thread. | Relevant baseline; runtime placement and bounded projection remain separate. |
-| Editor architectures | Buffer/viewport separation and incremental document updates. | Heterogeneous AI blocks, tool outputs, citations, provenance, and scheduling. | Inspires the state/projection split but does not cover the whole workload. |
-| Terminal/scrollback systems | Append-heavy output with retained history and bounded viewport. | Rich semantic blocks, interaction, provenance, and urgent/background projection. | Close analogy for append/viewport shape; AI surfaces need richer contracts. |
-| React concurrent/render scheduling | Rendering prioritization and some responsiveness improvements. | Worker-resident session state, transaction protocol, or bounded projection. | Relevant baseline; not rejected, but not the same architectural boundary. |
+| CodeMirror / Monaco | Buffer/viewport separation and incremental document updates. | Heterogeneous AI blocks, tool outputs, citations, active model context, artifact routing, provenance, and scheduling. | Inspires the state/projection split but does not cover the whole workload. |
+| xterm.js / terminal scrollback | Append-heavy output with retained history and bounded viewport. | Rich semantic blocks, interaction, provenance, and urgent/background projection. | Close analogy for append/viewport shape; AI surfaces need richer contracts. |
+| Zed / GPUI-style app/runtime systems | App/runtime-level performance architecture. | This paper's specific long-lived AI-surface workload model and evidence chain. | Relevant adjacent systems; not the same contribution. |
+| Flutter / React / general UI frameworks | General UI composition, rendering, scheduling, and ecosystem integration. | Worker-resident session state, transaction protocol, or bounded projection by default. | Relevant baselines; not rejected, but not the same architectural boundary. |
 | Workerized state | Moving compute or state off the main thread. | Workload-specific scheduling, projection safety, lineage, and recovery. | Workers are known; the contribution is the evidence chain and runtime contract. |
 | Browser scheduling APIs | Chunking, yielding, and cooperative responsiveness. | Session model, projection protocol, or correctness boundary by itself. | Related mechanism; F2 remains API-agnostic scheduler evidence. |
+| Document/canvas-first systems | Presentation throughput, document-scale interaction, or visual collaboration. | State/fanout placement, active model-context tradeoffs, or AI-specific surface routing by itself. | Future comparison area; not evidence for Canvas/WebGPU necessity. |
 | Canvas/OffscreenCanvas/WebGPU | Presentation throughput for visual surfaces. | State/fanout placement, transaction scheduling, or projection correctness. | Future backend gate; current evidence points to runtime boundaries first. |
 
 Final citations are still needed for virtualized lists, editor buffer architectures, terminal scrollback systems, React concurrent scheduling, workerized state systems, browser scheduling APIs, and Canvas/OffscreenCanvas/WebGPU rendering systems.
 
-## 4. Product Trace Motivation
+## 4. Product Motivation and External-Validity Framing
 
-The product trace question is whether sluggish long-lived AI surfaces are dominated primarily by rendering/layout/paint or by action-triggered scripting, microtasks, and state coordination.
+The product evidence question is whether sluggish long-lived AI surfaces are dominated primarily by rendering/layout/paint or by action-triggered scripting, microtasks, and state coordination. Product evidence is used here as bounded motivation and external-validity framing. It is not product source replay, not exact internal architecture evidence, not product ranking, and not publishable controlled benchmark proof.
 
 **Figure 2. Product trace mechanism shape.**  
 Product traces motivate a mechanism-family hypothesis rather than a source-level claim. The observed action path goes from click/pointerup into Run microtasks and distributed app coordination, with hints of state/context propagation and fanout-like work. This motivates F0-D's controlled derived-fanout reproduction, but does not claim product source replay or exact root-cause attribution.
@@ -145,6 +161,16 @@ The mechanism family supported by P0 is multi-bundle app coordination / state-co
 This does not prove product source replay. It does not establish exact source-map ownership, exact semantics of minified symbols, or that all product latency comes from this mechanism. It also does not prove that React is the root cause, that DOM rendering is irrelevant, or that a Worker runtime would directly solve the product without architecture changes.
 
 P0 therefore motivates a controlled reproduction rather than replacing one overclaim with another. The next question is whether action-triggered derived fanout / queue drain / state traversal can produce stable main-thread long tasks in a controlled workload.
+
+P3.5 adds a bounded cross-system interpretation:
+
+| System framing | Observed role | Safe interpretation | Boundary |
+|---|---|---|---|
+| ChatGPT, or System A in anonymized public wording | High-severity reference case. | Existing long sessions remain the strongest user-visible degradation symptom and primary product motivator. | Not universal AI-product behavior; not exact source ownership; not P4 authorization. |
+| Claude, or System B | Same-mechanism-family, lower subjective severity. | A non-ChatGPT product can show send/click -> Run microtasks / app-coordination pressure while remaining subjectively acceptable in the sample. | Not a second ChatGPT-level UX failure; not product ranking; not exact architecture. |
+| Gemini, or System C | Responsive/context-windowing divergence. | Low observed interaction cost can coexist with unreliable early-context access, suggesting product-strategy tradeoffs. | Not proof that Gemini solves long-session pressure; not proof of exact context-windowing architecture. |
+
+This framing changes how the paper should speak. The safe claim is not "all AI products fail like ChatGPT." The safe claim is that long-session AI surfaces expose a workload whose symptoms are product-strategy dependent, and future benchmarks must model both visible transcript continuity and active model-context continuity.
 
 ## 5. Controlled Reproduction: F0-D
 
@@ -270,11 +296,15 @@ Fail-closed correctness is a core implication. Malformed envelopes, operations, 
 
 Trace, metrics, and recovery are engineering scaffolds for testability and future integration. Decision trace records where a decision passed or failed, metrics snapshot provides machine-readable state summaries, and recovery policy maps errors to safe recommendations while preserving lineage such as `message_id`, `parent_action_id`, `txn_id`, and `trace_context` where available.
 
-P2 pure core v0 is frozen as an engineering/runtime-core scaffold. It is not a final runtime implementation. It does not open real Worker runtime, real main runtime, projection engine, DOM/React integration, Canvas/WebGPU, benchmark expansion, or product integration.
+P2 pure core v0 is frozen as an engineering/runtime-core scaffold. P3 extends that scaffold into a bounded architecture chain: real Worker boundary, bounded projection, rendering preparation, local OffscreenCanvas replay smoke, rendering transactionization, viewport-aware admission, minimal deterministic scheduling, commit-cycle records, and anchor-aware transition classification. This is architecture evidence, not a final runtime implementation. It does not open production Worker/Main runtime, DOM/React integration, Canvas/WebGPU, benchmark expansion, product integration, viewport manager, scroll restoration, or P4 implementation.
 
-## 9. Limitations and Future Work
+## 9. Discussion, Limitations, and Future Gates
 
-The product trace evidence motivates a mechanism-family hypothesis. It is not source replay, does not prove exact product implementation, and does not prove all product latency comes from the observed mechanism. Minified and multi-bundle traces limit precise ownership claims.
+P3.5 clarifies the main interpretation risk: mechanism-family similarity is not the same as UX severity. ChatGPT remains the high-severity reference case. Claude supports a non-ChatGPT microtask/app-coordination path, but the observed sample had lower subjective severity and should not be described as another ChatGPT-level UX failure. Gemini showed a responsive send/pointer path in the observed sample, but unreliable early-context access. Low INP therefore does not imply reliable active-context continuity.
+
+This matters for benchmark design. Future workloads must separate visible transcript continuity from active model-context continuity. A benchmark that only grows DOM length can miss the product strategy axis exposed by P3.5: systems may trade off interaction responsiveness, active-context fidelity, visible transcript continuity, artifact/card routing, and app-side coordination cost.
+
+The product trace evidence motivates a mechanism-family hypothesis. It is not source replay, does not prove exact product implementation, does not prove exact root cause, does not prove exact source ownership, and does not prove all product latency comes from the observed mechanism. Minified and multi-bundle traces limit precise ownership claims. Product observations are interpretation-ready, not publishable controlled benchmark proof.
 
 F0-D is controlled mechanism-family reproduction. It is smaller than some product bursts and does not quantitatively replay 400-650ms product traces. It validates a controlled main-thread fanout bottleneck, not all possible AI UI workloads.
 
@@ -282,41 +312,49 @@ F1 validates Worker offload for equivalent derived fanout work. It does not prov
 
 F2 validates scheduled/chunked Worker execution for one urgent visible projection request. It does not prove multi-urgent behavior. It improves urgent responsiveness while increasing Worker total time, so it is not a total throughput improvement. It measures projection-commit latency, not full pixel or user-perceived latency.
 
-P2 pure core v0 is not a production runtime. It does not implement real Worker runtime, real main runtime, projection engine, DOM/React integration, Canvas/WebGPU, or product integration. P2 modules are not all experimentally proven; many are engineering scaffolds for correctness and future integration.
+P2/P3 are not a production runtime. They do not implement production Worker runtime, production main runtime, DOM/React integration, product integration, viewport lifecycle ownership, scroll restoration, accessibility, selection/copy/search, or production renderer correctness. P3 includes local OffscreenCanvas smoke evidence, but it does not prove Canvas/WebGPU necessity, cross-platform rendering correctness, browser rendering performance, or performance superiority.
 
 Measurement validity is bounded. The F0-D/F1/F2 aggregates use 3x sample sizes, so they should not be read as confidence-interval claims. Controlled workloads are structurally motivated, not product replay. Trace capture can be sensitive to foreground/visibility effects; stale-server/stale-target and warmup/JIT/cache effects were observed risks and controlled where possible. F2 same-clock urgent metrics are acknowledgement and projection-commit measures, not full display-pipeline or pixel latency, and F2-B is a responsiveness improvement rather than a total throughput improvement.
+
+The P3.5 product observations are opportunistic and privacy-bounded. They should not be used to rank products or claim exact internal product architecture. They do not establish universal AI-product behavior. They do not authorize P4.
+
+The next technical step after this v0.2 paper patch is a P5 / Synthetic Impossible-Zone Benchmark Gate Design, not more paper planning and not P4. That gate should answer:
+
+- what controlled workload reproduces long-session UI pressure;
+- what baselines are compared;
+- what impossible-zone thresholds define failure;
+- how visible transcript length and active-context continuity are modeled separately;
+- what runtime prototype path is tested against DOM, virtualized DOM, and editor-grade baselines.
 
 Future evidence needed before stronger runtime claims includes:
 
 - multi-urgent scheduling stress;
 - broader workload matrix: chat transcript, agent trace, code review, log surface, long document review;
-- real Worker boundary smoke;
-- projection engine prototype;
+- synthetic long-session accumulation with visible-history and active-context axes separated;
 - accessibility and input/focus/caret model;
-- comparison with stronger baselines such as virtualized DOM, editor-style buffers, React concurrent features, and possibly workerized state libraries;
+- comparison with stronger baselines such as DOM, virtualized DOM, editor-grade buffers, terminal/log-style surfaces, React concurrent features, and workerized state libraries;
 - memory growth / long-session retention analysis;
 - browser display pipeline, paint, and compositor timing if making user-perceived latency claims.
 
 Future gates must remain narrow:
 
-- Real Worker Runtime Gate v0: one serializable message across a minimal Worker boundary, Worker calls pure adapter, returns machine-readable output, no DOM/React, no projection engine, no product integration.
-- Projection Engine Gate: `SessionState + visible_range -> bounded ProjectionResultShape`, preserving projection-policy safety, no DOM/React, no Canvas/WebGPU initially.
-- Multi-Urgent Scheduler Gate: multiple urgent projection requests during heavy Worker work, measuring fairness, starvation, and latency while preserving equivalent work counters.
-- Presentation Backend Gate: Canvas/OffscreenCanvas/WebGPU only after the runtime boundary is stable.
+- P5 / Synthetic Impossible-Zone Benchmark Gate: define workload, baselines, thresholds, active-context axis, visible-history axis, and runtime prototype comparison.
+- P4 Gate Planning: only after a separate gate with explicit acceptance criteria; P3.5 and this paper patch do not authorize it.
+- Presentation Backend Gate: Canvas/OffscreenCanvas/WebGPU only after the runtime boundary and benchmark evidence justify it.
 
-This paper does not solve all web jank, does not replace React/DOM universally, does not build a production UI framework, does not claim WebGPU is required, does not claim every AI UI workload shares the same bottleneck, and does not claim accessibility or product integration readiness.
+This paper does not solve all web jank, does not replace React/DOM universally, does not build a production UI framework, does not claim WebGPU is required, does not claim every AI UI workload shares the same bottleneck, does not claim exact product architecture or source ownership, and does not claim accessibility or product integration readiness.
 
 ## 10. Conclusion
 
-Long-lived AI surfaces are a distinct UI workload: append-heavy, viewport-centric, session-scale, and interaction-rich. The bottleneck in this workload is not necessarily rendering alone. Product-motivated traces and controlled reproduction show that action-triggered state/fanout/microtask coordination can create main-thread responsiveness problems before a renderer backend is the first missing lever.
+Long-lived AI surfaces are a distinct UI workload: append-heavy, viewport-centric, long-lived, tail-mutating, and interaction-rich. The bottleneck in this workload is not necessarily rendering alone. Product-motivated traces and controlled reproduction show that action-triggered state/fanout/microtask coordination can create main-thread responsiveness problems before a renderer backend is the first missing lever.
 
-The evidence chain is bounded but coherent. P0 motivates the mechanism family. F0-D shows that controlled action-triggered derived fanout can reproduce stable microtask-dominated main-thread long tasks. F1 shows that equivalent derived fanout work can be moved off-main-thread, removing main-thread long tasks in the controlled setting. F2 shows that scheduled/chunked Worker execution reduces same-clock urgent projection acknowledgement and projection-commit latency relative to monolithic Worker execution. P2 pure core v0 freezes the resulting runtime-core implications as an engineering scaffold.
+The evidence chain is bounded but coherent. P0 motivates the mechanism family. F0-D shows that controlled action-triggered derived fanout can reproduce stable microtask-dominated main-thread long tasks. F1 shows that equivalent derived fanout work can be moved off-main-thread, removing main-thread long tasks in the controlled setting. F2 shows that scheduled/chunked Worker execution reduces same-clock urgent projection acknowledgement and projection-commit latency relative to monolithic Worker execution. P2 pure core v0 freezes the resulting runtime-core implications as an engineering scaffold, and P3 extends them into bounded Worker/projection/rendering/transaction/commit-cycle architecture evidence.
 
-The immediate next step should not be broad implementation. The next valid paths are to assemble and review this short-paper draft, or to run a narrowly gated real Worker boundary smoke only if the draft exposes a concrete evidence gap. The preferred next step is paper review first, because it will reveal whether more evidence is needed before opening implementation gates.
+P3.5 refines the thesis rather than replacing it. Long-session AI surfaces do not fail uniformly: ChatGPT is the high-severity reference case, Claude provides a lower-severity non-ChatGPT mechanism-family signal, and Gemini provides a responsive/context-windowing divergence case. The paper should therefore claim product-strategy-dependent pressure, not universal AI-product behavior.
 
 In controlled settings, action-triggered derived fanout can reproduce main-thread long tasks; equivalent worker offload can remove those long tasks; and worker-side scheduling can reduce urgent projection-commit latency. Together, these results support a worker-resident, transaction-scheduled, bounded-projection runtime direction for long-lived AI surfaces, while leaving production runtime implementation and broader validation to future work.
 
-P2 pure core remains frozen. Projection engine, real Worker runtime, real main runtime, DOM/React integration, Canvas/WebGPU, and product integration remain paused.
+P4 remains not authorized. The next step after this v0.2 patch is the P5 / Synthetic Impossible-Zone Benchmark Gate Design: define the controlled long-session workload, compare DOM / virtualized DOM / editor-grade baselines, set impossible-zone thresholds, separate visible transcript length from active-context continuity, and decide what runtime prototype path is tested against those baselines.
 
 ## Figures and Tables Still To Finalize
 
