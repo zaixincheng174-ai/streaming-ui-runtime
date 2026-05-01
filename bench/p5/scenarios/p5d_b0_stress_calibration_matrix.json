@@ -1,0 +1,105 @@
+{
+  "schema_version": "p5d.b0-stress-calibration-matrix.v0",
+  "purpose": "B0-only stress calibration matrix for manually measuring heavier synthetic long-session DOM pressure.",
+  "scenario_defaults": {
+    "block_shape": "rich",
+    "interactions": [
+      "typing_proxy",
+      "send_click_proxy",
+      "scroll_jump_return"
+    ],
+    "synthetic_content_only": true
+  },
+  "scenarios": [
+    {
+      "scenario_id": "p5d_v10000_rich_ctx_full_repeat3",
+      "visible_block_count": 10000,
+      "active_context_mode": "full",
+      "active_context_window": 10000,
+      "block_shape": "rich",
+      "rich_block_multiplier": 4,
+      "append_batch_size": 512,
+      "tail_mutation_count": 256,
+      "recall_probe_count": 256,
+      "artifact_placeholder_ratio": 0.03,
+      "send_click_repeat_count": 3,
+      "interactions": [
+        "typing_proxy",
+        "send_click_proxy",
+        "scroll_jump_return"
+      ]
+    },
+    {
+      "scenario_id": "p5d_v25000_rich_ctx_medium_repeat3",
+      "visible_block_count": 25000,
+      "active_context_mode": "medium",
+      "active_context_window": 5000,
+      "block_shape": "rich",
+      "rich_block_multiplier": 4,
+      "append_batch_size": 1024,
+      "tail_mutation_count": 512,
+      "recall_probe_count": 512,
+      "artifact_placeholder_ratio": 0.03,
+      "send_click_repeat_count": 3,
+      "interactions": [
+        "typing_proxy",
+        "send_click_proxy",
+        "scroll_jump_return"
+      ]
+    },
+    {
+      "scenario_id": "p5d_v25000_rich_ctx_full_repeat3",
+      "visible_block_count": 25000,
+      "active_context_mode": "full",
+      "active_context_window": 25000,
+      "block_shape": "rich",
+      "rich_block_multiplier": 4,
+      "append_batch_size": 1024,
+      "tail_mutation_count": 512,
+      "recall_probe_count": 512,
+      "artifact_placeholder_ratio": 0.03,
+      "send_click_repeat_count": 3,
+      "interactions": [
+        "typing_proxy",
+        "send_click_proxy",
+        "scroll_jump_return"
+      ]
+    },
+    {
+      "scenario_id": "p5d_v50000_rich_ctx_medium_repeat2",
+      "visible_block_count": 50000,
+      "active_context_mode": "medium",
+      "active_context_window": 5000,
+      "block_shape": "rich",
+      "rich_block_multiplier": 4,
+      "append_batch_size": 2048,
+      "tail_mutation_count": 768,
+      "recall_probe_count": 768,
+      "artifact_placeholder_ratio": 0.03,
+      "send_click_repeat_count": 2,
+      "interactions": [
+        "typing_proxy",
+        "send_click_proxy",
+        "scroll_jump_return"
+      ]
+    },
+    {
+      "scenario_id": "p5d_v50000_rich_ctx_full_repeat2",
+      "visible_block_count": 50000,
+      "active_context_mode": "full",
+      "active_context_window": 50000,
+      "block_shape": "rich",
+      "rich_block_multiplier": 4,
+      "append_batch_size": 2048,
+      "tail_mutation_count": 768,
+      "recall_probe_count": 768,
+      "artifact_placeholder_ratio": 0.03,
+      "send_click_repeat_count": 2,
+      "interactions": [
+        "typing_proxy",
+        "send_click_proxy",
+        "scroll_jump_return"
+      ]
+    }
+  ]
+}
