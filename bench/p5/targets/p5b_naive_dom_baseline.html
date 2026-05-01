@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>P5-B Naive DOM Baseline</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        line-height: 1.4;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: #f7f8f4;
+        color: #171917;
+      }
+
+      #status {
+        position: sticky;
+        top: 0;
+        z-index: 3;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px 14px;
+        padding: 12px 16px;
+        border-bottom: 1px solid #d8ded3;
+        background: rgba(247, 248, 244, 0.96);
+        backdrop-filter: blur(2px);
+        font-size: 12px;
+      }
+
+      #controls {
+        position: sticky;
+        top: 41px;
+        z-index: 2;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        padding: 12px 16px;
+        border-bottom: 1px solid #e0e5db;
+        background: #f7f8f4;
+      }
+
+      button {
+        padding: 8px 12px;
+        border: 1px solid #4f574c;
+        border-radius: 4px;
+        background: #1f281d;
+        color: #ffffff;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      #typing-proxy-input {
+        min-width: 280px;
+        padding: 8px 10px;
+        border: 1px solid #c9d0c4;
+        background: #ffffff;
+        color: #171917;
+        font: inherit;
+      }
+
+      #surface {
+        padding: 8px 16px 32px;
+      }
+
+      .block {
+        display: grid;
+        grid-template-columns: 128px 1fr;
+        gap: 16px;
+        padding: 4px 0;
+        border-bottom: 1px solid #e5eadf;
+        white-space: pre-wrap;
+      }
+
+      .block-id {
+        color: #65705f;
+      }
+
+      .block-body {
+        color: #181a17;
+      }
+
+      .artifact-placeholder {
+        background: #eef2e8;
+      }
+
+      #summary-panel {
+        margin: 0;
+        padding: 12px 16px;
+        border-bottom: 1px solid #e0e5db;
+        background: #ffffff;
+        font-size: 12px;
+      }
+
+      #p5b-summary-json {
+        margin: 8px 0 0;
+        white-space: pre-wrap;
+      }
+
+      .config-error {
+        max-width: 860px;
+        margin: 32px auto;
+        padding: 16px;
+        border: 1px solid #b91c1c;
+        background: #fef2f2;
+        color: #7f1d1d;
+      }
+
+      .config-error h1 {
+        margin: 0 0 12px;
+        font-size: 16px;
+      }
+
+      .config-error pre {
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="status">
+      <span id="scenario-id">scenario_id=unknown</span>
+      <span id="visible-block-count">visible_block_count=0</span>
+      <span id="active-context-mode">active_context_mode=unknown</span>
+      <span id="active-context-window">active_context_window=0</span>
+      <span id="initial-render-ms">initial_render_ms=0</span>
+      <span id="dom-node-count">dom_node_count=0</span>
+      <span id="max-interaction-ms">max_interaction_ms=0</span>
+      <span id="long-task-like-count">long_task_like_count_50ms_proxy=0</span>
+    </div>
+    <div id="controls">
+      <input id="typing-proxy-input" aria-label="typing proxy input" autocomplete="off" spellcheck="false">
+      <button id="typing-proxy-button" type="button">typing_proxy</button>
+      <button id="send-click-proxy-button" type="button">send_click_proxy</button>
+      <button id="scroll-jump-return-button" type="button">scroll_jump_return</button>
+    </div>
+    <section id="summary-panel" aria-label="P5-B machine readable summary">
+      <strong>P5-B B0 naive DOM summary</strong>
+      <pre id="p5b-summary-json">{}</pre>
+    </section>
+    <main id="surface" aria-label="P5-B naive DOM baseline surface"></main>
+    <script>
+      const P5A_MATRIX = {
+        scenario_defaults: {
+          interactions: ["typing_proxy", "send_click_proxy", "scroll_jump_return"],
+          synthetic_content_only: true
+        },
+        scenarios: [
+          { scenario_id: "p5a_v1000_ctx_small", visible_block_count: 1000, active_context_mode: "small", active_context_window: 128, append_batch_size: 64, tail_mutation_count: 12, recall_probe_count: 16, artifact_placeholder_ratio: 0.02 },
+          { scenario_id: "p5a_v1000_ctx_medium", visible_block_count: 1000, active_context_mode: "medium", active_context_window: 1000, append_batch_size: 64, tail_mutation_count: 12, recall_probe_count: 16, artifact_placeholder_ratio: 0.02 },
+          { scenario_id: "p5a_v1000_ctx_full", visible_block_count: 1000, active_context_mode: "full", active_context_window: 1000, append_batch_size: 64, tail_mutation_count: 12, recall_probe_count: 16, artifact_placeholder_ratio: 0.02 },
+          { scenario_id: "p5a_v5000_ctx_small", visible_block_count: 5000, active_context_mode: "small", active_context_window: 128, append_batch_size: 128, tail_mutation_count: 24, recall_probe_count: 24, artifact_placeholder_ratio: 0.02 },
+          { scenario_id: "p5a_v5000_ctx_medium", visible_block_count: 5000, active_context_mode: "medium", active_context_window: 1000, append_batch_size: 128, tail_mutation_count: 24, recall_probe_count: 24, artifact_placeholder_ratio: 0.02 },
+          { scenario_id: "p5a_v5000_ctx_full", visible_block_count: 5000, active_context_mode: "full", active_context_window: 5000, append_batch_size: 128, tail_mutation_count: 24, recall_probe_count: 24, artifact_placeholder_ratio: 0.02 },
+          { scenario_id: "p5a_v10000_ctx_small", visible_block_count: 10000, active_context_mode: "small", active_context_window: 128, append_batch_size: 256, tail_mutation_count: 32, recall_probe_count: 32, artifact_placeholder_ratio: 0.02 },
+          { scenario_id: "p5a_v10000_ctx_medium", visible_block_count: 10000, active_context_mode: "medium", active_context_window: 1000, append_batch_size: 256, tail_mutation_count: 32, recall_probe_count: 32, artifact_placeholder_ratio: 0.02 },
+          { scenario_id: "p5a_v10000_ctx_full", visible_block_count: 10000, active_context_mode: "full", active_context_window: 10000, append_batch_size: 256, tail_mutation_count: 32, recall_probe_count: 32, artifact_placeholder_ratio: 0.02 }
+        ]
+      };
+
+      const DEFAULT_SCENARIO_ID = "p5a_v1000_ctx_small";
+      const REQUIRED_INTERACTIONS = ["typing_proxy", "send_click_proxy", "scroll_jump_return"];
+      const LONG_TASK_LIKE_THRESHOLD_MS = 50;
+
+      const surface = document.getElementById("surface");
+      const summaryJson = document.getElementById("p5b-summary-json");
+      const typingInput = document.getElementById("typing-proxy-input");
+      const typingButton = document.getElementById("typing-proxy-button");
+      const sendClickButton = document.getElementById("send-click-proxy-button");
+      const scrollButton = document.getElementById("scroll-jump-return-button");
+      const scenarioIdNode = document.getElementById("scenario-id");
+      const visibleBlockCountNode = document.getElementById("visible-block-count");
+      const activeContextModeNode = document.getElementById("active-context-mode");
+      const activeContextWindowNode = document.getElementById("active-context-window");
+      const initialRenderMsNode = document.getElementById("initial-render-ms");
+      const domNodeCountNode = document.getElementById("dom-node-count");
+      const maxInteractionMsNode = document.getElementById("max-interaction-ms");
+      const longTaskLikeCountNode = document.getElementById("long-task-like-count");
+
+      const scenario = resolveScenario();
+      const workload = generateSyntheticLongSessionWorkload(scenario);
+      const blockRecords = workload.blocks.slice();
+      const activeContextIndex = workload.active_context_index.slice();
+      let sendRunCount = 0;
+      let checksum = 0;
+
+      const metrics = {
+        scenario_id: workload.scenario_id,
+        visible_block_count: workload.visible_block_count,
+        active_context_mode: workload.active_context_mode,
+        active_context_window: workload.active_context_window,
+        initial_render_ms: 0,
+        dom_node_count: 0,
+        typing_proxy_ms: 0,
+        send_click_proxy_ms: 0,
+        scroll_jump_return_ms: 0,
+        active_context_traversal_ms: 0,
+        tail_mutation_ms: 0,
+        append_commit_ms: 0,
+        max_interaction_ms: 0,
+        long_task_like_count_50ms_proxy: 0,
+        timestamp: "",
+        run_id: createRunId(workload.scenario_id)
+      };
+
+      function resolveScenario() {
+        const params = new URLSearchParams(window.location.search);
+        const requestedScenarioId = params.get("scenario_id") || DEFAULT_SCENARIO_ID;
+        const found = P5A_MATRIX.scenarios.find((entry) => entry.scenario_id === requestedScenarioId);
+        if (found) {
+          return {
+            ...found,
+            interactions: P5A_MATRIX.scenario_defaults.interactions
+          };
+        }
+
+        renderConfigError([
+          "Invalid P5-B scenario_id.",
+          `requested=${requestedScenarioId}`,
+          `available=${P5A_MATRIX.scenarios.map((entry) => entry.scenario_id).join(",")}`
+        ].join("\n"));
+        throw new Error(`invalid scenario_id: ${requestedScenarioId}`);
+      }
+
+      function renderConfigError(message) {
+        const panel = document.createElement("main");
+        panel.className = "config-error";
+
+        const heading = document.createElement("h1");
+        heading.textContent = "P5-B naive DOM configuration error";
+
+        const details = document.createElement("pre");
+        details.textContent = message;
+
+        panel.append(heading, details);
+        document.body.replaceChildren(panel);
+      }
+
+      function generateSyntheticLongSessionWorkload(input) {
+        const artifactOrdinals = buildArtifactOrdinalSet(
+          input.visible_block_count,
+          input.artifact_placeholder_ratio
+        );
+        const blocks = buildBlocks(input, artifactOrdinals);
+        const activeContextStartOrdinal = input.visible_block_count - input.active_context_window + 1;
+        return {
+          scenario_id: input.scenario_id,
+          visible_block_count: input.visible_block_count,
+          active_context_mode: input.active_context_mode,
+          active_context_window: input.active_context_window,
+          active_context_start_ordinal: activeContextStartOrdinal,
+          blocks,
+          active_context_index: blocks
+            .filter((block) => block.ordinal >= activeContextStartOrdinal)
+            .map((block, index) => ({
+              context_index: index,
+              block_id: block.block_id,
+              ordinal: block.ordinal,
+              synthetic_key: block.synthetic_key,
+              metadata_weight: 1 + (block.ordinal % 5)
+            })),
+          append_stream: buildAppendStream(input),
+          tail_mutations: buildTailMutations(input),
+          recall_probes: buildRecallProbes(input, activeContextStartOrdinal),
+          artifact_placeholders: buildArtifactPlaceholders(blocks, artifactOrdinals),
+          interactions: REQUIRED_INTERACTIONS
+        };
+      }
+
+      function buildArtifactOrdinalSet(visibleBlockCount, ratio) {
+        const count = Math.floor(visibleBlockCount * ratio);
+        const ordinals = new Set();
+        for (let index = 1; index <= count; index += 1) {
+          ordinals.add(Math.floor((index * visibleBlockCount) / (count + 1)) + 1);
+        }
+        return ordinals;
+      }
+
+      function buildBlocks(input, artifactOrdinals) {
+        const blocks = [];
+        for (let ordinal = 1; ordinal <= input.visible_block_count; ordinal += 1) {
+          const blockId = formatId("block", ordinal);
+          blocks.push({
+            block_id: blockId,
+            ordinal,
+            kind: artifactOrdinals.has(ordinal) ? "artifact_placeholder" : "message",
+            synthetic_key: `synthetic-key-${String(ordinal).padStart(6, "0")}`,
+            text: `Synthetic harmless block ${String(ordinal).padStart(6, "0")} for deterministic long-session workload.`
+          });
+        }
+        return blocks;
+      }
+
+      function buildAppendStream(input) {
+        const stream = [];
+        for (let index = 1; index <= input.append_batch_size; index += 1) {
+          stream.push({
+            append_id: formatId("append", index),
+            ordinal: input.visible_block_count + index,
+            kind: "stream_append",
+            text: `Synthetic append unit ${String(index).padStart(4, "0")} after visible history ${input.visible_block_count}.`
+          });
+        }
+        return stream;
+      }
+
+      function buildTailMutations(input) {
+        const mutations = [];
+        const tailStart = input.visible_block_count - input.tail_mutation_count + 1;
+        for (let ordinal = tailStart; ordinal <= input.visible_block_count; ordinal += 1) {
+          const mutationOrdinal = ordinal - tailStart + 1;
+          mutations.push({
+            mutation_id: formatId("tail-mutation", mutationOrdinal),
+            block_id: formatId("block", ordinal),
+            ordinal,
+            replacement_text: `Synthetic tail update ${String(mutationOrdinal).padStart(4, "0")}.`
+          });
+        }
+        return mutations;
+      }
+
+      function buildRecallProbes(input, activeContextStartOrdinal) {
+        const probes = [];
+        for (let index = 1; index <= input.recall_probe_count; index += 1) {
+          const offset = ((index - 1) * 37) % input.active_context_window;
+          const ordinal = activeContextStartOrdinal + offset;
+          probes.push({
+            probe_id: formatId("recall-probe", index),
+            block_id: formatId("block", ordinal),
+            ordinal,
+            expected_synthetic_key: `synthetic-key-${String(ordinal).padStart(6, "0")}`
+          });
+        }
+        return probes;
+      }
+
+      function buildArtifactPlaceholders(blocks, artifactOrdinals) {
+        return blocks
+          .filter((block) => artifactOrdinals.has(block.ordinal))
+          .map((block, index) => ({
+            artifact_id: formatId("artifact-placeholder", index + 1),
+            block_id: block.block_id,
+            ordinal: block.ordinal
+          }));
+      }
+
+      function renderInitialTranscript() {
+        const startMs = performance.now();
+        const fragment = document.createDocumentFragment();
+        for (const block of blockRecords) {
+          fragment.appendChild(createBlockElement(block));
+        }
+        surface.appendChild(fragment);
+        const durationMs = performance.now() - startMs;
+        metrics.initial_render_ms = durationMs;
+        metrics.dom_node_count = surface.querySelectorAll(".block").length;
+        recordMeasuredDuration(durationMs);
+        publishSummary();
+      }
+
+      function createBlockElement(block) {
+        const row = document.createElement("div");
+        row.className = block.kind === "artifact_placeholder" ? "block artifact-placeholder" : "block";
+        row.dataset.blockId = block.block_id;
+        row.dataset.ordinal = String(block.ordinal);
+
+        const id = document.createElement("span");
+        id.className = "block-id";
+        id.textContent = String(block.ordinal).padStart(6, "0");
+
+        const body = document.createElement("span");
+        body.className = "block-body";
+        body.textContent = block.text;
+
+        row.append(id, body);
+        return row;
+      }
+
+      function runTypingProxy() {
+        const startMs = performance.now();
+        let localChecksum = checksum;
+        for (let index = 0; index < 12; index += 1) {
+          typingInput.value = `synthetic typing proxy ${index + 1}`;
+          localChecksum = scanText(typingInput.value, localChecksum);
+          localChecksum = scanText(blockRecords[blockRecords.length - 1].synthetic_key, localChecksum);
+        }
+        checksum = localChecksum;
+        metrics.typing_proxy_ms = performance.now() - startMs;
+        recordInteractionDuration(metrics.typing_proxy_ms);
+        publishSummary();
+        return getSummary();
+      }
+
+      function runSendClickProxy() {
+        sendRunCount += 1;
+        const startMs = performance.now();
+        const traversalStartMs = performance.now();
+        let localChecksum = checksum;
+        for (const entry of activeContextIndex) {
+          localChecksum = scanText(entry.synthetic_key, localChecksum);
+          localChecksum = (localChecksum + entry.metadata_weight + entry.ordinal) >>> 0;
+        }
+        metrics.active_context_traversal_ms = performance.now() - traversalStartMs;
+
+        const mutationStartMs = performance.now();
+        for (const mutation of workload.tail_mutations) {
+          const body = document.querySelector(`[data-block-id="${mutation.block_id}"] .block-body`);
+          if (body) {
+            body.textContent = mutation.replacement_text;
+          }
+          localChecksum = scanText(mutation.replacement_text, localChecksum);
+        }
+        metrics.tail_mutation_ms = performance.now() - mutationStartMs;
+
+        const appendStartMs = performance.now();
+        const fragment = document.createDocumentFragment();
+        for (const append of workload.append_stream) {
+          const appendedBlock = {
+            block_id: `${append.append_id}-run-${sendRunCount}`,
+            ordinal: append.ordinal + ((sendRunCount - 1) * workload.append_stream.length),
+            kind: "message",
+            synthetic_key: `${append.append_id}-synthetic-key-run-${sendRunCount}`,
+            text: append.text
+          };
+          blockRecords.push(appendedBlock);
+          fragment.appendChild(createBlockElement(appendedBlock));
+          localChecksum = scanText(append.text, localChecksum);
+        }
+        surface.appendChild(fragment);
+        metrics.append_commit_ms = performance.now() - appendStartMs;
+        metrics.send_click_proxy_ms = performance.now() - startMs;
+        metrics.dom_node_count = surface.querySelectorAll(".block").length;
+        checksum = localChecksum;
+        recordMeasuredDuration(metrics.active_context_traversal_ms);
+        recordMeasuredDuration(metrics.tail_mutation_ms);
+        recordMeasuredDuration(metrics.append_commit_ms);
+        recordInteractionDuration(metrics.send_click_proxy_ms);
+        publishSummary();
+        return getSummary();
+      }
+
+      function runScrollJumpReturn() {
+        const startMs = performance.now();
+        const jumpBlock = document.querySelector(`[data-block-id="${formatId("block", Math.max(1, Math.floor(workload.visible_block_count * 0.1)))}"]`);
+        const returnBlock = surface.lastElementChild;
+        if (jumpBlock) {
+          jumpBlock.scrollIntoView({ block: "center" });
+        }
+        if (returnBlock) {
+          returnBlock.scrollIntoView({ block: "end" });
+        }
+        metrics.scroll_jump_return_ms = performance.now() - startMs;
+        recordInteractionDuration(metrics.scroll_jump_return_ms);
+        publishSummary();
+        return getSummary();
+      }
+
+      function runInteraction(interactionType) {
+        if (interactionType === "typing_proxy") {
+          return runTypingProxy();
+        }
+        if (interactionType === "send_click_proxy") {
+          return runSendClickProxy();
+        }
+        if (interactionType === "scroll_jump_return") {
+          return runScrollJumpReturn();
+        }
+        throw new Error(`unknown P5-B interaction: ${interactionType}`);
+      }
+
+      function recordInteractionDuration(durationMs) {
+        metrics.max_interaction_ms = Math.max(metrics.max_interaction_ms, durationMs);
+        recordMeasuredDuration(durationMs);
+      }
+
+      function recordMeasuredDuration(durationMs) {
+        if (durationMs >= LONG_TASK_LIKE_THRESHOLD_MS) {
+          metrics.long_task_like_count_50ms_proxy += 1;
+        }
+      }
+
+      function publishSummary() {
+        metrics.timestamp = new Date().toISOString();
+        scenarioIdNode.textContent = `scenario_id=${metrics.scenario_id}`;
+        visibleBlockCountNode.textContent = `visible_block_count=${metrics.visible_block_count}`;
+        activeContextModeNode.textContent = `active_context_mode=${metrics.active_context_mode}`;
+        activeContextWindowNode.textContent = `active_context_window=${metrics.active_context_window}`;
+        initialRenderMsNode.textContent = `initial_render_ms=${metrics.initial_render_ms.toFixed(3)}`;
+        domNodeCountNode.textContent = `dom_node_count=${metrics.dom_node_count}`;
+        maxInteractionMsNode.textContent = `max_interaction_ms=${metrics.max_interaction_ms.toFixed(3)}`;
+        longTaskLikeCountNode.textContent = `long_task_like_count_50ms_proxy=${metrics.long_task_like_count_50ms_proxy}`;
+        summaryJson.textContent = JSON.stringify(getSummary(), null, 2);
+        window.__P5B_NAIVE_DOM_SUMMARY__ = getSummary();
+      }
+
+      function getSummary() {
+        return { ...metrics };
+      }
+
+      function scanText(text, seed) {
+        let next = seed;
+        for (let index = 0; index < text.length; index += 1) {
+          next = (next + text.charCodeAt(index) * (index + 1)) >>> 0;
+        }
+        return next;
+      }
+
+      function createRunId(scenarioId) {
+        return `p5b-${scenarioId}-${Date.now().toString(36)}`;
+      }
+
+      function formatId(prefix, ordinal) {
+        return `${prefix}-${String(ordinal).padStart(6, "0")}`;
+      }
+
+      typingButton.addEventListener("click", runTypingProxy);
+      sendClickButton.addEventListener("click", runSendClickProxy);
+      scrollButton.addEventListener("click", runScrollJumpReturn);
+
+      window.P5B_NAIVE_DOM_BASELINE = {
+        scenario,
+        workload,
+        getSummary,
+        runInteraction,
+        runTypingProxy,
+        runSendClickProxy,
+        runScrollJumpReturn,
+        availableScenarioIds: P5A_MATRIX.scenarios.map((entry) => entry.scenario_id)
+      };
+
+      renderInitialTranscript();
+    </script>
+  </body>
+</html>
