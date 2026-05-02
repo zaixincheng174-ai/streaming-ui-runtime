@@ -1,0 +1,240 @@
+{
+  "schema_version": "p5y.final_evidence_packet_index.v0",
+  "generated_at": "2026-05-02T06:51:34Z",
+  "source_results": {
+    "p5m_send_start": [
+      "bench/p5/results/p5m_b2c_concurrent_input_results.json",
+      "bench/p5/results/p5m_r0c_concurrent_input_results.json"
+    ],
+    "p5o_commit_window": [
+      "bench/p5/results/p5o_b2c_commit_window_input_results.json",
+      "bench/p5/results/p5o_r0c_commit_window_input_results.json"
+    ],
+    "p5q_dynamic_context_cost": [
+      "bench/p5/results/p5q_b2c_dynamic_context_results.json",
+      "bench/p5/results/p5q_r0c_dynamic_context_results.json"
+    ],
+    "p5s_dynamic_update_input": [
+      "bench/p5/results/p5s_b2c_concurrent_dynamic_context_results.json",
+      "bench/p5/results/p5s_r0c_concurrent_dynamic_context_results.json"
+    ],
+    "p5u_multistream_agent_trace": [
+      "bench/p5/results/p5u_b2c_multistream_agent_trace_results.json",
+      "bench/p5/results/p5u_r0c_multistream_agent_trace_results.json"
+    ],
+    "p5x_product_trace_shaped": [
+      "bench/p5/results/p5x_b2c_product_trace_shaped_results.json",
+      "bench/p5/results/p5x_r0c_product_trace_shaped_results.json"
+    ],
+    "mechanism_summaries": [
+      "docs/p5/p5w-evidence-packet-freeze.md",
+      "docs/p5/p5v-multistream-agent-trace-mechanism-summary.md",
+      "docs/p5/p5t-dynamic-update-concurrent-input-mechanism-summary.md",
+      "docs/p5/p5p-send-start-commit-window-mechanism-summary.md",
+      "docs/p5/p5r-dynamic-active-context-mechanism-summary.md"
+    ]
+  },
+  "core_thesis": "Current P5 evidence supports that worker-resident ownership of long-lived AI-surface logical work can reduce and localize main-thread blocking. R0 does not eliminate computational work or all main-thread blocking; it moves logical send/update/multistream/trace-shaped work into Worker and leaves bounded projection commit on main.",
+  "evidence_chain": [
+    {
+      "phase": "P5-M send-start",
+      "b2_evidence": "B2m input delay 16.0ms",
+      "r0_evidence": "R0m input delay 0.1ms",
+      "mechanism_claim": "B2 main-thread send blocks synthetic input; R0 keeps synthetic input near floor during Worker send work.",
+      "strength": "strong internal scheduling proxy",
+      "boundary": "setTimeout proxy, not browser-level INP"
+    },
+    {
+      "phase": "P5-O commit-window",
+      "b2_evidence": "B2o commit-window input delay 28.1ms",
+      "r0_evidence": "R0o commit-window input delay 4.7ms",
+      "mechanism_claim": "R0 has an isolable main-thread commit phase. B2 lacks an equivalent isolable commit phase because commit/render work is interleaved within synchronous main-thread send work. The architectural distinction is structural, not merely quantitative.",
+      "strength": "structural commit-phase distinction",
+      "boundary": "B2o is mixed late-send-plus-commit blocking, not pure commit cost; R0o is clean commit-window blocking."
+    },
+    {
+      "phase": "P5-Q dynamic cost localization",
+      "b2_evidence": "B2q dynamic update 28.5ms",
+      "r0_evidence": "R0q dynamic update 30.8ms in Worker",
+      "mechanism_claim": "Dynamic context update remains material; R0 moves it into Worker.",
+      "strength": "cost localization",
+      "boundary": "no input scheduling claim from P5-Q alone"
+    },
+    {
+      "phase": "P5-S dynamic-update input availability",
+      "b2_evidence": "B2s dynamic-update input delay 35.2ms",
+      "r0_evidence": "R0s dynamic-update input delay 0.1ms",
+      "mechanism_claim": "R0 isolates dynamic update cost from the main-thread input path while Worker update runs.",
+      "strength": "strong internal scheduling proxy",
+      "boundary": "not Event Timing or random lifecycle input"
+    },
+    {
+      "phase": "P5-U multistream agent-trace",
+      "b2_evidence": "B2u multistream input delay 164.3ms",
+      "r0_evidence": "R0u multistream input delay 0.1ms",
+      "mechanism_claim": "R0 moves multistream and dynamic-context work out of the main-thread input path.",
+      "strength": "strong workload-realism signal",
+      "boundary": "synthetic agent trace, not product trace evidence"
+    },
+    {
+      "phase": "P5-X product-trace-shaped synthetic",
+      "b2_evidence": "B2x product-trace-shaped input delay 176.1ms",
+      "r0_evidence": "R0x product-trace-shaped input delay 0.1ms",
+      "mechanism_claim": "The input-path isolation signal survives a product-trace-shaped synthetic workload.",
+      "strength": "strongest current P5 signal",
+      "boundary": "not real product trace superiority"
+    }
+  ],
+  "claim_boundary_matrix": [
+    {
+      "claim": "R0 can keep synthetic input near timing floor during Worker-side send work.",
+      "supported": "yes",
+      "evidence": "P5-M",
+      "allowed_wording": "R0m keeps the synthetic input task near floor during Worker-side send work.",
+      "forbidden_wording": "R0 improves browser INP. | R0 reduces input latency. | R0 keeps the UI responsive.",
+      "severity_if_overclaimed": "high"
+    },
+    {
+      "claim": "R0 still blocks during bounded main-thread commit.",
+      "supported": "yes",
+      "evidence": "P5-O",
+      "allowed_wording": "R0 localizes remaining blocking to bounded projection commit.",
+      "forbidden_wording": "R0 eliminates all main-thread blocking. | R0 unblocks the main thread during send.",
+      "severity_if_overclaimed": "high"
+    },
+    {
+      "claim": "Worker-resident architecture creates an isolable main-thread commit phase that document-oriented main-thread ownership lacks.",
+      "supported": "yes",
+      "evidence": "P5-O",
+      "allowed_wording": "R0 has a structurally isolable commit phase; B2's commit/render work is interleaved with synchronous main-thread send work.",
+      "forbidden_wording": "B2 cannot be optimized. | B2 is fundamentally broken. | Document-oriented architectures cannot be made fast.",
+      "severity_if_overclaimed": "medium"
+    },
+    {
+      "claim": "R0 does not eliminate dynamic active-context or multistream work.",
+      "supported": "yes",
+      "evidence": "P5-Q, P5-U, P5-X",
+      "allowed_wording": "CPU work remains material and is moved into Worker.",
+      "forbidden_wording": "R0 solves the update or multistream cost. | R0 makes dynamic updates faster.",
+      "severity_if_overclaimed": "medium"
+    },
+    {
+      "claim": "R0 can isolate dynamic update cost from the main-thread input path.",
+      "supported": "yes",
+      "evidence": "P5-S",
+      "allowed_wording": "R0s keeps synthetic input near floor while Worker-side dynamic update runs.",
+      "forbidden_wording": "R0 proves real keyboard or pointer latency is better. | R0 makes dynamic updates faster. | R0 fixes update jank.",
+      "severity_if_overclaimed": "high"
+    },
+    {
+      "claim": "R0 can isolate multistream / agent-trace processing from the main-thread input path.",
+      "supported": "yes",
+      "evidence": "P5-U",
+      "allowed_wording": "R0u keeps synthetic input near floor during Worker-side multistream processing.",
+      "forbidden_wording": "R0u is production-ready. | R0 handles agent traces in real time. | R0 proves real product superiority.",
+      "severity_if_overclaimed": "high"
+    },
+    {
+      "claim": "P5-X reduces the external-validity gap with a product-trace-shaped synthetic workload.",
+      "supported": "yes",
+      "evidence": "P5-X",
+      "allowed_wording": "P5-X is product-trace-shaped synthetic evidence.",
+      "forbidden_wording": "P5-X proves real product trace superiority. | P5-X validates R0 on real product workloads.",
+      "severity_if_overclaimed": "high"
+    },
+    {
+      "claim": "Current results prove browser-level INP improvement.",
+      "supported": "no",
+      "evidence": "No Event Timing or INP data.",
+      "allowed_wording": "not browser-level INP",
+      "forbidden_wording": "R0 improves INP.",
+      "severity_if_overclaimed": "critical"
+    },
+    {
+      "claim": "Current results authorize P4/WebGPU.",
+      "supported": "no",
+      "evidence": "P5 is DOM/Worker scheduling evidence only.",
+      "allowed_wording": "P4 remains not authorized.",
+      "forbidden_wording": "P5 authorizes WebGPU.",
+      "severity_if_overclaimed": "critical"
+    },
+    {
+      "claim": "Current results prove production readiness.",
+      "supported": "no",
+      "evidence": "Synthetic manual benchmark targets only.",
+      "allowed_wording": "research scheduling evidence.",
+      "forbidden_wording": "R0 is production-ready.",
+      "severity_if_overclaimed": "critical"
+    },
+    {
+      "claim": "Current results prove real product superiority.",
+      "supported": "no",
+      "evidence": "No real product traces were measured.",
+      "allowed_wording": "not real product trace superiority.",
+      "forbidden_wording": "R0 wins real product workloads.",
+      "severity_if_overclaimed": "critical"
+    }
+  ],
+  "fairness_invariants": {
+    "matrix": "Same P5-D matrix where applicable.",
+    "active_context_scan": "compact_checksum_index",
+    "dynamic_context_mode": "rolling_tail_window_after_append in dynamic variants.",
+    "max_active_context_entries_visited": 100000,
+    "max_final_logical_block_count": 54096,
+    "max_expected_final_logical_block_count": 54096,
+    "paired_family_dom_rule": "Compare rendered DOM only within paired target families.",
+    "p5u_rendered_dom_nodes": "4582 on both B2u and R0u.",
+    "p5x_rendered_dom_nodes": "4906 on both B2x and R0x.",
+    "architecture_difference": "B2 and R0 intentionally differ in ownership of logical work."
+  },
+  "strongest_evidence": [
+    "P5-X product-trace-shaped synthetic: B2x 176.1ms input delay vs R0x 0.1ms with equal trace/logical invariants. P5-X is the strongest current signal because it combines multistream merging, dynamic context updates, and trace-phase processing--the broadest synthetic workload in the P5 chain. The 176.1ms vs 0.1ms contrast should be read as a categorical isolation signal, not as a precise speedup ratio.",
+    "P5-U multistream: B2u 164.3ms vs R0u 0.1ms.",
+    "P5-S dynamic update: B2s 35.2ms vs R0s 0.1ms.",
+    "P5-M send-start: B2m 16.0ms vs R0m 0.1ms.",
+    "P5-O commit-window: R0 has an isolable main-thread commit phase with 4.7ms clean commit-window blocking. B2o 28.1ms reflects mixed late-send-plus-commit blocking, not pure commit cost. P5-O also serves as the internal sanity anchor for R0's floor readings across P5-M/S/U/X: it demonstrates that R0 input delay can be non-floor when genuine main-thread blocking is present."
+  ],
+  "reviewer_risks": [
+    {
+      "risk": "setTimeout proxy",
+      "severity": "high",
+      "mitigation": "Label as internal scheduling-delay proxy, not input latency."
+    },
+    {
+      "risk": "floor effect / measurement artifact concern",
+      "severity": "high",
+      "why_it_matters": "All major R0 input delay numbers in P5-M/S/U/X are near 0.1ms. Without internal validation, a reviewer could dismiss them as timer-floor artifacts rather than evidence of actual main-thread availability.",
+      "mitigation": "P5-O establishes that R0 input delay can be non-floor, specifically 4.7ms, when the main thread is genuinely busy with bounded projection commit. This anchors the interpretation that the 0.1ms values in P5-M/S/U/X reflect main-thread availability during Worker-side work, not an unavoidable measurement artifact.",
+      "remaining_gap": "Cross-machine and cross-browser timer-floor variance is not characterized."
+    },
+    {
+      "risk": "no Event Timing / INP",
+      "severity": "high",
+      "mitigation": "Reject browser-level INP claims."
+    },
+    {
+      "risk": "synthetic workloads",
+      "severity": "medium",
+      "mitigation": "Use P5-X product-trace-shaped synthetic scenario and keep real-product boundary."
+    },
+    {
+      "risk": "favorable input timing",
+      "severity": "medium",
+      "mitigation": "State phase-specific scheduling only; randomized lifecycle arrival remains future work."
+    },
+    {
+      "risk": "P4 temptation",
+      "severity": "high",
+      "mitigation": "State P4 remains not authorized."
+    }
+  ],
+  "final_classification": {
+    "p5_status": "final_reviewer_evidence_packet_complete",
+    "strongest_signal": "p5x_product_trace_shaped_input_path_isolation",
+    "primary_mechanism": "worker_resident_logical_work_reduces_and_localizes_main_thread_blocking",
+    "proxy_status": "internal_setTimeout_scheduling_delay_not_INP",
+    "product_trace_status": "product_trace_shaped_synthetic_not_real_product_trace",
+    "p4_status": "not_authorized",
+    "recommended_next": "portfolio_readme_paper_appendix_packaging_not_more_axis_expansion"
+  }
+}

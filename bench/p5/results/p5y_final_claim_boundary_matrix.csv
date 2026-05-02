@@ -1,0 +1,12 @@
+claim,supported,evidence,allowed_wording,forbidden_wording,severity_if_overclaimed
+R0 can keep synthetic input near timing floor during Worker-side send work,yes,P5-M,R0m keeps the synthetic input task near floor during Worker-side send work,R0 improves browser INP. | R0 reduces input latency. | R0 keeps the UI responsive.,high
+R0 still blocks during bounded main-thread commit,yes,P5-O,R0 localizes remaining blocking to bounded projection commit,R0 eliminates all main-thread blocking. | R0 unblocks the main thread during send.,high
+Worker-resident architecture creates an isolable main-thread commit phase that document-oriented main-thread ownership lacks.,yes,P5-O,R0 has a structurally isolable commit phase; B2's commit/render work is interleaved with synchronous main-thread send work.,B2 cannot be optimized. | B2 is fundamentally broken. | Document-oriented architectures cannot be made fast.,medium
+R0 does not eliminate dynamic active-context or multistream work,yes,P5-Q/P5-U/P5-X,CPU work remains material and is moved into Worker,R0 solves update or multistream CPU cost. | R0 makes dynamic updates faster.,medium
+R0 can isolate dynamic update cost from the main-thread input path,yes,P5-S,R0s keeps synthetic input near floor while Worker-side dynamic update runs,R0 proves real keyboard or pointer latency is better. | R0 makes dynamic updates faster. | R0 fixes update jank.,high
+R0 can isolate multistream / agent-trace processing from the main-thread input path,yes,P5-U,R0u keeps synthetic input near floor during Worker-side multistream processing,R0u is production-ready. | R0 handles agent traces in real time. | R0 proves real product superiority.,high
+P5-X reduces the external-validity gap with a product-trace-shaped synthetic workload,yes,P5-X,P5-X is product-trace-shaped synthetic evidence,P5-X proves real product trace superiority. | P5-X validates R0 on real product workloads.,high
+Current results prove browser-level INP improvement,no,None,not browser-level INP,R0 improves INP,critical
+Current results authorize P4/WebGPU,no,None,P4 remains not authorized,P5 authorizes WebGPU,critical
+Current results prove production readiness,no,None,research scheduling evidence,R0 is production-ready,critical
+Current results prove real product superiority,no,None,not real product trace superiority,R0 wins real product workloads,critical
