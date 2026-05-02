@@ -7,7 +7,7 @@ This file maps resume and portfolio claims to repository evidence. It is intenti
 | Resume claim | Evidence location | Safe public wording | Boundary |
 |---|---|---|---|
 | External reader entry path | `README.md`; `docs/portfolio/README.md`; `docs/paper/streaming-ui-runtime-related-work-v0.md`; `docs/paper/streaming-ui-runtime-short-paper-draft-v0.md`; `docs/paper/appendix/p5-scheduling-evidence-appendix.md`; `docs/p5/p5y-final-reviewer-evidence-packet.md`; `docs/p5/p5y-reviewer-adversarial-audit.md` | The repository has a reviewer path from README to portfolio overview, evidence map, related systems positioning, short paper, P5 appendix, final P5 packet, and adversarial audit | Navigation only; does not add evidence or expand claims |
-| 600ms+ interaction bottleneck | `bench/p0/product-trace-n-sweep.csv`, rows such as B3; `docs/p0/p0-product-n-sweep-analysis.md`; `docs/paper/streaming-ui-runtime-external-review-packet-v0.md` | Product-trace summaries showed 600ms+ interaction windows in long-session AI surfaces | Trace-derived data needs privacy review before public release; not source replay |
+| 600ms+ interaction bottleneck | `docs/portfolio/results/trace-derived-csv-summary.md`; `docs/p0/p0-product-n-sweep-analysis.md`; `docs/paper/streaming-ui-runtime-external-review-packet-v0.md` | Sanitized product-trace summaries showed 600ms+ interaction windows in long-session AI surfaces | Raw trace-derived CSVs are excluded from public evidence; not source replay |
 | 70ms F0-D benchmark long task | `docs/p1/p1-f0d-product-range-3x-result.md` | Controlled F0-D benchmark produced repeatable 50ms+ long tasks, with max `70.117ms` and mean `68.633ms` | Controlled derived-fanout workload, not product replay |
 | 68ms to 2.7ms worker offload result | `docs/p1/p1-f1-worker-offload-3x-result.md` | Worker offload reduced main-thread max task mean from `68.633ms` to `2.679ms` | Equivalent controlled workload; not proof all UI work can move off-main-thread |
 | zero long tasks | `docs/p1/p1-f1-worker-offload-3x-result.md` | Worker offload reduced 50ms+ main-thread long tasks from one per F0-D run to zero in F1 runs | Applies to F1 controlled offload experiment |
@@ -22,8 +22,8 @@ This file maps resume and portfolio claims to repository evidence. It is intenti
 
 Evidence:
 
-- `bench/p0/product-trace-n-sweep.csv`
-- `bench/p0/product-trace-event-tree-snippets.csv`
+- `docs/portfolio/results/trace-derived-csv-summary.md`
+- `docs/portfolio/results/trace-derived-csv-summary.json`
 - `docs/p0/p0-product-n-sweep-analysis.md`
 - `docs/paper/streaming-ui-runtime-external-review-packet-v0.md`
 
@@ -36,7 +36,8 @@ Do not claim:
 - exact source-level root cause;
 - product source replay;
 - universal React failure;
-- that raw product trace data is public-safe.
+- that raw product trace data is public-safe;
+- that local trace-derived CSV source files are part of the public evidence package.
 
 ### 70ms F0-D Benchmark Long Task
 

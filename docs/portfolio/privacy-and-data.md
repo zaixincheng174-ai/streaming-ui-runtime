@@ -40,16 +40,9 @@ Keep these out of the public repo:
 
 ## Current Release-Safety Note
 
-The repo currently tracks trace-derived CSV summaries under `bench/p0/`. These files may be useful evidence, but they must be reviewed before a public GitHub release because scenario notes can carry private or user-specific context.
+The public repo tracks sanitized trace-derived summaries under `docs/portfolio/results/`. Local trace-derived CSV source files may exist under ignored private/local paths such as `bench/p0/private-trace-derived/` or `bench/p0/results/`, but they are not part of the public evidence package.
 
-Tracked CSVs requiring review:
-
-- `bench/p0/product-click-ownership-bottomup.csv`
-- `bench/p0/product-click-ownership-decomposition-runs.csv`
-- `bench/p0/product-trace-event-tree-snippets.csv`
-- `bench/p0/product-trace-n-sweep.csv`
-
-Do not delete or rewrite these files blindly. Preferred release path:
+Do not publish local source CSVs blindly. Preferred release path:
 
 1. keep private originals locally;
 2. create sanitized public summaries if needed;
@@ -79,4 +72,3 @@ The root `.gitignore` excludes:
 - local Codex auth/history files.
 
 Remember: `.gitignore` does not remove already tracked files. Tracked sensitive files must be reviewed explicitly before publication.
-

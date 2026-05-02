@@ -19,7 +19,20 @@ bench/p0/results/
 private/
 local/
 *.trace
+*.trace.json
 *.har
+*.cpuprofile
+*.heapsnapshot
+
+# Local screenshots and recordings
+screenshots/
+screen-recordings/
+recordings/
+Screenshot*.png
+Screen\ Shot*.png
+*.mp4
+*.mov
+*.webm
 
 # Codex local state
 .codex/

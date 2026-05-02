@@ -132,7 +132,7 @@ F2-B worker total time is higher than F2-A, so the safe interpretation is lower 
    - Response: Correct. The paper should claim mechanism-family motivation from product traces and controlled reproduction from F0-D, not source replay.
 
 3. "F2 worker total time is worse."
-   - Response: Correct. The result is a responsiveness tradeoff: lower urgent acknowledgement and visible latency, not higher throughput.
+   - Response: Correct. The result is a responsiveness tradeoff: lower urgent acknowledgement and projection-commit timing, not higher throughput.
 
 4. "Why not just use React concurrent features?"
    - Response: The evidence points to action-triggered state/fanout work placement, not only render scheduling. React concurrency may help some rendering cases but does not move equivalent session-scale work off the main thread by itself.

@@ -168,7 +168,7 @@ See [docs/portfolio/privacy-and-data.md](docs/portfolio/privacy-and-data.md).
 
 ## Public Release Status
 
-Public-facing documentation has been added, but final publication still requires human review of tracked trace-derived CSV files under `bench/p0/`. Do not publish raw product-derived trace data without confirming it contains no private session context.
+Public-facing documentation has been added, and raw product-derived trace CSVs are excluded from tracked public evidence. Final publication should use the sanitized summaries under `docs/portfolio/results/` and should not publish local trace-derived CSVs without a separate privacy review.
 
 <!-- PORTFOLIO_EVIDENCE_START -->
 ## Portfolio Evidence

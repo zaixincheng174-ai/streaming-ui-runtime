@@ -93,7 +93,7 @@ The evidence chain is intentionally staged:
 
 | Claim | Evidence |
 |---|---|
-| Product traces showed 600ms+ interaction bottlenecks | `bench/p0/product-trace-n-sweep.csv` and `docs/p0/p0-product-n-sweep-analysis.md`; public release requires trace-data review |
+| Product traces showed 600ms+ interaction bottlenecks | `docs/portfolio/results/trace-derived-csv-summary.md` and `docs/p0/p0-product-n-sweep-analysis.md`; raw trace-derived CSVs remain excluded from public evidence |
 | F0-D reproduced a controlled long-task mechanism | `docs/p1/p1-f0d-product-range-3x-result.md`: `f0_run_task_max_ms` mean about `68.633ms`, max `70.117ms` |
 | Worker offload reduced main-thread max task | `docs/p1/p1-f1-worker-offload-3x-result.md`: `68.633ms -> 2.679ms` mean |
 | Worker offload removed 50ms+ main-thread long tasks | `docs/p1/p1-f1-worker-offload-3x-result.md`: long task count `1/run -> 0` |

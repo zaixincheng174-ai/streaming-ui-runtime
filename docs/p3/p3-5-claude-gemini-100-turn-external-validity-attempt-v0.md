@@ -21,7 +21,7 @@ This note only records the sanitized blocked attempt and defines the next quota-
 | Item | Status |
 |---|---|
 | Attempt-provided `STATUS_AFTER_P35_EXTERNAL_VALIDITY` | `?? docs/p3/p3-5-post-c0-direction-decision-v0.md` |
-| Notes root | `PRIVATE_LOCAL_ONLY: /Users/zaixincheng/Private/p35_raw_notes/p35_external_validity_claude_gemini_100_turn_20260430_132227` |
+| Notes root | `PRIVATE_LOCAL_ONLY: local private notes path omitted from public repo` |
 | Screenshots | None saved |
 | Traces | None recorded |
 | Raw artifacts in repo | None reported |
