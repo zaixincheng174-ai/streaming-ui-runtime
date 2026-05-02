@@ -1,0 +1,142 @@
+{
+  "schema_version": "p5h.b0-b1-b2-r0-comparison-summary.v0",
+  "source_results": {
+    "B0": {
+      "source_file": "bench/p5/results/p5d_b0_stress_calibration_results.json",
+      "schema_version": "p5d.b0-stress-calibration-results.v0",
+      "scenario_count": 5
+    },
+    "B1": {
+      "source_file": "bench/p5/results/p5e_b1_optimized_dom_stress_results.json",
+      "schema_version": "p5e.b1-optimized-dom-stress-results.v0",
+      "scenario_count": 5
+    },
+    "B2": {
+      "source_file": "bench/p5/results/p5f_b2_virtualized_dom_stress_results.json",
+      "schema_version": "p5f.b2-virtualized-dom-stress-results.v0",
+      "scenario_count": 5
+    },
+    "R0": {
+      "source_file": "bench/p5/results/p5g_r0_p3_runtime_stress_results.json",
+      "schema_version": "p5g.r0-p3-runtime-stress-results.v0",
+      "scenario_count": 5
+    }
+  },
+  "boundary": {
+    "source": "existing P5 result JSON summaries only",
+    "does_not_modify": [
+      "benchmark targets",
+      "collectors",
+      "source result JSON files"
+    ],
+    "does_not_measure": [
+      "browser-level INP",
+      "frame stability",
+      "new browser runs",
+      "product sites",
+      "production readiness",
+      "P4 eligibility"
+    ],
+    "claim_boundary": "P5-H2 compares local proxy metrics across B0, B1, B2, and corrected R0 results. It does not prove impossible-zone completion or runtime superiority."
+  },
+  "metrics_by_variant": {
+    "B0": {
+      "label": "B0 naive DOM stress",
+      "status": "severe_stress_observed",
+      "max_initial_render_ms": 445.7000000476837,
+      "max_send_click_proxy_ms": 14932.5,
+      "max_scroll_jump_return_ms": 46,
+      "max_typing_proxy_ms": 0.7000000476837158,
+      "max_long_task_like_count_50ms_proxy": 5,
+      "max_long_task_like_count_100ms_proxy": 4,
+      "max_long_task_like_count_200ms_proxy": 3,
+      "max_dom_node_count": 1029324,
+      "max_logical_block_count": null,
+      "max_rendered_dom_node_count": null
+    },
+    "B1": {
+      "label": "B1 optimized/batched DOM stress",
+      "status": "improved_but_still_severe",
+      "max_initial_render_ms": 554.2999999523163,
+      "max_send_click_proxy_ms": 1364.3000001907349,
+      "max_scroll_jump_return_ms": 40.5,
+      "max_typing_proxy_ms": 3.200000047683716,
+      "max_long_task_like_count_50ms_proxy": 4,
+      "max_long_task_like_count_100ms_proxy": 4,
+      "max_long_task_like_count_200ms_proxy": 4,
+      "max_dom_node_count": 1029324,
+      "max_logical_block_count": null,
+      "max_rendered_dom_node_count": null
+    },
+    "B2": {
+      "label": "B2 virtualized DOM stress",
+      "status": "strong_virtualized_baseline",
+      "max_initial_render_ms": 3.700000047683716,
+      "max_send_click_proxy_ms": 161.79999995231628,
+      "max_scroll_jump_return_ms": 13.300000190734863,
+      "max_typing_proxy_ms": 0.40000009536743164,
+      "max_long_task_like_count_50ms_proxy": 2,
+      "max_long_task_like_count_100ms_proxy": 2,
+      "max_long_task_like_count_200ms_proxy": 0,
+      "max_dom_node_count": 5700,
+      "max_logical_block_count": 54096,
+      "max_rendered_dom_node_count": 5700
+    },
+    "R0": {
+      "label": "R0 P3-derived worker/bounded-projection runtime path",
+      "status": "modest_send_improvement_over_b2_with_bounded_main_commit",
+      "max_initial_render_ms": 59.90000009536743,
+      "max_send_click_proxy_ms": 146.89999985694885,
+      "max_scroll_jump_return_ms": 49.39999985694885,
+      "max_typing_proxy_ms": 1.2000000476837158,
+      "max_long_task_like_count_50ms_proxy": 3,
+      "max_long_task_like_count_100ms_proxy": 2,
+      "max_long_task_like_count_200ms_proxy": 0,
+      "max_dom_node_count": 5700,
+      "max_logical_block_count": 54096,
+      "max_rendered_dom_node_count": 5700
+    }
+  },
+  "r0_phase_metrics": {
+    "max_send_end_to_end_ms": 146.89999985694885,
+    "max_send_worker_processing_ms": 141.20000004768372,
+    "max_send_worker_active_context_traversal_ms": 136.39999985694885,
+    "max_send_worker_tail_mutation_ms": 3.6000001430511475,
+    "max_send_worker_append_ms": 3.5999999046325684,
+    "max_send_worker_projection_ms": 0.10000014305114746,
+    "max_send_main_commit_ms": 6.299999952316284,
+    "max_phase_worker_processing_ms": 141.20000004768372,
+    "max_phase_main_commit_ms": 9.5
+  },
+  "ratios": {
+    "b0_send_over_b1_send": 10.94517337940339,
+    "b1_send_over_b2_send": 8.432014835557149,
+    "b2_send_over_r0_send": 1.1014295462345415,
+    "b0_send_over_r0_send": 101.65078319009694,
+    "b1_send_over_r0_send": 9.287270258244582,
+    "b0_dom_nodes_over_b2_rendered_dom_nodes": 180.58315789473685,
+    "b1_dom_nodes_over_b2_rendered_dom_nodes": 180.58315789473685,
+    "b2_rendered_dom_nodes_over_r0_rendered_dom_nodes": 1,
+    "r0_send_worker_active_context_share_of_worker_processing": 0.9660056615514849,
+    "r0_send_main_commit_share_of_send_end_to_end": 0.042886317035825975
+  },
+  "interpretation": [
+    "B0 enters severe stress under the P5-D matrix.",
+    "B1 greatly improves B0 send-click cost but remains in a severe greater-than-one-second region.",
+    "B2 is a strong virtualized DOM baseline and removes most mounted-DOM pressure while preserving logical transcript state.",
+    "R0 slightly improves send-click proxy latency over B2 and keeps send main-thread commit bounded.",
+    "R0 does not dominate B2 on initial render, scroll proxy, or long-task-like count.",
+    "R0 send worker processing is dominated by active-context traversal in the corrected phase-specific metrics.",
+    "Current P5 evidence supports continued R0 investigation, not P4 authorization."
+  ],
+  "final_classification": {
+    "p5_status": "baseline_gradient_plus_r0_first_result",
+    "b0_status": "severe_stress_observed",
+    "b1_status": "improved_but_still_severe",
+    "b2_status": "strong_virtualized_baseline",
+    "r0_status": "modest_send_improvement_over_b2_with_bounded_main_commit",
+    "r0_caveat": "not_full_dominance_over_b2",
+    "p4_status": "not_authorized",
+    "recommended_next": "r0_optimization_or_workload_axis_refinement_before_p4"
+  }
+}
