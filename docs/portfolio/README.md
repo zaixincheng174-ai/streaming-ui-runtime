@@ -97,8 +97,17 @@ The evidence chain is intentionally staged:
 | Worker scheduling reduced urgent visible latency | `docs/p1/p1-f2-worker-scheduler-ab-3x-result.md`: `22.867ms -> 3.333ms` mean |
 | Runtime core has a broad TypeScript scaffold | `docs/p2/p2-pure-core-v0-freeze.md` and `runtime/` |
 | Runtime tests passed | `docs/p2/p2-pure-core-v0-freeze.md`: `406/406` runtime tests passed at freeze |
+| P5 scheduling-mechanism evidence | `docs/p5/p5y-final-reviewer-evidence-packet.md`; `docs/portfolio/p5-scheduling-evidence-summary.md` | Synthetic scheduling-delay proxy evidence shows worker-resident logical ownership can reduce and localize main-thread blocking under long-lived AI-surface workloads |
 
 See [evidence-map.md](evidence-map.md) for a stricter resume-claim map.
+
+## P5 Scheduling Evidence
+
+P5 freezes the current scheduling-mechanism evidence for long-lived AI surfaces. The strongest current signal is P5-X product-trace-shaped synthetic: B2x input delay `176.1ms` vs R0x `0.1ms` under equal trace/logical invariants.
+
+This is a blocked-vs-near-unblocked synthetic scheduling-delay proxy, not browser-level INP, not Event Timing, not production readiness, and not real product superiority. R0 does not eliminate work; it moves logical work into Worker and leaves bounded projection commit on main. P4 remains not authorized.
+
+See [P5 scheduling evidence summary](p5-scheduling-evidence-summary.md), [P5 final reviewer packet](../p5/p5y-final-reviewer-evidence-packet.md), and [P5 adversarial audit](../p5/p5y-reviewer-adversarial-audit.md).
 
 ## How To Run Tests
 
@@ -170,4 +179,3 @@ Next public-safe steps:
 4. Add license.
 5. Add a real Worker boundary smoke test when separately approved.
 6. Add broader workload matrices after the evidence-to-design gate allows it.
-

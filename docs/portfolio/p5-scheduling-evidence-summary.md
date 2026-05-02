@@ -24,3 +24,9 @@ This is a synthetic scheduling-delay proxy using `setTimeout`, not browser-level
 ## Why It Matters
 
 This supports the runtime thesis more than raw render speed: the important mechanism is keeping the main-thread input path available while long-lived logical work runs elsewhere.
+
+## Links
+
+- [Final reviewer evidence packet](../p5/p5y-final-reviewer-evidence-packet.md)
+- [Reviewer adversarial audit](../p5/p5y-reviewer-adversarial-audit.md)
+- [Paper appendix](../paper/appendix/p5-scheduling-evidence-appendix.md)

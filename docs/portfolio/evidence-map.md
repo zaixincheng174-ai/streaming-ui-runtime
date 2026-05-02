@@ -13,6 +13,7 @@ This file maps resume and portfolio claims to repository evidence. It is intenti
 | 22.9ms to 3.3ms urgent click-to-visible reduction | `docs/p1/p1-f2-worker-scheduler-ab-3x-result.md` | Worker scheduling reduced urgent end-to-end visible latency mean from `22.867ms` to `3.333ms` | Single urgent request per run; not total throughput improvement |
 | 17-module TypeScript runtime | `docs/p2/p2-pure-core-v0-freeze.md`; `runtime/` | Implemented a TypeScript pure-core runtime across protocol, validation, scheduler, state, projection, adapter, metrics, and harness modules | Current tracked runtime source inventory contains 25 TypeScript files; if using "17-module", define it as capability modules, not source files |
 | 406 passing tests | `docs/p2/p2-pure-core-v0-freeze.md` | Runtime freeze validation recorded `406/406` runtime tests passing | Historical freeze snapshot; rerun current tests before each release |
+| P5 synthetic scheduling-mechanism evidence | `docs/p5/p5y-final-reviewer-evidence-packet.md`; `docs/p5/p5y-reviewer-adversarial-audit.md`; `docs/portfolio/p5-scheduling-evidence-summary.md`; `docs/paper/appendix/p5-scheduling-evidence-appendix.md` | P5 supports that worker-resident logical ownership can reduce and localize main-thread blocking under synthetic long-lived AI-surface workloads | Synthetic scheduling-delay proxy, not browser-level INP, not Event Timing, not production readiness, not real product superiority; P4 remains not authorized |
 
 ## Claim Details
 
@@ -161,3 +162,55 @@ Boundary:
 
 - This is the freeze snapshot. Current release validation should rerun `npm run test:runtime`.
 
+### P5 Synthetic Scheduling-Mechanism Evidence
+
+Evidence:
+
+- `docs/p5/p5y-final-reviewer-evidence-packet.md`
+- `docs/p5/p5y-reviewer-adversarial-audit.md`
+- `docs/portfolio/p5-scheduling-evidence-summary.md`
+- `docs/paper/appendix/p5-scheduling-evidence-appendix.md`
+- `bench/p5/results/p5x_b2c_product_trace_shaped_results.json`
+- `bench/p5/results/p5x_r0c_product_trace_shaped_results.json`
+- `docs/p5/p5v-multistream-agent-trace-mechanism-summary.md`
+- `docs/p5/p5t-dynamic-update-concurrent-input-mechanism-summary.md`
+- `docs/p5/p5w-evidence-packet-freeze.md`
+
+Key numbers:
+
+- P5-X product-trace-shaped synthetic: B2x input delay `176.1ms`, R0x input delay `0.1ms`
+- P5-U multistream agent-trace: B2u input delay `164.3ms`, R0u input delay `0.1ms`
+- P5-S dynamic update: B2s input delay `35.2ms`, R0s input delay `0.1ms`
+- P5-O commit-window: R0o commit-window delay `4.7ms`
+
+Safe wording:
+
+> P5 provides synthetic scheduling-mechanism evidence that worker-resident ownership of long-lived AI-surface logical work can reduce and localize main-thread blocking while preserving synthetic input-task availability during Worker-side processing.
+
+Do not claim:
+
+- browser-level INP improvement;
+- Event Timing evidence;
+- production readiness;
+- real product superiority;
+- R0 eliminates all main-thread blocking;
+- precise user-perceived speedup ratios;
+- P4/WebGPU authorization.
+
+Boundary:
+
+- P5 uses a `setTimeout` synthetic scheduling-delay proxy.
+- P5-X is product-trace-shaped synthetic evidence, not real product trace evidence.
+- R0 does not eliminate work; it moves logical work into Worker and leaves bounded projection commit on main.
+- P4 remains not authorized.
+
+## P5 Evidence Packet Artifacts
+
+| artifact | purpose | status |
+| --- | --- | --- |
+| P5-Y final reviewer evidence packet | Reviewer-facing claim-boundary packet for P5 | frozen |
+| P5-Y adversarial audit | Strict overclaim and risk register | frozen |
+| P5 scheduling portfolio summary | Concise portfolio-facing P5 summary | current |
+| P5 paper appendix | Paper appendix packaging for P5 evidence | current |
+| P5-X result JSONs | Product-trace-shaped synthetic source results | collected |
+| P5-W / P5-V / P5-T summaries | Prior evidence freeze and mechanism summaries | collected |
