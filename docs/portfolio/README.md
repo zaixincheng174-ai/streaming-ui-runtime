@@ -102,19 +102,20 @@ The evidence chain is intentionally staged:
 | Runtime tests passed | `docs/p2/p2-pure-core-v0-freeze.md`: `406/406` runtime tests passed at freeze |
 | P5 scheduling-mechanism evidence | `docs/p5/p5y-final-reviewer-evidence-packet.md`; `docs/portfolio/p5-scheduling-evidence-summary.md`; synthetic scheduling-delay proxy evidence, not browser-level INP or production readiness |
 
-See [evidence-map.md](evidence-map.md) for a stricter resume-claim map.
+See [evidence-map.md](evidence-map.md) for a stricter resume-claim map and [document-status-map.md](document-status-map.md) before quoting older drafts.
 
 ## Reader Path
 
 For a five-minute external review, read:
 
 1. [Repository README](../../README.md)
-2. [Evidence map](evidence-map.md)
-3. [Related systems positioning](../paper/streaming-ui-runtime-related-work-v0.md)
-4. [Short paper draft](../paper/streaming-ui-runtime-short-paper-draft-v0.md)
-5. [P5 scheduling evidence appendix](../paper/appendix/p5-scheduling-evidence-appendix.md)
-6. [P5 final reviewer packet](../p5/p5y-final-reviewer-evidence-packet.md)
-7. [P5 adversarial audit](../p5/p5y-reviewer-adversarial-audit.md)
+2. [Document status map](document-status-map.md)
+3. [Evidence map](evidence-map.md)
+4. [Related systems positioning](../paper/streaming-ui-runtime-related-work-v0.md)
+5. [Short paper draft](../paper/streaming-ui-runtime-short-paper-draft-v0.md)
+6. [P5 scheduling evidence appendix](../paper/appendix/p5-scheduling-evidence-appendix.md)
+7. [P5 final reviewer packet](../p5/p5y-final-reviewer-evidence-packet.md)
+8. [P5 adversarial audit](../p5/p5y-reviewer-adversarial-audit.md)
 
 ## P5 Scheduling Evidence
 
@@ -188,9 +189,8 @@ Run P1 analysis scripts only with reviewed/sanitized trace inputs. Raw private t
 
 Next public-safe steps:
 
-1. Reconcile the paper draft, appendix, README, and portfolio evidence map around the P5-Y/P5-X claim boundary.
-2. Review and sanitize tracked trace-derived CSVs before public release.
-3. Add a public release branch with only sanitized benchmark summaries.
-4. Add license.
-5. Add a real Worker boundary smoke test only when separately approved.
-6. Avoid new benchmark-axis expansion unless it answers a named reviewer objection.
+1. Keep the paper draft, appendix, README, and portfolio evidence map aligned around the P5-Y/P5-X claim boundary.
+2. Maintain sanitized trace-derived summaries under `docs/portfolio/results/` and keep local source CSVs out of public evidence.
+3. Add a public release branch with only sanitized benchmark summaries if publication needs a smaller artifact set.
+4. Add a real Worker boundary smoke test only when separately approved.
+5. Avoid new benchmark-axis expansion unless it answers a named reviewer objection.

@@ -1,3 +1,6 @@
+> **Status:** Privacy-bounded triage note.
+> This document contains sanitized, bounded observations only. It is not raw product trace evidence, not product ranking, and not current production-readiness evidence.
+
 # P3.5 External-Validity Synthesis v0
 
 ## 1. Purpose

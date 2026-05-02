@@ -44,6 +44,7 @@ The thesis is a workload-architecture mismatch: long-lived AI surfaces increasin
 | P2 pure core | What runtime scaffold follows from the evidence? | protocol, validation, scheduler, state-store, projection policy, adapters, and harnesses frozen with `406/406` runtime tests passing | Pure core only, not real Worker/Main integration |
 
 See [docs/portfolio/evidence-map.md](docs/portfolio/evidence-map.md) for claim-to-evidence mapping.
+Use [docs/portfolio/document-status-map.md](docs/portfolio/document-status-map.md) to distinguish current public-reader documents from historical drafts and process notes.
 
 ## Current Strongest Claim
 
@@ -56,12 +57,13 @@ This is a conservative mechanism claim. It is not browser-level INP, not Event T
 Read in this order:
 
 1. [Portfolio overview](docs/portfolio/README.md)
-2. [Evidence map](docs/portfolio/evidence-map.md)
-3. [Related systems positioning](docs/paper/streaming-ui-runtime-related-work-v0.md)
-4. [Short paper draft](docs/paper/streaming-ui-runtime-short-paper-draft-v0.md)
-5. [P5 scheduling evidence appendix](docs/paper/appendix/p5-scheduling-evidence-appendix.md)
-6. [P5 final reviewer evidence packet](docs/p5/p5y-final-reviewer-evidence-packet.md)
-7. [P5 adversarial audit](docs/p5/p5y-reviewer-adversarial-audit.md)
+2. [Document status map](docs/portfolio/document-status-map.md)
+3. [Evidence map](docs/portfolio/evidence-map.md)
+4. [Related systems positioning](docs/paper/streaming-ui-runtime-related-work-v0.md)
+5. [Short paper draft](docs/paper/streaming-ui-runtime-short-paper-draft-v0.md)
+6. [P5 scheduling evidence appendix](docs/paper/appendix/p5-scheduling-evidence-appendix.md)
+7. [P5 final reviewer evidence packet](docs/p5/p5y-final-reviewer-evidence-packet.md)
+8. [P5 adversarial audit](docs/p5/p5y-reviewer-adversarial-audit.md)
 
 ### P5 Scheduling Evidence
 
@@ -174,6 +176,7 @@ Public-facing documentation has been added, and raw product-derived trace CSVs a
 ## Portfolio Evidence
 
 - [Portfolio overview](docs/portfolio/README.md)
+- [Document status map](docs/portfolio/document-status-map.md)
 - [Evidence map](docs/portfolio/evidence-map.md)
 - [Results summary](docs/portfolio/results-summary.md)
 - [Privacy and data boundary](docs/portfolio/privacy-and-data.md)
