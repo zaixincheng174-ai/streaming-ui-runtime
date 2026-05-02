@@ -1,0 +1,3 @@
+variant,max_concurrent_input_delay_ms,max_concurrent_input_during_send_proxy_ms,max_concurrent_typing_proxy_ms,max_concurrent_send_work_ms,max_send_click_proxy_ms,max_send_active_context_entries_visited,max_rendered_dom_node_count,max_logical_block_count,max_concurrent_worker_send_processing_ms,max_concurrent_worker_roundtrip_minus_processing_ms,max_concurrent_main_commit_ms
+B2m,16.0,16.2,0.2,15.9,15.9,100000,5700,54096,,,
+R0m,0.1,11.3,0.2,11.2,11.2,100000,5700,54096,5.5,1.4,4.7

@@ -1,0 +1,162 @@
+{
+  "schema_version": "p5n.concurrent-input-mechanism-summary.v0",
+  "generated_at": "2026-05-02T03:06:46Z",
+  "source_results": {
+    "B2m_result_json": "bench/p5/results/p5m_b2c_concurrent_input_results.json",
+    "R0m_result_json": "bench/p5/results/p5m_r0c_concurrent_input_results.json",
+    "B2m_target": "bench/p5/targets/p5m_b2c_concurrent_input_stress.html",
+    "R0m_target": "bench/p5/targets/p5m_r0c_concurrent_input_stress.html",
+    "B2m_collector": "scripts/p5/collect_p5m_manual_b2c_concurrent_results.mjs",
+    "R0m_collector": "scripts/p5/collect_p5m_manual_r0c_concurrent_results.mjs",
+    "prior_P5L_summary": "docs/p5/p5l-post-k1-b2c-r0c-mechanism-update.md"
+  },
+  "boundary": {
+    "source": "existing P5-M result JSON files only",
+    "does_not_modify": [
+      "benchmark targets",
+      "collectors",
+      "source result JSON files",
+      "paper files",
+      "package.json"
+    ],
+    "does_not_measure": [
+      "browser-level INP",
+      "Event Timing",
+      "frame stability",
+      "hardware input latency",
+      "input-to-pixel latency",
+      "commit-window input availability",
+      "new browser runs",
+      "product sites",
+      "production readiness",
+      "P4 eligibility"
+    ],
+    "claim_boundary": "P5-N summarizes internal setTimeout-based scheduling-delay proxy results. It does not prove runtime superiority, impossible-zone completion, or P4 eligibility."
+  },
+  "metrics_by_variant": {
+    "B2m": {
+      "status": "main_thread_send_blocks_synthetic_input_task",
+      "max_concurrent_input_delay_ms": 16,
+      "max_concurrent_input_during_send_proxy_ms": 16.200000047683716,
+      "max_concurrent_typing_proxy_ms": 0.19999980926513672,
+      "max_concurrent_send_work_ms": 15.899999856948853,
+      "max_send_click_proxy_ms": 15.899999856948853,
+      "max_send_active_context_entries_visited": 100000,
+      "max_rendered_dom_node_count": 5700,
+      "max_logical_block_count": 54096,
+      "max_concurrent_worker_send_processing_ms": null,
+      "max_concurrent_worker_roundtrip_minus_processing_ms": null,
+      "max_concurrent_main_commit_ms": null,
+      "active_context_scan_modes": [
+        "compact_checksum_index"
+      ],
+      "dynamic_active_context_update_modes": [
+        "static_initial_active_context"
+      ]
+    },
+    "R0m": {
+      "status": "worker_send_allows_near_floor_input_task_start_during_worker_compute",
+      "max_concurrent_input_delay_ms": 0.09999990463256836,
+      "max_concurrent_input_during_send_proxy_ms": 11.299999952316284,
+      "max_concurrent_typing_proxy_ms": 0.19999980926513672,
+      "max_concurrent_send_work_ms": 11.200000047683716,
+      "max_send_click_proxy_ms": 11.200000047683716,
+      "max_send_active_context_entries_visited": 100000,
+      "max_rendered_dom_node_count": 5700,
+      "max_logical_block_count": 54096,
+      "max_concurrent_worker_send_processing_ms": 5.5,
+      "max_concurrent_worker_roundtrip_minus_processing_ms": 1.4000000953674316,
+      "max_concurrent_main_commit_ms": 4.700000047683716,
+      "active_context_scan_modes": [
+        "compact_checksum_index"
+      ],
+      "dynamic_active_context_update_modes": [
+        "static_initial_active_context"
+      ]
+    }
+  },
+  "timer_definition": {
+    "mechanism": "setTimeout(..., 0) synthetic input task",
+    "concurrent_input_delay_ms": "concurrent_input_started_at_ms - concurrent_input_scheduled_at_ms",
+    "scheduled_at": "recorded when the synthetic input task is scheduled",
+    "started_at": "recorded as the first statement inside the setTimeout callback",
+    "measures": "schedule-to-callback-start delay for a synthetic timer task",
+    "does_not_measure": [
+      "keyboard event delay",
+      "pointer event delay",
+      "browser Event Timing",
+      "INP",
+      "hardware input latency",
+      "input-to-pixel latency"
+    ],
+    "interpretation": [
+      "A zero-delay timer can fire near the timing floor when the main thread is available.",
+      "R0m's 0.1ms delay should be interpreted as near-immediate timer-task availability in this harness.",
+      "B2m's 16.0ms delay should be interpreted as main-thread blocking by synchronous send work, not as timer clamp."
+    ]
+  },
+  "trigger_timing": {
+    "common": "synthetic input task is scheduled immediately after send work is initiated",
+    "B2m": "the task is queued before synchronous main-thread send work runs",
+    "R0m": "the task is queued immediately after worker send dispatch and before awaiting worker completion",
+    "classification": "send-start concurrent-input proxy",
+    "does_not_represent": [
+      "random input arrival across the whole send lifecycle",
+      "average-case input availability across the full send lifecycle"
+    ]
+  },
+  "commit_window_scope_gap": {
+    "r0m_input_delay_scope": "input-task availability during worker-side send computation",
+    "r0m_later_main_thread_work": "bounded projection commit after Worker computation completes",
+    "max_concurrent_main_commit_ms": 4.700000047683716,
+    "gap": "P5-M does not measure input arrival during the bounded commit window",
+    "interpretation": [
+      "R0m reduces the main-thread blocking window during send.",
+      "R0m does not eliminate all main-thread blocking.",
+      "The blocking window shifts from B2m's full main-thread send work duration to R0m's bounded commit phase."
+    ]
+  },
+  "mechanism_interpretation": {
+    "primary_claim": "P5-M shows a categorical scheduling difference under a send-start synthetic input proxy. B2m's input task is delayed roughly by the duration of main-thread send work, while R0m's input task starts near the timing floor during worker-side send computation. This supports the worker-resident runtime direction as a way to reduce main-thread blocking during logical send work. However, the proxy is setTimeout-based, not browser Event Timing or INP, and it does not measure input arriving during R0m's later bounded main-thread commit phase.",
+    "B2m": [
+      "Schedules synthetic input task.",
+      "Runs send work synchronously on main thread.",
+      "Input task cannot start until main-thread send work completes.",
+      "This explains why B2m concurrent_input_delay_ms roughly tracks concurrent_send_work_ms."
+    ],
+    "R0m": [
+      "Dispatches send work to Worker.",
+      "Schedules synthetic input task on main thread before awaiting Worker completion.",
+      "Input task can start while Worker-side send work is still running.",
+      "Later bounded projection commit still happens on main thread and can block input if input arrives during that phase."
+    ],
+    "required_scope_phrase": "P5-M measures main-thread availability during worker-side send computation, not during the later commit window."
+  },
+  "ratios": {
+    "b2m_input_delay_over_r0m_input_delay_internal_proxy": 160,
+    "b2m_send_work_over_r0m_send_work": 1.42,
+    "b2m_input_delay_minus_b2m_send_work_ms": 0.1,
+    "r0m_input_delay_minus_r0m_worker_send_processing_ms": -5.4,
+    "r0m_concurrent_main_commit_ms": 4.700000047683716,
+    "interpretation": "The 16.0ms vs 0.1ms result is best described as a blocked vs near-unblocked scheduling category. The 160 value is an internal proxy ratio, not a precise user-perceived speedup."
+  },
+  "fairness_invariants": {
+    "same_p5d_matrix": true,
+    "active_context_scan_mode": "compact_checksum_index",
+    "dynamic_active_context_update_mode": "static_initial_active_context",
+    "max_send_active_context_entries_visited": 100000,
+    "max_rendered_dom_node_count": 5700,
+    "max_logical_block_count": 54096,
+    "intentional_difference": "B2m and R0m intentionally differ in ownership of logical send work: B2m runs it on main thread, R0m runs it in Worker."
+  },
+  "final_classification": {
+    "p5_status": "concurrent_input_proxy_results_collected",
+    "primary_signal": "blocked_vs_near_unblocked_synthetic_input_task_during_send_start",
+    "b2m_status": "main_thread_send_blocks_synthetic_input_task",
+    "r0m_status": "worker_send_allows_near_floor_input_task_start_during_worker_compute",
+    "proxy_status": "setTimeout_based_internal_scheduling_delay_not_INP",
+    "commit_window_status": "not_measured",
+    "p4_status": "not_authorized",
+    "recommended_next": "commit_window_input_or_dynamic_active_context_axis_before_p4"
+  }
+}
