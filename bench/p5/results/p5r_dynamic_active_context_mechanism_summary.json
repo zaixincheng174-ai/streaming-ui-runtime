@@ -1,0 +1,135 @@
+{
+  "schema_version": "p5r.dynamic-active-context-mechanism-summary.v0",
+  "generated_at": "2026-05-02T00:00:00.000Z",
+  "source_results": {
+    "b2q": "bench/p5/results/p5q_b2c_dynamic_context_results.json",
+    "r0q": "bench/p5/results/p5q_r0c_dynamic_context_results.json",
+    "prior_mechanism_context": "docs/p5/p5p-send-start-commit-window-mechanism-summary.md"
+  },
+  "metrics_by_variant": {
+    "b2q": {
+      "status": "dynamic_context_update_on_main_thread",
+      "max_dynamic_context_send_proxy_ms": 57.299999952316284,
+      "max_send_click_proxy_ms": 57.299999952316284,
+      "max_dynamic_active_context_update_ms": 28.5,
+      "max_dynamic_active_context_rebuild_ms": 28.5,
+      "max_send_active_context_entries_visited": 100000,
+      "max_active_context_update_count": 3,
+      "max_active_context_generation_count": 4,
+      "max_active_context_entries_added": 4096,
+      "max_active_context_entries_removed": 4096,
+      "max_logical_block_count": 54096,
+      "max_expected_final_logical_block_count": 54096,
+      "max_rendered_dom_node_count": 5700,
+      "active_context_scan_modes": [
+        "compact_checksum_index"
+      ],
+      "dynamic_active_context_update_modes": [
+        "rolling_tail_window_after_append"
+      ]
+    },
+    "r0q": {
+      "status": "dynamic_context_update_in_worker_with_small_total_proxy_advantage",
+      "max_dynamic_context_send_proxy_ms": 54,
+      "max_send_click_proxy_ms": 54,
+      "max_dynamic_active_context_update_ms": 30.800000190734863,
+      "max_dynamic_active_context_rebuild_ms": 30.800000190734863,
+      "max_send_active_context_entries_visited": 100000,
+      "max_active_context_update_count": 3,
+      "max_active_context_generation_count": 4,
+      "max_active_context_entries_added": 4096,
+      "max_active_context_entries_removed": 4096,
+      "max_logical_block_count": 54096,
+      "max_expected_final_logical_block_count": 54096,
+      "max_rendered_dom_node_count": 5700,
+      "active_context_scan_modes": [
+        "compact_checksum_index"
+      ],
+      "dynamic_active_context_update_modes": [
+        "rolling_tail_window_after_append"
+      ],
+      "max_send_worker_processing_ms": 48.89999985694885,
+      "max_send_worker_active_context_traversal_ms": 1.7000000476837158,
+      "max_send_worker_dynamic_active_context_update_ms": 30.800000190734863,
+      "max_send_worker_roundtrip_minus_processing_ms": 0.8000001907348633,
+      "max_send_main_commit_ms": 4.599999904632568,
+      "max_send_projection_payload_estimated_bytes": 68177
+    }
+  },
+  "dynamic_context_semantics": {
+    "active_context_initialization": "active context starts as the initial tail window",
+    "per_repeat_sequence": [
+      "scan every current active-context entry using compact checksum fields",
+      "apply tail mutation",
+      "append stream blocks to the full logical transcript",
+      "rebuild active context to the latest rolling tail window",
+      "continue the next repeat against the updated active context"
+    ],
+    "final_logical_block_count_formula": "visible_block_count + append_batch_size * send_click_repeat_count",
+    "invariant_status": "both B2q and R0q satisfy final logical block count and active-context entry-visit invariants"
+  },
+  "mechanism_interpretation": {
+    "primary_claim": "P5-Q validates the dynamic active-context workload axis. Both B2q and R0q preserve rolling-tail active-context semantics, final logical block count, and bounded rendered DOM. R0q shows only a small end-to-end proxy advantage over B2q, while moving dynamic active-context update work into Worker. The main finding is bottleneck localization, not R0q dominance.",
+    "b2q_mechanism": "B2q performs rolling-tail active-context rebuild, tail mutation, append, compact scan, and bounded DOM update on the main thread.",
+    "r0q_mechanism": "R0q performs rolling-tail active-context rebuild, tail mutation, append, compact scan, and bounded projection generation in Worker, then commits a bounded projection on the main thread.",
+    "bottleneck": "rolling-tail active-context rebuild is a material cost in both systems",
+    "caveat": "R0q does not make dynamic update cost disappear; it moves the update into Worker and keeps the bounded main-thread commit explicit.",
+    "missing_measurement": "P5-Q does not measure input availability while dynamic active-context update is running."
+  },
+  "optimization_implications": {
+    "shared_algorithmic_optimizations_available_to_both": [
+      "rolling ring-buffer active context",
+      "incremental compact-index update",
+      "dirty-range update",
+      "segmented active-context index",
+      "aggregate checksum / chunk summaries"
+    ],
+    "architecture_specific_r0_direction": [
+      "worker-side dynamic context maintenance",
+      "transaction scheduling",
+      "double-buffer active-context snapshots",
+      "chunked/yieldable worker update",
+      "bounded main-thread commit"
+    ],
+    "comparison_rule": "Algorithmic optimizations must be paired if used for B2q/R0q comparison.",
+    "next_evidence_axis": "Architecture-specific value should be tested through input availability during dynamic update."
+  },
+  "fairness_invariants": {
+    "matrix": "same P5-D matrix",
+    "active_context_window": "same active_context_window",
+    "send_click_repeat_count": "same send_click_repeat_count",
+    "max_entries_visited": 100000,
+    "max_final_logical_block_count": 54096,
+    "max_rendered_dom_node_count": 5700,
+    "max_entries_added": 4096,
+    "max_entries_removed": 4096,
+    "max_update_count": 3,
+    "max_generation_count": 4,
+    "scan_mode": "compact_checksum_index",
+    "dynamic_update_mode": "rolling_tail_window_after_append"
+  },
+  "supports": [
+    "dynamic active-context is a real new workload axis",
+    "rolling context update is a material cost",
+    "R0q moves this cost into Worker",
+    "next test should examine input availability while dynamic update runs"
+  ],
+  "does_not_prove": [
+    "R0q dominance",
+    "browser-level INP",
+    "frame stability",
+    "production readiness",
+    "dynamic update advantage in input responsiveness",
+    "impossible-zone completion",
+    "P4 eligibility"
+  ],
+  "final_classification": {
+    "p5_status": "dynamic_active_context_axis_validated",
+    "primary_bottleneck": "rolling_tail_active_context_rebuild",
+    "b2q_status": "dynamic_context_update_on_main_thread",
+    "r0q_status": "dynamic_context_update_in_worker_with_small_total_proxy_advantage",
+    "r0q_caveat": "not_raw_dominance_over_b2q",
+    "p4_status": "not_authorized",
+    "recommended_next": "concurrent_input_during_dynamic_context_update"
+  }
+}
