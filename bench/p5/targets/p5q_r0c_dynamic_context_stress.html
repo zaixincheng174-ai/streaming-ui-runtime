@@ -1,0 +1,1056 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>P5-Q R0q Dynamic Active-Context Stress Target</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        line-height: 1.4;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: #f8f7fb;
+        color: #171717;
+      }
+
+      #status,
+      #controls {
+        position: sticky;
+        z-index: 2;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px 14px;
+        padding: 12px 16px;
+        border-bottom: 1px solid #e3def0;
+        background: rgba(248, 247, 251, 0.96);
+        font-size: 12px;
+      }
+
+      #status {
+        top: 0;
+      }
+
+      #controls {
+        top: 41px;
+        align-items: center;
+      }
+
+      button {
+        padding: 8px 12px;
+        border: 1px solid #514963;
+        border-radius: 4px;
+        background: #2c253a;
+        color: #ffffff;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      #typing-proxy-input {
+        min-width: 300px;
+        padding: 8px 10px;
+        border: 1px solid #cec6db;
+        background: #ffffff;
+        color: #171717;
+        font: inherit;
+      }
+
+      #summary-panel {
+        margin: 0;
+        padding: 12px 16px;
+        border-bottom: 1px solid #e3def0;
+        background: #ffffff;
+        font-size: 12px;
+      }
+
+      #p5q-r0c-summary-json {
+        margin: 8px 0 0;
+        white-space: pre-wrap;
+      }
+
+      #surface {
+        padding: 8px 16px 32px;
+      }
+
+      .block {
+        display: grid;
+        grid-template-columns: 128px 1fr;
+        gap: 16px;
+        padding: 8px 0;
+        border-bottom: 1px solid #e8e2f2;
+      }
+
+      .block-id {
+        color: #71677e;
+      }
+
+      .block-card {
+        display: grid;
+        gap: 6px;
+      }
+
+      .block-title {
+        margin: 0;
+        color: #181818;
+        font-size: 13px;
+      }
+
+      .block-body {
+        margin: 0;
+        color: #24231f;
+        white-space: pre-wrap;
+      }
+
+      .block-meta,
+      .token-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .meta-item,
+      .token-chip {
+        display: inline-block;
+        padding: 2px 6px;
+        border: 1px solid #dcd4ea;
+        border-radius: 4px;
+        background: #f2eef8;
+        color: #514963;
+        font-size: 11px;
+      }
+
+      .artifact-region {
+        padding: 6px 8px;
+        border: 1px dashed #b4a8c6;
+        background: #eee8f6;
+        color: #493f58;
+        font-size: 12px;
+      }
+
+      .config-error {
+        max-width: 900px;
+        margin: 32px auto;
+        padding: 16px;
+        border: 1px solid #b91c1c;
+        background: #fef2f2;
+        color: #7f1d1d;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="status">
+      <span id="scenario-id">scenario_id=unknown</span>
+      <span id="visible-block-count">visible_block_count=0</span>
+      <span id="active-context-window">active_context_window=0</span>
+      <span id="logical-block-count">logical_block_count=0</span>
+      <span id="rendered-block-count">rendered_block_count=0</span>
+      <span id="rendered-dom-node-count">rendered_dom_node_count=0</span>
+      <span id="worker-processing-ms">send_worker_processing_ms=0</span>
+      <span id="main-commit-ms">send_main_commit_ms=0</span>
+      <span id="dynamic-context-ms">dynamic_context_send_proxy_ms=0</span>
+    </div>
+    <div id="controls">
+      <input id="typing-proxy-input" aria-label="typing proxy input" autocomplete="off" spellcheck="false">
+      <button id="typing-proxy-button" type="button">typing_proxy</button>
+      <button id="send-click-proxy-button" type="button">send_click_proxy</button>
+      <button id="dynamic-context-send-button" type="button">dynamic_context_send_proxy</button>
+    </div>
+    <section id="summary-panel" aria-label="P5-Q R0q machine readable summary">
+      <strong>P5-Q R0q dynamic active-context worker/bounded-projection stress summary</strong>
+      <pre id="p5q-r0c-summary-json">{}</pre>
+    </section>
+    <main id="surface" aria-label="P5-Q R0q bounded projection surface"></main>
+    <script>
+      const P5Q_R0_MATRIX = {
+        scenarios: [
+          { scenario_id: "p5d_v10000_rich_ctx_full_repeat3", visible_block_count: 10000, active_context_mode: "full", active_context_window: 10000, block_shape: "rich", rich_block_multiplier: 4, append_batch_size: 512, tail_mutation_count: 256, recall_probe_count: 256, artifact_placeholder_ratio: 0.03, send_click_repeat_count: 3, interactions: ["typing_proxy", "send_click_proxy", "scroll_jump_return"] },
+          { scenario_id: "p5d_v25000_rich_ctx_medium_repeat3", visible_block_count: 25000, active_context_mode: "medium", active_context_window: 5000, block_shape: "rich", rich_block_multiplier: 4, append_batch_size: 1024, tail_mutation_count: 512, recall_probe_count: 512, artifact_placeholder_ratio: 0.03, send_click_repeat_count: 3, interactions: ["typing_proxy", "send_click_proxy", "scroll_jump_return"] },
+          { scenario_id: "p5d_v25000_rich_ctx_full_repeat3", visible_block_count: 25000, active_context_mode: "full", active_context_window: 25000, block_shape: "rich", rich_block_multiplier: 4, append_batch_size: 1024, tail_mutation_count: 512, recall_probe_count: 512, artifact_placeholder_ratio: 0.03, send_click_repeat_count: 3, interactions: ["typing_proxy", "send_click_proxy", "scroll_jump_return"] },
+          { scenario_id: "p5d_v50000_rich_ctx_medium_repeat2", visible_block_count: 50000, active_context_mode: "medium", active_context_window: 5000, block_shape: "rich", rich_block_multiplier: 4, append_batch_size: 2048, tail_mutation_count: 768, recall_probe_count: 768, artifact_placeholder_ratio: 0.03, send_click_repeat_count: 2, interactions: ["typing_proxy", "send_click_proxy", "scroll_jump_return"] },
+          { scenario_id: "p5d_v50000_rich_ctx_full_repeat2", visible_block_count: 50000, active_context_mode: "full", active_context_window: 50000, block_shape: "rich", rich_block_multiplier: 4, append_batch_size: 2048, tail_mutation_count: 768, recall_probe_count: 768, artifact_placeholder_ratio: 0.03, send_click_repeat_count: 2, interactions: ["typing_proxy", "send_click_proxy", "scroll_jump_return"] }
+        ]
+      };
+
+      const DEFAULT_SCENARIO_ID = "p5d_v10000_rich_ctx_full_repeat3";
+      const BASELINE_VARIANT = "r0c_worker_bounded_projection_compact_context_dynamic_active_context";
+      const VISIBLE_WINDOW_SIZE = 300;
+      const ACTIVE_CONTEXT_SCAN_MODE = "compact_checksum_index";
+      const DYNAMIC_CONTEXT_MODE = "rolling_tail_window_after_append";
+      const LONG_TASK_50_MS = 50;
+      const LONG_TASK_100_MS = 100;
+      const LONG_TASK_200_MS = 200;
+
+      const surface = document.getElementById("surface");
+      const summaryJson = document.getElementById("p5q-r0c-summary-json");
+      const typingInput = document.getElementById("typing-proxy-input");
+      const scenarioIdNode = document.getElementById("scenario-id");
+      const visibleBlockCountNode = document.getElementById("visible-block-count");
+      const activeContextWindowNode = document.getElementById("active-context-window");
+      const logicalBlockCountNode = document.getElementById("logical-block-count");
+      const renderedBlockCountNode = document.getElementById("rendered-block-count");
+      const renderedDomNodeCountNode = document.getElementById("rendered-dom-node-count");
+      const workerProcessingMsNode = document.getElementById("worker-processing-ms");
+      const mainCommitMsNode = document.getElementById("main-commit-ms");
+      const dynamicContextMsNode = document.getElementById("dynamic-context-ms");
+
+      const scenario = resolveScenario();
+      const pendingWorkerRequests = new Map();
+      let requestOrdinal = 0;
+      let runtimeWorker = null;
+      let localChecksum = 0;
+
+      const metrics = {
+        scenario_id: scenario.scenario_id,
+        visible_block_count: scenario.visible_block_count,
+        active_context_mode: scenario.active_context_mode,
+        active_context_window: scenario.active_context_window,
+        block_shape: scenario.block_shape,
+        rich_block_multiplier: scenario.rich_block_multiplier,
+        send_click_repeat_count: scenario.send_click_repeat_count,
+        baseline_variant: BASELINE_VARIANT,
+        initial_render_ms: 0,
+        dom_node_count: 0,
+        rendered_dom_node_count: 0,
+        logical_block_count: 0,
+        rendered_block_count: 0,
+        typing_proxy_ms: 0,
+        send_click_proxy_ms: 0,
+        dynamic_context_send_proxy_ms: 0,
+        dynamic_active_context_update_mode: DYNAMIC_CONTEXT_MODE,
+        active_context_scan_mode: ACTIVE_CONTEXT_SCAN_MODE,
+        active_context_entries_visited: 0,
+        send_active_context_entries_visited: 0,
+        active_context_compact_index_size: 0,
+        active_context_compact_scan_units: 0,
+        active_context_initial_start_ordinal: scenario.visible_block_count - scenario.active_context_window + 1,
+        active_context_final_start_ordinal: scenario.visible_block_count - scenario.active_context_window + 1,
+        active_context_generation_count: 0,
+        active_context_update_count: 0,
+        active_context_entries_added: 0,
+        active_context_entries_removed: 0,
+        dynamic_active_context_update_ms: 0,
+        max_dynamic_active_context_update_ms: 0,
+        dynamic_active_context_rebuild_ms: 0,
+        active_context_final_index_size: 0,
+        expected_final_logical_block_count:
+          scenario.visible_block_count + (scenario.append_batch_size * scenario.send_click_repeat_count),
+        compact_checksum_mode: "numeric_precomputed_weight",
+        compact_index_build_ms: 0,
+        send_active_context_compact_scan_ms: 0,
+        tail_mutation_ms: 0,
+        append_commit_ms: 0,
+        max_interaction_ms: 0,
+        long_task_like_count_50ms_proxy: 0,
+        long_task_like_count_100ms_proxy: 0,
+        long_task_like_count_200ms_proxy: 0,
+        timestamp: "",
+        run_id: createRunId(scenario.scenario_id),
+        visible_window_size: VISIBLE_WINDOW_SIZE,
+        send_worker_processing_ms: 0,
+        send_worker_active_context_traversal_ms: 0,
+        send_worker_dynamic_active_context_update_ms: 0,
+        send_worker_roundtrip_minus_processing_ms: 0,
+        send_main_commit_ms: 0,
+        send_projection_payload_estimated_bytes: 0
+      };
+
+      function resolveScenario() {
+        const params = new URLSearchParams(window.location.search);
+        const requestedScenarioId = params.get("scenario_id") || DEFAULT_SCENARIO_ID;
+        const found = P5Q_R0_MATRIX.scenarios.find((entry) => entry.scenario_id === requestedScenarioId);
+        if (found) return found;
+        renderConfigError("Invalid P5-Q R0q scenario_id: " + requestedScenarioId);
+        throw new Error("invalid scenario_id: " + requestedScenarioId);
+      }
+
+      function renderConfigError(message) {
+        const panel = document.createElement("main");
+        panel.className = "config-error";
+        panel.textContent = message;
+        document.body.replaceChildren(panel);
+      }
+
+      function createRuntimeWorker() {
+        const workerSource = `
+          const ACTIVE_CONTEXT_SCAN_MODE = "compact_checksum_index";
+          const DYNAMIC_CONTEXT_MODE = "rolling_tail_window_after_append";
+          let scenario = null;
+          let visibleWindowSize = 300;
+          let logicalBlocks = [];
+          let logicalBlockById = new Map();
+          let activeContextIndex = [];
+          let appendStream = [];
+          let tailMutations = [];
+          let checksum = 0;
+          let sendRunCount = 0;
+          let sessionVersion = 0;
+          let resultVersion = 0;
+          let commitCycleCount = 0;
+          let activeContextGenerationCount = 0;
+          let activeContextUpdateCount = 0;
+          let activeContextInitialStartOrdinal = 0;
+          let activeContextFinalStartOrdinal = 0;
+          let compactIndexBuildMs = 0;
+
+          self.onmessage = (event) => {
+            const request = event.data;
+            try {
+              const response = handleRuntimeMessage(request);
+              self.postMessage({ request_id: request.request_id, ok: true, ...response });
+            } catch (error) {
+              self.postMessage({
+                request_id: request.request_id,
+                ok: false,
+                error: error && error.message ? error.message : String(error)
+              });
+            }
+          };
+
+          function handleRuntimeMessage(request) {
+            if (request.type === "init_scenario") return initScenario(request.scenario, request.visible_window_size);
+            if (request.type === "typing_proxy") return runTypingProxy();
+            if (request.type === "send_click_proxy") return runDynamicSendProxy();
+            if (request.type === "dynamic_context_send_proxy") return runDynamicSendProxy();
+            if (request.type === "request_projection") return requestProjection(request.anchor_kind || "tail");
+            throw new Error("unknown worker runtime op: " + request.type);
+          }
+
+          function initScenario(input, requestedWindowSize) {
+            const startMs = performance.now();
+            scenario = input;
+            visibleWindowSize = requestedWindowSize;
+            const workload = generateStressWorkload(input);
+            logicalBlocks = workload.blocks.slice();
+            logicalBlockById = new Map(logicalBlocks.map((block) => [block.block_id, block]));
+            activeContextIndex = workload.active_context_index.slice();
+            appendStream = workload.append_stream.slice();
+            tailMutations = workload.tail_mutations.slice();
+            checksum = 0;
+            sendRunCount = 0;
+            sessionVersion = 0;
+            resultVersion = 0;
+            commitCycleCount = 0;
+            activeContextGenerationCount = 1;
+            activeContextUpdateCount = 0;
+            activeContextInitialStartOrdinal = workload.active_context_start_ordinal;
+            activeContextFinalStartOrdinal = workload.active_context_start_ordinal;
+            compactIndexBuildMs = workload.compact_index_build_ms;
+            const transaction = createProjectedCommit("init_scenario", "tail", "user-visible");
+            const workerProcessingMs = performance.now() - startMs;
+            return {
+              type: "init_scenario_result",
+              transaction,
+              worker_processing_ms: workerProcessingMs,
+              worker_active_context_traversal_ms: 0,
+              worker_dynamic_active_context_update_ms: 0,
+              worker_tail_mutation_ms: 0,
+              worker_append_ms: 0,
+              ...baseRuntimeMetrics(transaction, {})
+            };
+          }
+
+          function runTypingProxy() {
+            const startMs = performance.now();
+            let nextChecksum = checksum;
+            const iterations = 24 * scenario.rich_block_multiplier;
+            for (let index = 0; index < iterations; index += 1) {
+              const block = logicalBlocks[(logicalBlocks.length - 1 - index + logicalBlocks.length) % logicalBlocks.length];
+              nextChecksum = scanText("synthetic stress typing proxy " + index + "|" + block.synthetic_key + "|" + block.body, nextChecksum);
+            }
+            checksum = nextChecksum;
+            return {
+              type: "typing_proxy_result",
+              worker_processing_ms: performance.now() - startMs,
+              worker_active_context_traversal_ms: 0,
+              worker_dynamic_active_context_update_ms: 0,
+              worker_tail_mutation_ms: 0,
+              worker_append_ms: 0,
+              ...baseRuntimeMetrics(null, {})
+            };
+          }
+
+          function runDynamicSendProxy() {
+            const startMs = performance.now();
+            let activeContextMs = 0;
+            let activeContextCompactScanMs = 0;
+            let tailMutationMs = 0;
+            let appendMs = 0;
+            let updateMs = 0;
+            let maxUpdateMs = 0;
+            let entriesVisited = 0;
+            let entriesAdded = 0;
+            let entriesRemoved = 0;
+
+            for (let repeat = 0; repeat < scenario.send_click_repeat_count; repeat += 1) {
+              sendRunCount += 1;
+              const traversalStartMs = performance.now();
+              let nextChecksum = checksum;
+              for (const entry of activeContextIndex) {
+                entriesVisited += 1;
+                nextChecksum = combineCompactContextEntry(entry, nextChecksum, repeat);
+              }
+              const traversalMs = performance.now() - traversalStartMs;
+              activeContextMs += traversalMs;
+              activeContextCompactScanMs += traversalMs;
+
+              const mutationStartMs = performance.now();
+              for (const mutation of tailMutations) {
+                const block = logicalBlockById.get(mutation.block_id);
+                if (!block) continue;
+                block.title = mutation.replacement_title + " r" + repeat;
+                block.body = mutation.replacement_body + " r" + repeat;
+                block.metadata = mutation.replacement_metadata.map((value) => value + ":r" + repeat);
+                nextChecksum = scanText(block.title + "|" + block.body, nextChecksum);
+              }
+              tailMutationMs += performance.now() - mutationStartMs;
+
+              const appendStartMs = performance.now();
+              for (const append of appendStream) {
+                const appendedBlock = {
+                  block_id: append.append_id + "-run-" + sendRunCount,
+                  ordinal: append.ordinal + ((sendRunCount - 1) * appendStream.length),
+                  kind: append.kind,
+                  synthetic_key: append.synthetic_key + "-run-" + sendRunCount,
+                  title: append.title + " run " + sendRunCount,
+                  body: append.body,
+                  metadata: append.metadata.slice()
+                };
+                logicalBlocks.push(appendedBlock);
+                logicalBlockById.set(appendedBlock.block_id, appendedBlock);
+                nextChecksum = scanText(appendedBlock.title + "|" + appendedBlock.body, nextChecksum);
+              }
+              appendMs += performance.now() - appendStartMs;
+              const updateResult = updateActiveContextIndex();
+              updateMs += updateResult.duration_ms;
+              maxUpdateMs = Math.max(maxUpdateMs, updateResult.duration_ms);
+              entriesAdded += updateResult.entries_added;
+              entriesRemoved += updateResult.entries_removed;
+              checksum = nextChecksum;
+              sessionVersion += 1;
+            }
+
+            const transaction = createProjectedCommit("dynamic_context_send_proxy", "tail", "urgent");
+            const workerProcessingMs = performance.now() - startMs;
+            return {
+              type: "dynamic_context_send_proxy_result",
+              transaction,
+              worker_processing_ms: workerProcessingMs,
+              worker_active_context_traversal_ms: activeContextMs,
+              worker_active_context_compact_scan_ms: activeContextCompactScanMs,
+              worker_active_context_entries_visited: entriesVisited,
+              worker_dynamic_active_context_update_ms: updateMs,
+              worker_max_dynamic_active_context_update_ms: maxUpdateMs,
+              worker_dynamic_active_context_rebuild_ms: updateMs,
+              worker_active_context_entries_added: entriesAdded,
+              worker_active_context_entries_removed: entriesRemoved,
+              worker_tail_mutation_ms: tailMutationMs,
+              worker_append_ms: appendMs,
+              ...baseRuntimeMetrics(transaction, {
+                dynamic_active_context_update_ms: updateMs,
+                max_dynamic_active_context_update_ms: maxUpdateMs,
+                dynamic_active_context_rebuild_ms: updateMs,
+                active_context_entries_added: entriesAdded,
+                active_context_entries_removed: entriesRemoved
+              })
+            };
+          }
+
+          function updateActiveContextIndex() {
+            const previousIds = new Set(activeContextIndex.map((entry) => entry.block_id));
+            const updateStartMs = performance.now();
+            const nextBlocks = logicalBlocks.slice(-scenario.active_context_window);
+            const nextIndex = buildCompactIndexFromBlocks(nextBlocks);
+            const durationMs = performance.now() - updateStartMs;
+            const nextIds = new Set(nextIndex.map((entry) => entry.block_id));
+            let added = 0;
+            let removed = 0;
+            for (const id of nextIds) {
+              if (!previousIds.has(id)) added += 1;
+            }
+            for (const id of previousIds) {
+              if (!nextIds.has(id)) removed += 1;
+            }
+            activeContextIndex = nextIndex;
+            activeContextUpdateCount += 1;
+            activeContextGenerationCount += 1;
+            activeContextFinalStartOrdinal = activeContextIndex.length > 0 ? activeContextIndex[0].ordinal : 0;
+            return { duration_ms: durationMs, entries_added: added, entries_removed: removed };
+          }
+
+          function requestProjection(anchorKind) {
+            const startMs = performance.now();
+            const transaction = createProjectedCommit("request_projection", anchorKind, "user-visible");
+            return {
+              type: "projection_result",
+              transaction,
+              worker_processing_ms: performance.now() - startMs,
+              worker_active_context_traversal_ms: 0,
+              worker_dynamic_active_context_update_ms: 0,
+              worker_tail_mutation_ms: 0,
+              worker_append_ms: 0,
+              ...baseRuntimeMetrics(transaction, {})
+            };
+          }
+
+          function createProjectedCommit(operation, anchorKind, priority) {
+            const projection = buildBoundedProjection(anchorKind);
+            const transaction = createRenderingTransaction({ operation, priority, projection, anchor_kind: anchorKind });
+            const admission = admitViewportTransaction(transaction);
+            const candidate = selectNextCommitCandidate(admission.admitted ? [transaction] : []);
+            if (!candidate) return { ...transaction, admitted: false, commit_cycle: null };
+            const commitCycle = createCommitCycleRecord(candidate, classifyAnchorTransition(anchorKind));
+            return { ...candidate, admitted: true, commit_cycle: commitCycle };
+          }
+
+          function buildBoundedProjection(anchorKind) {
+            const projectionStartMs = performance.now();
+            const startIndex = resolveProjectionStart(anchorKind);
+            const endIndex = Math.min(logicalBlocks.length, startIndex + visibleWindowSize);
+            const blocks = [];
+            let payloadBytes = 0;
+            for (let index = startIndex; index < endIndex; index += 1) {
+              const block = logicalBlocks[index];
+              payloadBytes += estimateProjectionPayloadBytes(block);
+              blocks.push({
+                block_id: block.block_id,
+                ordinal: block.ordinal,
+                kind: block.kind,
+                synthetic_key: block.synthetic_key,
+                title: block.title,
+                body: block.body,
+                metadata: block.metadata
+              });
+            }
+            return {
+              projection_id: "projection-" + resultVersion,
+              session_version: sessionVersion,
+              result_version: resultVersion++,
+              anchor_kind: anchorKind,
+              visible_range: { start_index: startIndex, end_index: endIndex },
+              blocks,
+              projection_block_count: blocks.length,
+              projection_payload_block_count: blocks.length,
+              projection_payload_estimated_bytes: payloadBytes,
+              projection_payload_estimate_mode: "synthetic_block_text_metadata_length",
+              logical_block_count: logicalBlocks.length,
+              visible_window_size: visibleWindowSize,
+              worker_projection_ms: performance.now() - projectionStartMs
+            };
+          }
+
+          function resolveProjectionStart(anchorKind) {
+            if (anchorKind === "old_history") {
+              const oldAnchorOrdinal = Math.max(1, Math.floor(scenario.visible_block_count * 0.1));
+              return clampWindowStart(oldAnchorOrdinal - Math.floor(visibleWindowSize / 2));
+            }
+            return clampWindowStart(logicalBlocks.length - visibleWindowSize);
+          }
+
+          function createRenderingTransaction({ operation, priority, projection, anchor_kind }) {
+            return {
+              txn_id: "txn-" + projection.result_version,
+              operation,
+              priority,
+              anchor_kind,
+              projection,
+              created_at_ms: performance.now()
+            };
+          }
+
+          function admitViewportTransaction(transaction) {
+            return {
+              admitted: transaction.projection.blocks.length <= visibleWindowSize,
+              reason: "bounded_projection"
+            };
+          }
+
+          function selectNextCommitCandidate(queue) {
+            return queue.length > 0 ? queue[0] : null;
+          }
+
+          function createCommitCycleRecord(transaction, transitionLabel) {
+            commitCycleCount += 1;
+            return {
+              commit_cycle_id: "commit-cycle-" + commitCycleCount,
+              txn_id: transaction.txn_id,
+              projection_id: transaction.projection.projection_id,
+              transition_label: transitionLabel,
+              projection_block_count: transaction.projection.blocks.length,
+              committed_at_ms: performance.now()
+            };
+          }
+
+          function classifyAnchorTransition(anchorKind) {
+            if (anchorKind === "old_history") return "old_history_jump";
+            return "tail_projection";
+          }
+
+          function baseRuntimeMetrics(transaction, dynamicMetrics) {
+            const projection = transaction ? transaction.projection : null;
+            return {
+              active_context_scan_mode: ACTIVE_CONTEXT_SCAN_MODE,
+              dynamic_active_context_update_mode: DYNAMIC_CONTEXT_MODE,
+              active_context_compact_index_size: activeContextIndex.length,
+              active_context_compact_scan_units: sumCompactScanUnits(activeContextIndex),
+              active_context_initial_start_ordinal: activeContextInitialStartOrdinal,
+              active_context_final_start_ordinal: activeContextFinalStartOrdinal,
+              active_context_generation_count: activeContextGenerationCount,
+              active_context_update_count: activeContextUpdateCount,
+              active_context_final_index_size: activeContextIndex.length,
+              expected_final_logical_block_count:
+                scenario.visible_block_count + (scenario.append_batch_size * scenario.send_click_repeat_count),
+              compact_checksum_mode: "numeric_precomputed_weight",
+              compact_index_build_ms: compactIndexBuildMs,
+              logical_block_count: logicalBlocks.length,
+              projection_block_count: projection ? projection.blocks.length : 0,
+              projection_payload_block_count: projection ? projection.projection_payload_block_count : 0,
+              projection_payload_estimated_bytes: projection ? projection.projection_payload_estimated_bytes : 0,
+              projection_payload_estimate_mode: projection
+                ? projection.projection_payload_estimate_mode
+                : "synthetic_block_text_metadata_length",
+              worker_projection_ms: projection ? projection.worker_projection_ms : 0,
+              commit_cycle_count: commitCycleCount,
+              ...dynamicMetrics
+            };
+          }
+
+          function generateStressWorkload(input) {
+            const artifactOrdinals = buildArtifactOrdinalSet(input.visible_block_count, input.artifact_placeholder_ratio);
+            const blocks = [];
+            for (let ordinal = 1; ordinal <= input.visible_block_count; ordinal += 1) {
+              blocks.push(createInitialBlock(ordinal, artifactOrdinals.has(ordinal), input.rich_block_multiplier));
+            }
+            const compactIndexStartMs = performance.now();
+            const activeContextStartOrdinal = input.visible_block_count - input.active_context_window + 1;
+            const activeContextIndex = buildCompactIndexFromBlocks(blocks.slice(-input.active_context_window));
+            const compactIndexBuildMs = performance.now() - compactIndexStartMs;
+            return {
+              ...input,
+              active_context_start_ordinal: activeContextStartOrdinal,
+              blocks,
+              active_context_index: activeContextIndex,
+              compact_index_build_ms: compactIndexBuildMs,
+              append_stream: buildAppendStream(input),
+              tail_mutations: buildTailMutations(input)
+            };
+          }
+
+          function createInitialBlock(ordinal, isArtifact, multiplier) {
+            return {
+              block_id: formatId("block", ordinal),
+              ordinal,
+              kind: isArtifact ? "artifact_placeholder" : "message",
+              synthetic_key: "stress-key-" + String(ordinal).padStart(6, "0"),
+              title: "Synthetic stress block " + String(ordinal).padStart(6, "0"),
+              body: repeatedBody(ordinal, multiplier),
+              metadata: buildMetadata(ordinal, multiplier)
+            };
+          }
+
+          function buildCompactIndexFromBlocks(blocks) {
+            return blocks.map((block, index) => buildCompactContextEntry(block, index));
+          }
+
+          function buildCompactContextEntry(block, contextIndex) {
+            const compactChecksum = compactChecksumForParts([block.synthetic_key, block.title, block.body, ...block.metadata]);
+            const compactMetadataWeight = compactChecksumForParts(block.metadata);
+            const compactScanUnits =
+              block.synthetic_key.length +
+              block.title.length +
+              block.body.length +
+              block.metadata.reduce((total, value) => total + value.length, 0);
+            return {
+              context_index: contextIndex,
+              block_id: block.block_id,
+              ordinal: block.ordinal,
+              synthetic_key: block.synthetic_key,
+              compact_checksum: compactChecksum,
+              compact_metadata_weight: compactMetadataWeight,
+              compact_entry_weight: (compactChecksum ^ compactMetadataWeight ^ compactScanUnits ^ block.ordinal) >>> 0,
+              compact_scan_units: compactScanUnits
+            };
+          }
+
+          function buildAppendStream(input) {
+            const stream = [];
+            for (let index = 1; index <= input.append_batch_size; index += 1) {
+              const ordinal = input.visible_block_count + index;
+              stream.push({
+                append_id: formatId("append", index),
+                ordinal,
+                kind: "stream_append",
+                synthetic_key: "append-stress-key-" + String(index).padStart(6, "0"),
+                title: "Synthetic appended stress block " + String(index).padStart(6, "0"),
+                body: repeatedBody(ordinal, input.rich_block_multiplier),
+                metadata: buildMetadata(ordinal, input.rich_block_multiplier)
+              });
+            }
+            return stream;
+          }
+
+          function buildTailMutations(input) {
+            const mutations = [];
+            const tailStart = input.visible_block_count - input.tail_mutation_count + 1;
+            for (let ordinal = tailStart; ordinal <= input.visible_block_count; ordinal += 1) {
+              const mutationOrdinal = ordinal - tailStart + 1;
+              mutations.push({
+                block_id: formatId("block", ordinal),
+                replacement_title: "Synthetic updated stress block " + String(mutationOrdinal).padStart(6, "0"),
+                replacement_body: repeatedBody(ordinal + mutationOrdinal, input.rich_block_multiplier),
+                replacement_metadata: buildMetadata(ordinal + mutationOrdinal, input.rich_block_multiplier)
+              });
+            }
+            return mutations;
+          }
+
+          function buildArtifactOrdinalSet(visibleBlockCount, ratio) {
+            const count = Math.floor(visibleBlockCount * ratio);
+            const ordinals = new Set();
+            for (let index = 1; index <= count; index += 1) {
+              ordinals.add(Math.floor((index * visibleBlockCount) / (count + 1)) + 1);
+            }
+            return ordinals;
+          }
+
+          function repeatedBody(ordinal, multiplier) {
+            const parts = [];
+            for (let index = 0; index < multiplier; index += 1) {
+              parts.push("body-unit=" + (ordinal % 997) + ":" + index + ":" + ((ordinal + index) % 37));
+            }
+            return "Synthetic rich block body " + ordinal + ". " + parts.join(" | ");
+          }
+
+          function buildMetadata(ordinal, multiplier) {
+            const metadata = [];
+            for (let index = 0; index < multiplier + 2; index += 1) {
+              metadata.push("m" + index + ":" + ((ordinal * (index + 3)) % 1009));
+            }
+            return metadata;
+          }
+
+          function estimateProjectionPayloadBytes(block) {
+            return block.synthetic_key.length + block.title.length + block.body.length + block.metadata.join("|").length;
+          }
+
+          function sumCompactScanUnits(index) {
+            return index.reduce((total, entry) => total + entry.compact_scan_units, 0);
+          }
+
+          function clampWindowStart(startIndex) {
+            return Math.max(0, Math.min(startIndex, Math.max(0, logicalBlocks.length - visibleWindowSize)));
+          }
+
+          function scanText(text, seed) {
+            let next = seed;
+            for (let index = 0; index < text.length; index += 1) {
+              next = (next + text.charCodeAt(index) * (index + 1)) >>> 0;
+            }
+            return next;
+          }
+
+          function compactChecksumForParts(parts) {
+            let next = 0;
+            for (const part of parts) next = scanText(String(part), next);
+            return next >>> 0;
+          }
+
+          function combineCompactContextEntry(entry, seed, repeat) {
+            return (
+              seed +
+              entry.compact_checksum +
+              entry.compact_metadata_weight +
+              entry.compact_entry_weight +
+              entry.compact_scan_units +
+              repeat
+            ) >>> 0;
+          }
+
+          function formatId(prefix, ordinal) {
+            return prefix + "-" + String(ordinal).padStart(6, "0");
+          }
+        `;
+
+        const workerBlob = new Blob([workerSource], { type: "text/javascript" });
+        const workerUrl = URL.createObjectURL(workerBlob);
+        const worker = new Worker(workerUrl);
+        worker.onmessage = (event) => {
+          const response = event.data;
+          const pending = pendingWorkerRequests.get(response.request_id);
+          if (!pending) return;
+          pendingWorkerRequests.delete(response.request_id);
+          response.worker_roundtrip_ms = performance.now() - pending.start_ms;
+          if (response.ok === false) {
+            pending.reject(new Error(response.error || "worker request failed"));
+          } else {
+            pending.resolve(response);
+          }
+        };
+        return worker;
+      }
+
+      function postRuntimeOp(type, payload = {}) {
+        const requestId = "request-" + (++requestOrdinal);
+        return new Promise((resolve, reject) => {
+          pendingWorkerRequests.set(requestId, { resolve, reject, start_ms: performance.now() });
+          runtimeWorker.postMessage({ request_id: requestId, type, ...payload });
+        });
+      }
+
+      async function initializeRuntime() {
+        runtimeWorker = createRuntimeWorker();
+        const startMs = performance.now();
+        const response = await postRuntimeOp("init_scenario", {
+          scenario,
+          visible_window_size: VISIBLE_WINDOW_SIZE
+        });
+        applyWorkerStateMetrics(response);
+        const commitMs = commitProjectionTransaction(response.transaction);
+        metrics.initial_render_ms = performance.now() - startMs;
+        metrics.send_main_commit_ms = commitMs;
+        recordMeasuredDuration(metrics.initial_render_ms);
+        publishSummary();
+      }
+
+      async function runTypingProxy() {
+        const startMs = performance.now();
+        typingInput.value = "synthetic stress typing proxy " + Date.now().toString(36);
+        const response = await postRuntimeOp("typing_proxy");
+        applyWorkerStateMetrics(response);
+        metrics.typing_proxy_ms = performance.now() - startMs;
+        recordInteractionDuration(metrics.typing_proxy_ms);
+        publishSummary();
+        return getSummary();
+      }
+
+      async function runSendClickProxy(options = {}) {
+        resetDynamicSendMetrics();
+        const startMs = performance.now();
+        const response = await postRuntimeOp("dynamic_context_send_proxy");
+        applyWorkerStateMetrics(response);
+        const commitMs = commitProjectionTransaction(response.transaction);
+        metrics.send_worker_processing_ms = response.worker_processing_ms || 0;
+        metrics.send_worker_active_context_traversal_ms = response.worker_active_context_traversal_ms || 0;
+        metrics.send_worker_dynamic_active_context_update_ms = response.worker_dynamic_active_context_update_ms || 0;
+        metrics.send_worker_roundtrip_minus_processing_ms = Math.max(
+          0,
+          (response.worker_roundtrip_ms || 0) - metrics.send_worker_processing_ms
+        );
+        metrics.send_main_commit_ms = commitMs;
+        metrics.send_projection_payload_estimated_bytes = response.projection_payload_estimated_bytes || 0;
+        metrics.tail_mutation_ms = response.worker_tail_mutation_ms || 0;
+        metrics.append_commit_ms = response.worker_append_ms || 0;
+        metrics.send_active_context_compact_scan_ms = response.worker_active_context_compact_scan_ms || 0;
+        metrics.active_context_entries_visited = response.worker_active_context_entries_visited || 0;
+        metrics.send_active_context_entries_visited = metrics.active_context_entries_visited;
+        metrics.send_click_proxy_ms = performance.now() - startMs;
+        metrics.dynamic_context_send_proxy_ms = metrics.send_click_proxy_ms;
+        recordMeasuredDuration(metrics.send_worker_active_context_traversal_ms);
+        recordMeasuredDuration(metrics.send_worker_dynamic_active_context_update_ms);
+        recordMeasuredDuration(commitMs);
+        recordInteractionDuration(metrics.send_click_proxy_ms);
+        if (options.publish !== false) publishSummary();
+        return getSummary();
+      }
+
+      function runDynamicContextSendProxy() {
+        return runSendClickProxy();
+      }
+
+      function commitProjectionTransaction(transaction) {
+        if (!transaction || !transaction.projection) return 0;
+        const startMs = performance.now();
+        const fragment = document.createDocumentFragment();
+        let renderedNodeCount = 0;
+        for (const block of transaction.projection.blocks) {
+          renderedNodeCount += countRichBlockNodes(block);
+          fragment.appendChild(createRichBlockEntry(block));
+        }
+        surface.replaceChildren(fragment);
+        const commitMs = performance.now() - startMs;
+        metrics.logical_block_count = transaction.projection.logical_block_count;
+        metrics.rendered_block_count = transaction.projection.blocks.length;
+        metrics.rendered_dom_node_count = renderedNodeCount;
+        metrics.dom_node_count = renderedNodeCount;
+        return commitMs;
+      }
+
+      function applyWorkerStateMetrics(response) {
+        metrics.logical_block_count = response.logical_block_count || metrics.logical_block_count;
+        metrics.active_context_scan_mode = response.active_context_scan_mode || metrics.active_context_scan_mode;
+        metrics.dynamic_active_context_update_mode =
+          response.dynamic_active_context_update_mode || metrics.dynamic_active_context_update_mode;
+        metrics.active_context_compact_index_size =
+          response.active_context_compact_index_size || metrics.active_context_compact_index_size;
+        metrics.active_context_compact_scan_units =
+          response.active_context_compact_scan_units || metrics.active_context_compact_scan_units;
+        metrics.active_context_initial_start_ordinal =
+          response.active_context_initial_start_ordinal || metrics.active_context_initial_start_ordinal;
+        metrics.active_context_final_start_ordinal =
+          response.active_context_final_start_ordinal || metrics.active_context_final_start_ordinal;
+        metrics.active_context_generation_count =
+          response.active_context_generation_count || metrics.active_context_generation_count;
+        metrics.active_context_update_count = response.active_context_update_count || metrics.active_context_update_count;
+        metrics.active_context_entries_added = response.active_context_entries_added || metrics.active_context_entries_added;
+        metrics.active_context_entries_removed =
+          response.active_context_entries_removed || metrics.active_context_entries_removed;
+        metrics.dynamic_active_context_update_ms =
+          response.dynamic_active_context_update_ms || metrics.dynamic_active_context_update_ms;
+        metrics.max_dynamic_active_context_update_ms =
+          response.max_dynamic_active_context_update_ms || metrics.max_dynamic_active_context_update_ms;
+        metrics.dynamic_active_context_rebuild_ms =
+          response.dynamic_active_context_rebuild_ms || metrics.dynamic_active_context_rebuild_ms;
+        metrics.active_context_final_index_size =
+          response.active_context_final_index_size || metrics.active_context_final_index_size;
+        metrics.expected_final_logical_block_count =
+          response.expected_final_logical_block_count || metrics.expected_final_logical_block_count;
+        metrics.compact_checksum_mode = response.compact_checksum_mode || metrics.compact_checksum_mode;
+        metrics.compact_index_build_ms = response.compact_index_build_ms || metrics.compact_index_build_ms;
+      }
+
+      function resetDynamicSendMetrics() {
+        metrics.active_context_entries_visited = 0;
+        metrics.send_active_context_entries_visited = 0;
+        metrics.active_context_entries_added = 0;
+        metrics.active_context_entries_removed = 0;
+        metrics.dynamic_active_context_update_ms = 0;
+        metrics.max_dynamic_active_context_update_ms = 0;
+        metrics.dynamic_active_context_rebuild_ms = 0;
+        metrics.send_active_context_compact_scan_ms = 0;
+        metrics.tail_mutation_ms = 0;
+        metrics.append_commit_ms = 0;
+      }
+
+      function createRichBlockEntry(block) {
+        const row = document.createElement("article");
+        row.className = "block";
+        row.dataset.blockId = block.block_id;
+        const id = document.createElement("span");
+        id.className = "block-id";
+        id.textContent = String(block.ordinal).padStart(6, "0");
+        const card = document.createElement("section");
+        card.className = "block-card";
+        const title = document.createElement("h3");
+        title.className = "block-title";
+        title.textContent = block.title;
+        const body = document.createElement("p");
+        body.className = "block-body";
+        body.textContent = block.body;
+        const meta = document.createElement("div");
+        meta.className = "block-meta";
+        for (const value of block.metadata) {
+          const item = document.createElement("span");
+          item.className = "meta-item";
+          item.textContent = value;
+          meta.appendChild(item);
+        }
+        const tokens = document.createElement("div");
+        tokens.className = "token-strip";
+        for (let index = 0; index < scenario.rich_block_multiplier + 2; index += 1) {
+          const token = document.createElement("span");
+          token.className = "token-chip";
+          token.textContent = "token-" + (block.ordinal % 97) + "-" + index;
+          tokens.appendChild(token);
+        }
+        card.append(title, body, meta, tokens);
+        if (block.kind === "artifact_placeholder") {
+          const artifact = document.createElement("div");
+          artifact.className = "artifact-region";
+          artifact.textContent = "Synthetic artifact placeholder for " + block.block_id;
+          card.appendChild(artifact);
+        }
+        row.append(id, card);
+        return row;
+      }
+
+      function runInteraction(interactionType) {
+        if (interactionType === "typing_proxy") return runTypingProxy();
+        if (interactionType === "send_click_proxy") return runSendClickProxy();
+        if (interactionType === "dynamic_context_send_proxy") return runDynamicContextSendProxy();
+        throw new Error("unknown P5-Q R0q interaction: " + interactionType);
+      }
+
+      function publishSummary() {
+        metrics.timestamp = new Date().toISOString();
+        scenarioIdNode.textContent = "scenario_id=" + metrics.scenario_id;
+        visibleBlockCountNode.textContent = "visible_block_count=" + metrics.visible_block_count;
+        activeContextWindowNode.textContent = "active_context_window=" + metrics.active_context_window;
+        logicalBlockCountNode.textContent = "logical_block_count=" + metrics.logical_block_count;
+        renderedBlockCountNode.textContent = "rendered_block_count=" + metrics.rendered_block_count;
+        renderedDomNodeCountNode.textContent = "rendered_dom_node_count=" + metrics.rendered_dom_node_count;
+        workerProcessingMsNode.textContent =
+          "send_worker_processing_ms=" + metrics.send_worker_processing_ms.toFixed(3);
+        mainCommitMsNode.textContent = "send_main_commit_ms=" + metrics.send_main_commit_ms.toFixed(3);
+        dynamicContextMsNode.textContent =
+          "dynamic_context_send_proxy_ms=" + metrics.dynamic_context_send_proxy_ms.toFixed(3);
+        summaryJson.textContent = JSON.stringify(getSummary(), null, 2);
+        window.__P5Q_R0C_DYNAMIC_CONTEXT_SUMMARY__ = getSummary();
+      }
+
+      function getSummary() {
+        return { ...metrics };
+      }
+
+      function runLocalTypingProxy(label) {
+        let next = localChecksum;
+        for (let index = 0; index < 16 * scenario.rich_block_multiplier; index += 1) {
+          next = scanText(label + "|" + index, next);
+        }
+        localChecksum = next;
+      }
+
+      function recordInteractionDuration(durationMs) {
+        metrics.max_interaction_ms = Math.max(metrics.max_interaction_ms, durationMs);
+        recordMeasuredDuration(durationMs);
+      }
+
+      function recordMeasuredDuration(durationMs) {
+        if (durationMs >= LONG_TASK_50_MS) metrics.long_task_like_count_50ms_proxy += 1;
+        if (durationMs >= LONG_TASK_100_MS) metrics.long_task_like_count_100ms_proxy += 1;
+        if (durationMs >= LONG_TASK_200_MS) metrics.long_task_like_count_200ms_proxy += 1;
+      }
+
+      function countRichBlockNodes(block) {
+        return 7 + block.metadata.length + scenario.rich_block_multiplier + 2 + (block.kind === "artifact_placeholder" ? 1 : 0);
+      }
+
+      function scanText(text, seed) {
+        let next = seed;
+        for (let index = 0; index < text.length; index += 1) {
+          next = (next + text.charCodeAt(index) * (index + 1)) >>> 0;
+        }
+        return next;
+      }
+
+      function createRunId(scenarioId) {
+        return "p5q-r0c-" + scenarioId + "-" + Date.now().toString(36);
+      }
+
+      document.getElementById("typing-proxy-button").addEventListener("click", () => {
+        runTypingProxy().catch((error) => renderConfigError(error.message));
+      });
+      document.getElementById("send-click-proxy-button").addEventListener("click", () => {
+        runSendClickProxy().catch((error) => renderConfigError(error.message));
+      });
+      document.getElementById("dynamic-context-send-button").addEventListener("click", () => {
+        runDynamicContextSendProxy().catch((error) => renderConfigError(error.message));
+      });
+
+      window.P5Q_R0C_DYNAMIC_CONTEXT_STRESS = {
+        scenario,
+        getSummary,
+        runInteraction,
+        runTypingProxy,
+        runSendClickProxy,
+        runDynamicContextSendProxy,
+        availableScenarioIds: P5Q_R0_MATRIX.scenarios.map((entry) => entry.scenario_id)
+      };
+
+      initializeRuntime().catch((error) => renderConfigError(error.message));
+    </script>
+  </body>
+</html>
