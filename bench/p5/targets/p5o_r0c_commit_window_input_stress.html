@@ -1,0 +1,853 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>P5-O R0c Commit-Window Input Stress Target</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        line-height: 1.4;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: #f8f7fb;
+        color: #171717;
+      }
+
+      #status,
+      #controls {
+        position: sticky;
+        z-index: 2;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px 14px;
+        padding: 12px 16px;
+        border-bottom: 1px solid #e3def0;
+        background: rgba(248, 247, 251, 0.96);
+        font-size: 12px;
+      }
+
+      #status {
+        top: 0;
+      }
+
+      #controls {
+        top: 41px;
+        align-items: center;
+      }
+
+      button {
+        padding: 8px 12px;
+        border: 1px solid #514963;
+        border-radius: 4px;
+        background: #2c253a;
+        color: #ffffff;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      #typing-proxy-input {
+        min-width: 300px;
+        padding: 8px 10px;
+        border: 1px solid #cec6db;
+        background: #ffffff;
+        color: #171717;
+        font: inherit;
+      }
+
+      #summary-panel {
+        margin: 0;
+        padding: 12px 16px;
+        border-bottom: 1px solid #e3def0;
+        background: #ffffff;
+        font-size: 12px;
+      }
+
+      #p5o-r0c-summary-json {
+        margin: 8px 0 0;
+        white-space: pre-wrap;
+      }
+
+      #surface {
+        padding: 8px 16px 32px;
+      }
+
+      .block {
+        display: grid;
+        grid-template-columns: 128px 1fr;
+        gap: 16px;
+        padding: 8px 0;
+        border-bottom: 1px solid #e8e2f2;
+      }
+
+      .block-id {
+        color: #71677e;
+      }
+
+      .block-card {
+        display: grid;
+        gap: 6px;
+      }
+
+      .block-title {
+        margin: 0;
+        color: #181818;
+        font-size: 13px;
+      }
+
+      .block-body {
+        margin: 0;
+        color: #24231f;
+        white-space: pre-wrap;
+      }
+
+      .block-meta,
+      .token-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .meta-item,
+      .token-chip {
+        display: inline-block;
+        padding: 2px 6px;
+        border: 1px solid #dcd4ea;
+        border-radius: 4px;
+        background: #f2eef8;
+        color: #514963;
+        font-size: 11px;
+      }
+
+      .artifact-region {
+        padding: 6px 8px;
+        border: 1px dashed #b4a8c6;
+        background: #eee8f6;
+        color: #493f58;
+        font-size: 12px;
+      }
+
+      .config-error {
+        max-width: 900px;
+        margin: 32px auto;
+        padding: 16px;
+        border: 1px solid #b91c1c;
+        background: #fef2f2;
+        color: #7f1d1d;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="status">
+      <span id="scenario-id">scenario_id=unknown</span>
+      <span id="active-context-window">active_context_window=0</span>
+      <span id="logical-block-count">logical_block_count=0</span>
+      <span id="rendered-dom-node-count">rendered_dom_node_count=0</span>
+      <span id="commit-window-input-delay-ms">commit_window_input_delay_ms=0</span>
+      <span id="max-interaction-ms">max_interaction_ms=0</span>
+    </div>
+    <div id="controls">
+      <input id="typing-proxy-input" aria-label="typing proxy input" autocomplete="off" spellcheck="false">
+      <button id="typing-proxy-button" type="button">typing_proxy</button>
+      <button id="send-click-proxy-button" type="button">send_click_proxy</button>
+      <button id="commit-window-input-button" type="button">commit_window_input_during_send_proxy</button>
+    </div>
+    <section id="summary-panel" aria-label="P5-O R0c machine readable summary">
+      <strong>P5-O R0c commit-window worker/bounded-projection stress summary</strong>
+      <pre id="p5o-r0c-summary-json">{}</pre>
+    </section>
+    <main id="surface" aria-label="P5-O R0c commit-window bounded projection surface"></main>
+    <script>
+      const P5O_R0C_MATRIX = {
+        scenarios: [
+          { scenario_id: "p5d_v10000_rich_ctx_full_repeat3", visible_block_count: 10000, active_context_mode: "full", active_context_window: 10000, block_shape: "rich", rich_block_multiplier: 4, append_batch_size: 512, tail_mutation_count: 256, recall_probe_count: 256, artifact_placeholder_ratio: 0.03, send_click_repeat_count: 3 },
+          { scenario_id: "p5d_v25000_rich_ctx_medium_repeat3", visible_block_count: 25000, active_context_mode: "medium", active_context_window: 5000, block_shape: "rich", rich_block_multiplier: 4, append_batch_size: 1024, tail_mutation_count: 512, recall_probe_count: 512, artifact_placeholder_ratio: 0.03, send_click_repeat_count: 3 },
+          { scenario_id: "p5d_v25000_rich_ctx_full_repeat3", visible_block_count: 25000, active_context_mode: "full", active_context_window: 25000, block_shape: "rich", rich_block_multiplier: 4, append_batch_size: 1024, tail_mutation_count: 512, recall_probe_count: 512, artifact_placeholder_ratio: 0.03, send_click_repeat_count: 3 },
+          { scenario_id: "p5d_v50000_rich_ctx_medium_repeat2", visible_block_count: 50000, active_context_mode: "medium", active_context_window: 5000, block_shape: "rich", rich_block_multiplier: 4, append_batch_size: 2048, tail_mutation_count: 768, recall_probe_count: 768, artifact_placeholder_ratio: 0.03, send_click_repeat_count: 2 },
+          { scenario_id: "p5d_v50000_rich_ctx_full_repeat2", visible_block_count: 50000, active_context_mode: "full", active_context_window: 50000, block_shape: "rich", rich_block_multiplier: 4, append_batch_size: 2048, tail_mutation_count: 768, recall_probe_count: 768, artifact_placeholder_ratio: 0.03, send_click_repeat_count: 2 }
+        ]
+      };
+
+      const DEFAULT_SCENARIO_ID = "p5d_v10000_rich_ctx_full_repeat3";
+      const BASELINE_VARIANT = "r0c_worker_bounded_projection_compact_context_commit_window_input";
+      const VISIBLE_WINDOW_SIZE = 300;
+      const LONG_TASK_50_MS = 50;
+      const LONG_TASK_100_MS = 100;
+      const LONG_TASK_200_MS = 200;
+
+      const surface = document.getElementById("surface");
+      const summaryJson = document.getElementById("p5o-r0c-summary-json");
+      const typingInput = document.getElementById("typing-proxy-input");
+      const scenario = resolveScenario();
+      const pendingWorkerRequests = new Map();
+      let requestOrdinal = 0;
+      let runtimeWorker = null;
+      let checksum = 0;
+
+      const metrics = {
+        scenario_id: scenario.scenario_id,
+        visible_block_count: scenario.visible_block_count,
+        active_context_mode: scenario.active_context_mode,
+        active_context_window: scenario.active_context_window,
+        block_shape: scenario.block_shape,
+        rich_block_multiplier: scenario.rich_block_multiplier,
+        send_click_repeat_count: scenario.send_click_repeat_count,
+        baseline_variant: BASELINE_VARIANT,
+        initial_render_ms: 0,
+        dom_node_count: 0,
+        rendered_dom_node_count: 0,
+        logical_block_count: 0,
+        rendered_block_count: 0,
+        typing_proxy_ms: 0,
+        send_click_proxy_ms: 0,
+        commit_window_input_during_send_proxy_ms: 0,
+        commit_window_input_delay_ms: 0,
+        commit_window_input_scheduled_at_ms: 0,
+        commit_window_input_started_at_ms: 0,
+        commit_window_typing_proxy_ms: 0,
+        commit_window_send_work_ms: 0,
+        commit_window_total_proxy_ms: 0,
+        commit_window_main_commit_ms: 0,
+        max_commit_window_input_delay_ms: 0,
+        max_commit_window_main_commit_ms: 0,
+        max_interaction_ms: 0,
+        long_task_like_count_50ms_proxy: 0,
+        long_task_like_count_100ms_proxy: 0,
+        long_task_like_count_200ms_proxy: 0,
+        active_context_scan_mode: "compact_checksum_index",
+        dynamic_active_context_update_mode: "static_initial_active_context",
+        active_context_entries_visited: 0,
+        send_active_context_entries_visited: 0,
+        active_context_compact_index_size: 0,
+        active_context_compact_scan_units: 0,
+        compact_checksum_mode: "numeric_precomputed_weight",
+        compact_index_build_ms: 0,
+        send_active_context_compact_scan_ms: 0,
+        active_context_traversal_ms: 0,
+        tail_mutation_ms: 0,
+        append_commit_ms: 0,
+        send_worker_processing_ms: 0,
+        send_worker_active_context_traversal_ms: 0,
+        send_worker_roundtrip_minus_processing_ms: 0,
+        send_worker_tail_mutation_ms: 0,
+        send_worker_append_ms: 0,
+        send_main_commit_ms: 0,
+        send_projection_payload_estimated_bytes: 0,
+        commit_window_worker_send_processing_ms: 0,
+        commit_window_worker_roundtrip_minus_processing_ms: 0,
+        visible_window_size: VISIBLE_WINDOW_SIZE,
+        timestamp: "",
+        run_id: createRunId(scenario.scenario_id)
+      };
+
+      function resolveScenario() {
+        const params = new URLSearchParams(window.location.search);
+        const requestedScenarioId = params.get("scenario_id") || DEFAULT_SCENARIO_ID;
+        const found = P5O_R0C_MATRIX.scenarios.find((entry) => entry.scenario_id === requestedScenarioId);
+        if (found) return found;
+        renderConfigError(`invalid scenario_id=${requestedScenarioId}`);
+        throw new Error(`invalid scenario_id: ${requestedScenarioId}`);
+      }
+
+      function renderConfigError(message) {
+        const panel = document.createElement("main");
+        panel.className = "config-error";
+        panel.textContent = `P5-O R0c configuration error: ${message}`;
+        document.body.replaceChildren(panel);
+      }
+
+      function createRuntimeWorker() {
+        const workerSource = `
+          let scenario = null;
+          let visibleWindowSize = 300;
+          let logicalBlocks = [];
+          let logicalBlockById = new Map();
+          let activeContextIndex = [];
+          let activeContextCompactScanUnits = 0;
+          let compactIndexBuildMs = 0;
+          let appendStream = [];
+          let tailMutations = [];
+          let checksum = 0;
+          let sendRunCount = 0;
+          let sessionVersion = 0;
+          let resultVersion = 0;
+
+          self.onmessage = (event) => {
+            const request = event.data;
+            try {
+              const response = handleRuntimeMessage(request);
+              self.postMessage({ request_id: request.request_id, ok: true, ...response });
+            } catch (error) {
+              self.postMessage({ request_id: request.request_id, ok: false, error: error && error.message ? error.message : String(error) });
+            }
+          };
+
+          function handleRuntimeMessage(request) {
+            if (request.type === "init_scenario") return initScenario(request.scenario, request.visible_window_size);
+            if (request.type === "typing_proxy") return runTypingProxy();
+            if (request.type === "send_click_proxy") return runSendClickProxy();
+            throw new Error("unknown worker runtime op: " + request.type);
+          }
+
+          function initScenario(input, requestedWindowSize) {
+            const startMs = performance.now();
+            scenario = input;
+            visibleWindowSize = requestedWindowSize;
+            const workload = generateStressWorkload(input);
+            logicalBlocks = workload.blocks.slice();
+            logicalBlockById = new Map(logicalBlocks.map((block) => [block.block_id, block]));
+            activeContextIndex = workload.active_context_index.slice();
+            activeContextCompactScanUnits = workload.active_context_compact_scan_units;
+            compactIndexBuildMs = workload.compact_index_build_ms;
+            appendStream = workload.append_stream.slice();
+            tailMutations = workload.tail_mutations.slice();
+            checksum = 0;
+            sendRunCount = 0;
+            sessionVersion = 0;
+            resultVersion = 0;
+            const transaction = createProjectedCommit("init_scenario", "tail");
+            return { type: "init_scenario_result", transaction, worker_processing_ms: performance.now() - startMs, ...baseRuntimeMetrics(transaction) };
+          }
+
+          function runTypingProxy() {
+            const startMs = performance.now();
+            let localChecksum = checksum;
+            const iterations = 24 * scenario.rich_block_multiplier;
+            for (let index = 0; index < iterations; index += 1) {
+              const block = logicalBlocks[(logicalBlocks.length - 1 - index + logicalBlocks.length) % logicalBlocks.length];
+              localChecksum = scanText("synthetic commit-window typing proxy " + index + "|" + block.synthetic_key + "|" + block.body, localChecksum);
+            }
+            checksum = localChecksum;
+            return { type: "typing_proxy_result", worker_processing_ms: performance.now() - startMs, ...baseRuntimeMetrics(null) };
+          }
+
+          function runSendClickProxy() {
+            const startMs = performance.now();
+            let activeContextMs = 0;
+            let activeContextEntriesVisited = 0;
+            let tailMutationMs = 0;
+            let appendMs = 0;
+            for (let repeat = 0; repeat < scenario.send_click_repeat_count; repeat += 1) {
+              sendRunCount += 1;
+              const traversalStartMs = performance.now();
+              let localChecksum = checksum;
+              for (const entry of activeContextIndex) {
+                activeContextEntriesVisited += 1;
+                localChecksum = combineCompactContextEntry(entry, localChecksum, repeat);
+              }
+              activeContextMs += performance.now() - traversalStartMs;
+              const mutationStartMs = performance.now();
+              for (const mutation of tailMutations) {
+                const block = logicalBlockById.get(mutation.block_id);
+                if (!block) continue;
+                block.title = mutation.replacement_title + " r" + repeat;
+                block.body = mutation.replacement_body + " r" + repeat;
+                block.metadata = mutation.replacement_metadata.map((value) => value + ":r" + repeat);
+                localChecksum = scanText(block.title + "|" + block.body, localChecksum);
+              }
+              tailMutationMs += performance.now() - mutationStartMs;
+              const appendStartMs = performance.now();
+              for (const append of appendStream) {
+                const appendedBlock = {
+                  block_id: append.append_id + "-run-" + sendRunCount,
+                  ordinal: append.ordinal + ((sendRunCount - 1) * appendStream.length),
+                  kind: append.kind,
+                  synthetic_key: append.synthetic_key + "-run-" + sendRunCount,
+                  title: append.title + " run " + sendRunCount,
+                  body: append.body,
+                  metadata: append.metadata.slice()
+                };
+                logicalBlocks.push(appendedBlock);
+                logicalBlockById.set(appendedBlock.block_id, appendedBlock);
+                localChecksum = scanText(append.title + "|" + append.body, localChecksum);
+              }
+              appendMs += performance.now() - appendStartMs;
+              checksum = localChecksum;
+              sessionVersion += 1;
+            }
+            const transaction = createProjectedCommit("send_click_proxy", "tail");
+            return {
+              type: "send_click_proxy_result",
+              transaction,
+              worker_processing_ms: performance.now() - startMs,
+              worker_active_context_traversal_ms: activeContextMs,
+              worker_active_context_compact_scan_ms: activeContextMs,
+              worker_active_context_entries_visited: activeContextEntriesVisited,
+              worker_tail_mutation_ms: tailMutationMs,
+              worker_append_ms: appendMs,
+              ...baseRuntimeMetrics(transaction)
+            };
+          }
+
+          function createProjectedCommit(operation, anchorKind) {
+            const projection = buildBoundedProjection(anchorKind);
+            return { txn_id: "txn-" + projection.result_version, operation, anchor_kind: anchorKind, projection };
+          }
+
+          function buildBoundedProjection(anchorKind) {
+            const startMs = performance.now();
+            const startIndex = anchorKind === "old_history"
+              ? Math.max(0, Math.floor(scenario.visible_block_count * 0.1) - Math.floor(visibleWindowSize / 2))
+              : Math.max(0, logicalBlocks.length - visibleWindowSize);
+            const endIndex = Math.min(logicalBlocks.length, startIndex + visibleWindowSize);
+            const blocks = [];
+            let estimatedBytes = 0;
+            for (let index = startIndex; index < endIndex; index += 1) {
+              const block = logicalBlocks[index];
+              estimatedBytes += estimateProjectionPayloadBytes(block);
+              blocks.push({ ...block });
+            }
+            return {
+              projection_id: "projection-" + resultVersion,
+              session_version: sessionVersion,
+              result_version: resultVersion++,
+              anchor_kind: anchorKind,
+              blocks,
+              projection_block_count: blocks.length,
+              projection_payload_block_count: blocks.length,
+              projection_payload_estimated_bytes: estimatedBytes,
+              logical_block_count: logicalBlocks.length,
+              visible_window_size: visibleWindowSize,
+              worker_projection_ms: performance.now() - startMs
+            };
+          }
+
+          function baseRuntimeMetrics(transaction) {
+            const projection = transaction ? transaction.projection : null;
+            return {
+              worker_projection_ms: projection ? projection.worker_projection_ms : 0,
+              projection_payload_block_count: projection ? projection.projection_payload_block_count : 0,
+              projection_payload_estimated_bytes: projection ? projection.projection_payload_estimated_bytes : 0,
+              active_context_scan_mode: "compact_checksum_index",
+              dynamic_active_context_update_mode: "static_initial_active_context",
+              active_context_compact_index_size: activeContextIndex.length,
+              active_context_compact_scan_units: activeContextCompactScanUnits,
+              compact_checksum_mode: "numeric_precomputed_weight",
+              compact_index_build_ms: compactIndexBuildMs,
+              logical_block_count: logicalBlocks.length,
+              projection_block_count: projection ? projection.blocks.length : 0
+            };
+          }
+
+          function estimateProjectionPayloadBytes(block) {
+            return block.synthetic_key.length + block.title.length + block.body.length + block.metadata.join("|").length;
+          }
+
+          function generateStressWorkload(input) {
+            const artifactOrdinals = buildArtifactOrdinalSet(input.visible_block_count, input.artifact_placeholder_ratio);
+            const activeContextStartOrdinal = input.visible_block_count - input.active_context_window + 1;
+            const blocks = [];
+            for (let ordinal = 1; ordinal <= input.visible_block_count; ordinal += 1) {
+              blocks.push({
+                block_id: formatId("block", ordinal),
+                ordinal,
+                kind: artifactOrdinals.has(ordinal) ? "artifact_placeholder" : "message",
+                synthetic_key: "stress-key-" + String(ordinal).padStart(6, "0"),
+                title: "Synthetic stress block " + String(ordinal).padStart(6, "0"),
+                body: repeatedBody(ordinal, input.rich_block_multiplier),
+                metadata: buildMetadata(ordinal, input.rich_block_multiplier)
+              });
+            }
+            const compactIndexStartMs = performance.now();
+            const activeContextIndex = blocks
+              .filter((block) => block.ordinal >= activeContextStartOrdinal)
+              .map((block, index) => buildCompactContextEntry(block, index));
+            return {
+              blocks,
+              active_context_index: activeContextIndex,
+              active_context_compact_scan_units: activeContextIndex.reduce((total, entry) => total + entry.compact_scan_units, 0),
+              compact_index_build_ms: performance.now() - compactIndexStartMs,
+              append_stream: buildAppendStream(input),
+              tail_mutations: buildTailMutations(input)
+            };
+          }
+
+          function buildCompactContextEntry(block, contextIndex) {
+            const compact_checksum = compactChecksumForParts([block.synthetic_key, block.title, block.body, ...block.metadata]);
+            const compact_metadata_weight = compactChecksumForParts(block.metadata);
+            const compact_scan_units = block.synthetic_key.length + block.title.length + block.body.length + block.metadata.reduce((total, value) => total + value.length, 0);
+            return {
+              context_index: contextIndex,
+              block_id: block.block_id,
+              ordinal: block.ordinal,
+              compact_checksum,
+              compact_metadata_weight,
+              compact_entry_weight: (compact_checksum ^ compact_metadata_weight ^ compact_scan_units ^ block.ordinal) >>> 0,
+              compact_scan_units
+            };
+          }
+
+          function combineCompactContextEntry(entry, seed, repeat) {
+            return (seed + entry.compact_checksum + entry.compact_metadata_weight + entry.compact_entry_weight + entry.compact_scan_units + repeat) >>> 0;
+          }
+
+          function buildAppendStream(input) {
+            const stream = [];
+            for (let index = 1; index <= input.append_batch_size; index += 1) {
+              const ordinal = input.visible_block_count + index;
+              stream.push({
+                append_id: formatId("append", index),
+                ordinal,
+                kind: "stream_append",
+                synthetic_key: "append-stress-key-" + String(index).padStart(6, "0"),
+                title: "Synthetic appended stress block " + String(index).padStart(6, "0"),
+                body: repeatedBody(ordinal, input.rich_block_multiplier),
+                metadata: buildMetadata(ordinal, input.rich_block_multiplier)
+              });
+            }
+            return stream;
+          }
+
+          function buildTailMutations(input) {
+            const mutations = [];
+            const tailStart = input.visible_block_count - input.tail_mutation_count + 1;
+            for (let ordinal = tailStart; ordinal <= input.visible_block_count; ordinal += 1) {
+              const mutationOrdinal = ordinal - tailStart + 1;
+              mutations.push({
+                block_id: formatId("block", ordinal),
+                ordinal,
+                replacement_title: "Synthetic updated stress block " + String(mutationOrdinal).padStart(6, "0"),
+                replacement_body: repeatedBody(ordinal + mutationOrdinal, input.rich_block_multiplier),
+                replacement_metadata: buildMetadata(ordinal + mutationOrdinal, input.rich_block_multiplier)
+              });
+            }
+            return mutations;
+          }
+
+          function repeatedBody(ordinal, multiplier) {
+            const parts = [];
+            for (let index = 0; index < multiplier; index += 1) parts.push("body-unit=" + (ordinal % 997) + ":" + index + ":" + ((ordinal + index) % 37));
+            return "Synthetic rich block body " + ordinal + ". " + parts.join(" | ");
+          }
+
+          function buildMetadata(ordinal, multiplier) {
+            const metadata = [];
+            for (let index = 0; index < multiplier + 2; index += 1) metadata.push("m" + index + ":" + ((ordinal * (index + 3)) % 1009));
+            return metadata;
+          }
+
+          function buildArtifactOrdinalSet(visibleBlockCount, ratio) {
+            const count = Math.floor(visibleBlockCount * ratio);
+            const ordinals = new Set();
+            for (let index = 1; index <= count; index += 1) ordinals.add(Math.floor((index * visibleBlockCount) / (count + 1)) + 1);
+            return ordinals;
+          }
+
+          function scanText(text, seed) {
+            let next = seed;
+            for (let index = 0; index < text.length; index += 1) next = (next + text.charCodeAt(index) * (index + 1)) >>> 0;
+            return next;
+          }
+
+          function compactChecksumForParts(parts) {
+            let next = 0;
+            for (const part of parts) next = scanText(String(part), next);
+            return next >>> 0;
+          }
+
+          function formatId(prefix, ordinal) {
+            return prefix + "-" + String(ordinal).padStart(6, "0");
+          }
+        `;
+        const blob = new Blob([workerSource], { type: "text/javascript" });
+        const worker = new Worker(URL.createObjectURL(blob));
+        worker.onmessage = (event) => {
+          const response = event.data;
+          const pending = pendingWorkerRequests.get(response.request_id);
+          if (!pending) return;
+          pendingWorkerRequests.delete(response.request_id);
+          const roundtripMs = performance.now() - pending.start_ms;
+          if (!response.ok) {
+            pending.reject(new Error(response.error || "worker runtime error"));
+            return;
+          }
+          pending.resolve({ ...response, worker_roundtrip_ms: roundtripMs });
+        };
+        return worker;
+      }
+
+      function postRuntimeOp(type, payload = {}) {
+        const requestId = `request-${++requestOrdinal}`;
+        return new Promise((resolve, reject) => {
+          pendingWorkerRequests.set(requestId, { resolve, reject, start_ms: performance.now() });
+          runtimeWorker.postMessage({ request_id: requestId, type, ...payload });
+        });
+      }
+
+      async function initializeRuntime() {
+        runtimeWorker = createRuntimeWorker();
+        const startMs = performance.now();
+        const response = await postRuntimeOp("init_scenario", { scenario, visible_window_size: VISIBLE_WINDOW_SIZE });
+        const commitMs = commitProjectionTransaction(response.transaction);
+        applyWorkerMetrics(response);
+        metrics.initial_render_ms = performance.now() - startMs;
+        recordMeasuredDuration(metrics.initial_render_ms);
+        recordMeasuredDuration(commitMs);
+        publishSummary();
+      }
+
+      async function runTypingProxy() {
+        const startMs = performance.now();
+        typingInput.value = `synthetic stress typing proxy ${Date.now().toString(36)}`;
+        await postRuntimeOp("typing_proxy");
+        metrics.typing_proxy_ms = performance.now() - startMs;
+        recordInteractionDuration(metrics.typing_proxy_ms);
+        publishSummary();
+        return getSummary();
+      }
+
+      async function runSendClickProxy(options = {}) {
+        const startMs = performance.now();
+        const response = await postRuntimeOp("send_click_proxy");
+        const commitMs = commitProjectionTransaction(response.transaction);
+        applyWorkerMetrics(response);
+        applySendMetrics(response, commitMs);
+        metrics.send_click_proxy_ms = performance.now() - startMs;
+        recordMeasuredDuration(metrics.send_worker_active_context_traversal_ms);
+        recordMeasuredDuration(metrics.send_worker_tail_mutation_ms);
+        recordMeasuredDuration(metrics.send_worker_append_ms);
+        recordMeasuredDuration(commitMs);
+        recordInteractionDuration(metrics.send_click_proxy_ms);
+        if (options.publish !== false) publishSummary();
+        return getSummary();
+      }
+
+      async function runCommitWindowInputDuringSendProxy() {
+        const startMs = performance.now();
+        resetCommitWindowMetrics();
+        const sendStartMs = performance.now();
+        const response = await postRuntimeOp("send_click_proxy");
+        const inputTask = scheduleCommitWindowInputTask();
+        const commitMs = commitProjectionTransaction(response.transaction);
+        metrics.commit_window_send_work_ms = performance.now() - sendStartMs;
+        metrics.send_click_proxy_ms = metrics.commit_window_send_work_ms;
+        await inputTask;
+        applyWorkerMetrics(response);
+        applySendMetrics(response, commitMs);
+        metrics.commit_window_main_commit_ms = commitMs;
+        metrics.max_commit_window_main_commit_ms = commitMs;
+        metrics.commit_window_worker_send_processing_ms = response.worker_processing_ms || 0;
+        metrics.commit_window_worker_roundtrip_minus_processing_ms = roundtripMinusProcessing(
+          response.worker_roundtrip_ms || 0,
+          response.worker_processing_ms || 0
+        );
+        metrics.commit_window_input_during_send_proxy_ms = performance.now() - startMs;
+        metrics.commit_window_total_proxy_ms = metrics.commit_window_input_during_send_proxy_ms;
+        recordMeasuredDuration(metrics.send_worker_active_context_traversal_ms);
+        recordMeasuredDuration(metrics.send_worker_tail_mutation_ms);
+        recordMeasuredDuration(metrics.send_worker_append_ms);
+        recordMeasuredDuration(commitMs);
+        recordInteractionDuration(metrics.commit_window_input_during_send_proxy_ms);
+        publishSummary();
+        return getSummary();
+      }
+
+      function scheduleCommitWindowInputTask() {
+        metrics.commit_window_input_scheduled_at_ms = performance.now();
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            metrics.commit_window_input_started_at_ms = performance.now();
+            const typingStartMs = performance.now();
+            runLocalTypingProxy("commit_window_input_during_send_proxy");
+            metrics.commit_window_typing_proxy_ms = performance.now() - typingStartMs;
+            metrics.commit_window_input_delay_ms =
+              metrics.commit_window_input_started_at_ms - metrics.commit_window_input_scheduled_at_ms;
+            metrics.max_commit_window_input_delay_ms = metrics.commit_window_input_delay_ms;
+            resolve();
+          }, 0);
+        });
+      }
+
+      function runLocalTypingProxy(label) {
+        let localChecksum = checksum;
+        const iterations = 24 * scenario.rich_block_multiplier;
+        for (let index = 0; index < iterations; index += 1) {
+          typingInput.value = `synthetic ${label} ${index}`;
+          localChecksum = (localChecksum + typingInput.value.length + index) >>> 0;
+        }
+        checksum = localChecksum;
+      }
+
+      function commitProjectionTransaction(transaction) {
+        if (!transaction || !transaction.projection) return 0;
+        const startMs = performance.now();
+        const fragment = document.createDocumentFragment();
+        let renderedNodeCount = 0;
+        for (const block of transaction.projection.blocks) {
+          const entry = createRichBlockEntry(block);
+          renderedNodeCount += countRichBlockNodes(block);
+          fragment.appendChild(entry.row);
+        }
+        surface.replaceChildren(fragment);
+        const durationMs = performance.now() - startMs;
+        metrics.logical_block_count = transaction.projection.logical_block_count;
+        metrics.rendered_block_count = transaction.projection.blocks.length;
+        metrics.rendered_dom_node_count = renderedNodeCount;
+        metrics.dom_node_count = renderedNodeCount;
+        return durationMs;
+      }
+
+      function createRichBlockEntry(block) {
+        const row = document.createElement("article");
+        row.className = "block";
+        const id = document.createElement("span");
+        id.className = "block-id";
+        id.textContent = String(block.ordinal).padStart(6, "0");
+        const card = document.createElement("section");
+        card.className = "block-card";
+        const title = document.createElement("h3");
+        title.className = "block-title";
+        title.textContent = block.title;
+        const body = document.createElement("p");
+        body.className = "block-body";
+        body.textContent = block.body;
+        const meta = document.createElement("div");
+        meta.className = "block-meta";
+        for (const value of block.metadata) {
+          const item = document.createElement("span");
+          item.className = "meta-item";
+          item.textContent = value;
+          meta.appendChild(item);
+        }
+        const tokens = document.createElement("div");
+        tokens.className = "token-strip";
+        for (let index = 0; index < scenario.rich_block_multiplier + 2; index += 1) {
+          const token = document.createElement("span");
+          token.className = "token-chip";
+          token.textContent = `token-${block.ordinal % 97}-${index}`;
+          tokens.appendChild(token);
+        }
+        card.append(title, body, meta, tokens);
+        if (block.kind === "artifact_placeholder") {
+          const artifact = document.createElement("div");
+          artifact.className = "artifact-region";
+          artifact.textContent = `Synthetic artifact placeholder for ${block.block_id}`;
+          card.appendChild(artifact);
+        }
+        row.append(id, card);
+        return { row };
+      }
+
+      function applyWorkerMetrics(response) {
+        metrics.logical_block_count = response.logical_block_count || metrics.logical_block_count;
+        metrics.active_context_scan_mode = response.active_context_scan_mode || metrics.active_context_scan_mode;
+        metrics.dynamic_active_context_update_mode =
+          response.dynamic_active_context_update_mode || metrics.dynamic_active_context_update_mode;
+        metrics.active_context_compact_index_size =
+          response.active_context_compact_index_size || metrics.active_context_compact_index_size;
+        metrics.active_context_compact_scan_units =
+          response.active_context_compact_scan_units || metrics.active_context_compact_scan_units;
+        metrics.compact_checksum_mode = response.compact_checksum_mode || metrics.compact_checksum_mode;
+        metrics.compact_index_build_ms = response.compact_index_build_ms || metrics.compact_index_build_ms;
+      }
+
+      function applySendMetrics(response, commitMs) {
+        metrics.send_worker_processing_ms = response.worker_processing_ms || 0;
+        metrics.send_worker_active_context_traversal_ms = response.worker_active_context_traversal_ms || 0;
+        metrics.send_active_context_compact_scan_ms = response.worker_active_context_compact_scan_ms || 0;
+        metrics.send_worker_roundtrip_minus_processing_ms = roundtripMinusProcessing(
+          response.worker_roundtrip_ms || 0,
+          response.worker_processing_ms || 0
+        );
+        metrics.send_worker_tail_mutation_ms = response.worker_tail_mutation_ms || 0;
+        metrics.send_worker_append_ms = response.worker_append_ms || 0;
+        metrics.send_main_commit_ms = commitMs;
+        metrics.send_projection_payload_estimated_bytes = response.projection_payload_estimated_bytes || 0;
+        metrics.active_context_entries_visited = response.worker_active_context_entries_visited || 0;
+        metrics.send_active_context_entries_visited = metrics.active_context_entries_visited;
+        metrics.active_context_traversal_ms = metrics.send_worker_active_context_traversal_ms;
+        metrics.tail_mutation_ms = metrics.send_worker_tail_mutation_ms;
+        metrics.append_commit_ms = metrics.send_worker_append_ms;
+      }
+
+      function resetCommitWindowMetrics() {
+        metrics.commit_window_input_during_send_proxy_ms = 0;
+        metrics.commit_window_input_delay_ms = 0;
+        metrics.commit_window_input_scheduled_at_ms = 0;
+        metrics.commit_window_input_started_at_ms = 0;
+        metrics.commit_window_typing_proxy_ms = 0;
+        metrics.commit_window_send_work_ms = 0;
+        metrics.commit_window_total_proxy_ms = 0;
+        metrics.commit_window_main_commit_ms = 0;
+        metrics.max_commit_window_input_delay_ms = 0;
+        metrics.max_commit_window_main_commit_ms = 0;
+        metrics.commit_window_worker_send_processing_ms = 0;
+        metrics.commit_window_worker_roundtrip_minus_processing_ms = 0;
+      }
+
+      function runInteraction(interactionType) {
+        if (interactionType === "typing_proxy") return runTypingProxy();
+        if (interactionType === "send_click_proxy") return runSendClickProxy();
+        if (interactionType === "commit_window_input_during_send_proxy") return runCommitWindowInputDuringSendProxy();
+        throw new Error(`unknown P5-O R0c interaction: ${interactionType}`);
+      }
+
+      function publishSummary() {
+        metrics.timestamp = new Date().toISOString();
+        document.getElementById("scenario-id").textContent = `scenario_id=${metrics.scenario_id}`;
+        document.getElementById("active-context-window").textContent = `active_context_window=${metrics.active_context_window}`;
+        document.getElementById("logical-block-count").textContent = `logical_block_count=${metrics.logical_block_count}`;
+        document.getElementById("rendered-dom-node-count").textContent = `rendered_dom_node_count=${metrics.rendered_dom_node_count}`;
+        document.getElementById("commit-window-input-delay-ms").textContent =
+          `commit_window_input_delay_ms=${metrics.commit_window_input_delay_ms.toFixed(3)}`;
+        document.getElementById("max-interaction-ms").textContent = `max_interaction_ms=${metrics.max_interaction_ms.toFixed(3)}`;
+        summaryJson.textContent = JSON.stringify(getSummary(), null, 2);
+        window.__P5O_R0C_COMMIT_WINDOW_SUMMARY__ = getSummary();
+      }
+
+      function getSummary() {
+        return { ...metrics };
+      }
+
+      function recordInteractionDuration(durationMs) {
+        metrics.max_interaction_ms = Math.max(metrics.max_interaction_ms, durationMs);
+        recordMeasuredDuration(durationMs);
+      }
+
+      function recordMeasuredDuration(durationMs) {
+        if (durationMs >= LONG_TASK_50_MS) metrics.long_task_like_count_50ms_proxy += 1;
+        if (durationMs >= LONG_TASK_100_MS) metrics.long_task_like_count_100ms_proxy += 1;
+        if (durationMs >= LONG_TASK_200_MS) metrics.long_task_like_count_200ms_proxy += 1;
+      }
+
+      function roundtripMinusProcessing(roundtripMs, processingMs) {
+        return Math.max(0, roundtripMs - processingMs);
+      }
+
+      function countRichBlockNodes(block) {
+        return 7 + block.metadata.length + scenario.rich_block_multiplier + 2 + (block.kind === "artifact_placeholder" ? 1 : 0);
+      }
+
+      function createRunId(scenarioId) {
+        return `p5o-r0c-${scenarioId}-${Date.now().toString(36)}`;
+      }
+
+      document.getElementById("typing-proxy-button").addEventListener("click", () => {
+        runTypingProxy().catch((error) => renderConfigError(error.message));
+      });
+      document.getElementById("send-click-proxy-button").addEventListener("click", () => {
+        runSendClickProxy().catch((error) => renderConfigError(error.message));
+      });
+      document.getElementById("commit-window-input-button").addEventListener("click", () => {
+        runCommitWindowInputDuringSendProxy().catch((error) => renderConfigError(error.message));
+      });
+
+      window.P5O_R0C_COMMIT_WINDOW_INPUT_STRESS = {
+        scenario,
+        getSummary,
+        runInteraction,
+        runTypingProxy,
+        runSendClickProxy,
+        runCommitWindowInputDuringSendProxy,
+        availableScenarioIds: P5O_R0C_MATRIX.scenarios.map((entry) => entry.scenario_id)
+      };
+
+      initializeRuntime().catch((error) => renderConfigError(error.message));
+    </script>
+  </body>
+</html>
