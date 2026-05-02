@@ -1,0 +1,1060 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>P5-X R0x Product Trace Shaped Stress</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f7fa;
+      color: #17202a;
+    }
+    body {
+      margin: 0;
+    }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      display: grid;
+      gap: 8px;
+      padding: 12px 16px;
+      border-bottom: 1px solid #cfd7e3;
+      background: #ffffff;
+    }
+    .metrics,
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .metrics span {
+      padding: 4px 7px;
+      border: 1px solid #d8e0ea;
+      border-radius: 6px;
+      background: #f8fafc;
+      font-size: 12px;
+    }
+    button {
+      min-height: 32px;
+      padding: 6px 10px;
+      border: 1px solid #8fa1b7;
+      border-radius: 6px;
+      background: #ffffff;
+      color: #17202a;
+      font: inherit;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #eef4fb;
+    }
+    #summary-panel {
+      display: grid;
+      gap: 6px;
+      padding: 12px 16px;
+      border-bottom: 1px solid #d8e0ea;
+      background: #ffffff;
+    }
+    #p5x-r0c-summary-json {
+      max-height: 260px;
+      overflow: auto;
+      margin: 0;
+      padding: 10px;
+      border: 1px solid #d8e0ea;
+      border-radius: 6px;
+      background: #0f172a;
+      color: #dbeafe;
+      font-size: 12px;
+      line-height: 1.4;
+      white-space: pre-wrap;
+    }
+    #surface {
+      display: grid;
+      gap: 8px;
+      padding: 16px;
+    }
+    .block-row {
+      display: grid;
+      grid-template-columns: 92px minmax(0, 1fr);
+      gap: 8px;
+      align-items: start;
+    }
+    .block-id {
+      color: #526172;
+      font-size: 12px;
+      line-height: 1.3;
+      word-break: break-all;
+    }
+    .block-card {
+      border: 1px solid #d8e0ea;
+      border-radius: 6px;
+      background: #ffffff;
+      padding: 8px;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+    }
+    .block-title {
+      font-weight: 650;
+      font-size: 13px;
+      margin-bottom: 5px;
+    }
+    .block-body {
+      color: #243449;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+    .metadata {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 6px;
+    }
+    .metadata span,
+    .tokens span {
+      border-radius: 5px;
+      background: #edf2f7;
+      padding: 2px 5px;
+      font-size: 11px;
+      color: #334155;
+    }
+    .tokens {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 6px;
+    }
+    .artifact {
+      margin-top: 6px;
+      padding: 6px;
+      border-left: 3px solid #64748b;
+      background: #f8fafc;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="metrics">
+      <span id="scenario-id">scenario_id=unknown</span>
+      <span id="logical-count">logical_block_count=0</span>
+      <span id="rendered-count">rendered_block_count=0</span>
+      <span id="active-context-window">active_context_window=0</span>
+      <span id="stream-events">trace_events_processed=0</span>
+      <span id="concurrent-delay">concurrent_product_trace_input_delay_ms=0</span>
+    </div>
+    <div class="controls">
+      <button id="typing-proxy-button" type="button">typing_proxy</button>
+      <button id="product-trace-shaped-button" type="button">product_trace_shaped_proxy</button>
+      <button id="concurrent-product-trace-button" type="button">concurrent_input_during_product_trace_proxy</button>
+    </div>
+  </header>
+  <section id="summary-panel">
+    <strong>P5-X R0x product-trace-shaped worker summary</strong>
+    <pre id="p5x-r0c-summary-json">initializing</pre>
+  </section>
+  <main id="surface" aria-label="P5-X R0x product-trace-shaped surface"></main>
+  <script>
+    (() => {
+      const P5D_SCENARIOS = [
+        { scenario_id: "p5d_v10000_rich_ctx_full_repeat3", visible_block_count: 10000, active_context_mode: "full", active_context_window: 10000, block_shape: "rich", rich_block_multiplier: 4, append_batch_size: 512, tail_mutation_count: 256, recall_probe_count: 256, artifact_placeholder_ratio: 0.03, send_click_repeat_count: 3, interactions: ["typing_proxy", "send_click_proxy", "scroll_jump_return"] },
+        { scenario_id: "p5d_v25000_rich_ctx_medium_repeat3", visible_block_count: 25000, active_context_mode: "medium", active_context_window: 5000, block_shape: "rich", rich_block_multiplier: 4, append_batch_size: 1024, tail_mutation_count: 512, recall_probe_count: 512, artifact_placeholder_ratio: 0.03, send_click_repeat_count: 3, interactions: ["typing_proxy", "send_click_proxy", "scroll_jump_return"] },
+        { scenario_id: "p5d_v25000_rich_ctx_full_repeat3", visible_block_count: 25000, active_context_mode: "full", active_context_window: 25000, block_shape: "rich", rich_block_multiplier: 4, append_batch_size: 1024, tail_mutation_count: 512, recall_probe_count: 512, artifact_placeholder_ratio: 0.03, send_click_repeat_count: 3, interactions: ["typing_proxy", "send_click_proxy", "scroll_jump_return"] },
+        { scenario_id: "p5d_v50000_rich_ctx_medium_repeat2", visible_block_count: 50000, active_context_mode: "medium", active_context_window: 5000, block_shape: "rich", rich_block_multiplier: 4, append_batch_size: 2048, tail_mutation_count: 768, recall_probe_count: 768, artifact_placeholder_ratio: 0.03, send_click_repeat_count: 2, interactions: ["typing_proxy", "send_click_proxy", "scroll_jump_return"] },
+        { scenario_id: "p5d_v50000_rich_ctx_full_repeat2", visible_block_count: 50000, active_context_mode: "full", active_context_window: 50000, block_shape: "rich", rich_block_multiplier: 4, append_batch_size: 2048, tail_mutation_count: 768, recall_probe_count: 768, artifact_placeholder_ratio: 0.03, send_click_repeat_count: 2, interactions: ["typing_proxy", "send_click_proxy", "scroll_jump_return"] }
+      ];
+
+      const BASELINE_VARIANT = "r0c_worker_bounded_projection_compact_context_product_trace_shaped";
+      const VISIBLE_WINDOW_SIZE = 300;
+      const ACTIVE_CONTEXT_SCAN_MODE = "compact_checksum_index";
+      const DYNAMIC_CONTEXT_MODE = "rolling_tail_window_after_append";
+      const COMPACT_CHECKSUM_MODE = "numeric_precomputed_weight";
+      const TRACE_PHASES = [
+        "user_prompt_and_context_load",
+        "assistant_streaming",
+        "tool_call_and_result",
+        "code_or_diff_review",
+        "agent_status_and_summary"
+      ];
+      const TRACE_LANES = ["assistant_stream", "tool_call", "tool_result", "agent_status", "code_diff", "review_note"];
+
+      const params = new URLSearchParams(location.search);
+      const requestedScenarioId = params.get("scenario_id") || P5D_SCENARIOS[0].scenario_id;
+      const scenario = P5D_SCENARIOS.find((item) => item.scenario_id === requestedScenarioId);
+      const scenarioIdNode = document.getElementById("scenario-id");
+      const logicalCountNode = document.getElementById("logical-count");
+      const renderedCountNode = document.getElementById("rendered-count");
+      const activeContextWindowNode = document.getElementById("active-context-window");
+      const traceEventsNode = document.getElementById("stream-events");
+      const concurrentDelayNode = document.getElementById("concurrent-delay");
+      const summaryNode = document.getElementById("p5x-r0c-summary-json");
+      const surfaceNode = document.getElementById("surface");
+      const pendingRequests = new Map();
+      let runtimeWorker = null;
+      let requestSequence = 0;
+
+      if (!scenario) {
+        renderConfigError("Unknown scenario_id: " + requestedScenarioId);
+        return;
+      }
+
+      const metrics = {
+        scenario_id: scenario.scenario_id,
+        visible_block_count: scenario.visible_block_count,
+        active_context_mode: scenario.active_context_mode,
+        active_context_window: scenario.active_context_window,
+        block_shape: scenario.block_shape,
+        rich_block_multiplier: scenario.rich_block_multiplier,
+        send_click_repeat_count: scenario.send_click_repeat_count,
+        baseline_variant: BASELINE_VARIANT,
+        trace_phase_count: TRACE_PHASES.length,
+        trace_phases: TRACE_PHASES.slice(),
+        trace_lane_count: TRACE_LANES.length,
+        trace_lanes: TRACE_LANES.slice(),
+        trace_event_count_per_repeat: scenario.append_batch_size,
+        trace_events_processed: 0,
+        assistant_stream_event_count: 0,
+        tool_call_event_count: 0,
+        tool_result_event_count: 0,
+        agent_status_event_count: 0,
+        code_diff_event_count: 0,
+        review_note_event_count: 0,
+        initial_render_ms: 0,
+        dom_node_count: 0,
+        rendered_dom_node_count: 0,
+        logical_block_count: scenario.visible_block_count,
+        rendered_block_count: 0,
+        visible_window_size: VISIBLE_WINDOW_SIZE,
+        expected_final_logical_block_count:
+          scenario.visible_block_count + (scenario.append_batch_size * scenario.send_click_repeat_count),
+        typing_proxy_ms: 0,
+        product_trace_shaped_proxy_ms: 0,
+        concurrent_product_trace_proxy_ms: 0,
+        concurrent_product_trace_input_delay_ms: 0,
+        max_concurrent_product_trace_input_delay_ms: 0,
+        concurrent_product_trace_input_scheduled_at_ms: 0,
+        concurrent_product_trace_input_started_at_ms: 0,
+        concurrent_product_trace_typing_proxy_ms: 0,
+        product_trace_send_work_ms: 0,
+        trace_event_merge_ms: 0,
+        max_trace_event_merge_ms: 0,
+        active_context_scan_mode: ACTIVE_CONTEXT_SCAN_MODE,
+        dynamic_active_context_update_mode: DYNAMIC_CONTEXT_MODE,
+        active_context_entries_visited: 0,
+        send_active_context_entries_visited: 0,
+        active_context_compact_index_size: scenario.active_context_window,
+        active_context_final_index_size: scenario.active_context_window,
+        active_context_compact_scan_units: scenario.active_context_window,
+        active_context_initial_start_ordinal: scenario.visible_block_count - scenario.active_context_window + 1,
+        active_context_final_start_ordinal: scenario.visible_block_count - scenario.active_context_window + 1,
+        active_context_update_count: 0,
+        active_context_generation_count: 1,
+        active_context_entries_added: 0,
+        active_context_entries_removed: 0,
+        dynamic_active_context_update_ms: 0,
+        max_dynamic_active_context_update_ms: 0,
+        dynamic_active_context_rebuild_ms: 0,
+        compact_checksum_mode: COMPACT_CHECKSUM_MODE,
+        compact_index_build_ms: 0,
+        send_active_context_compact_scan_ms: 0,
+        tail_mutation_ms: 0,
+        append_commit_ms: 0,
+        max_interaction_ms: 0,
+        long_task_like_count_50ms_proxy: 0,
+        long_task_like_count_100ms_proxy: 0,
+        long_task_like_count_200ms_proxy: 0,
+        timestamp: new Date().toISOString(),
+        run_id: "p5x-r0x-" + scenario.scenario_id + "-" + Date.now().toString(36),
+        worker_product_trace_processing_ms: 0,
+        worker_trace_event_merge_ms: 0,
+        worker_dynamic_active_context_update_ms: 0,
+        worker_active_context_traversal_ms: 0,
+        worker_roundtrip_minus_processing_ms: 0,
+        main_commit_ms: 0,
+        projection_payload_estimated_bytes: 0,
+        concurrent_worker_product_trace_processing_ms: 0,
+        concurrent_worker_roundtrip_minus_processing_ms: 0,
+        concurrent_main_commit_ms: 0
+      };
+
+      initialize().catch((error) => renderConfigError(error.message));
+
+      async function initialize() {
+        runtimeWorker = createRuntimeWorker();
+        const startMs = performance.now();
+        const response = await postRuntimeOp("init_scenario", { scenario });
+        const commitMs = commitProjectionTransaction(response.transaction);
+        applyRuntimeMetrics(response);
+        metrics.initial_render_ms = performance.now() - startMs;
+        metrics.main_commit_ms = commitMs;
+        metrics.dom_node_count = document.getElementsByTagName("*").length;
+        metrics.rendered_dom_node_count = surfaceNode.getElementsByTagName("*").length;
+        publishSummary();
+      }
+
+      function createRuntimeWorker() {
+        const workerSource = `
+          const VISIBLE_WINDOW_SIZE = 300;
+          const ACTIVE_CONTEXT_SCAN_MODE = "compact_checksum_index";
+          const DYNAMIC_CONTEXT_MODE = "rolling_tail_window_after_append";
+          const COMPACT_CHECKSUM_MODE = "numeric_precomputed_weight";
+          const TRACE_PHASES = [
+            "user_prompt_and_context_load",
+            "assistant_streaming",
+            "tool_call_and_result",
+            "code_or_diff_review",
+            "agent_status_and_summary"
+          ];
+          const TRACE_LANES = ["assistant_stream", "tool_call", "tool_result", "agent_status", "code_diff", "review_note"];
+          let scenario = null;
+          let logicalBlocks = [];
+          let logicalBlockById = new Map();
+          let activeContextIndex = [];
+          let traceEvents = [];
+          let tailMutations = [];
+          let activeContextInitialStartOrdinal = 0;
+          let activeContextFinalStartOrdinal = 0;
+          let activeContextUpdateCount = 0;
+          let activeContextGenerationCount = 0;
+          let sendRunCount = 0;
+          let compactIndexBuildMs = 0;
+
+          self.onmessage = (event) => {
+            const request = event.data;
+            try {
+              const result = handleRequest(request);
+              self.postMessage({ request_id: request.request_id, ok: true, ...result });
+            } catch (error) {
+              self.postMessage({ request_id: request.request_id, ok: false, error: error.message });
+            }
+          };
+
+          function handleRequest(request) {
+            if (request.type === "init_scenario") return initScenario(request.scenario);
+            if (request.type === "typing_proxy") return runTypingProxy();
+            if (request.type === "product_trace_shaped_proxy") return runProductTraceOperation("product_trace_shaped_proxy");
+            if (request.type === "concurrent_input_during_product_trace_proxy") {
+              return runProductTraceOperation("concurrent_input_during_product_trace_proxy");
+            }
+            throw new Error("unknown request type: " + request.type);
+          }
+
+          function initScenario(input) {
+            const startMs = performance.now();
+            scenario = input;
+            const workload = buildInitialWorkload(input);
+            logicalBlocks = workload.blocks;
+            logicalBlockById = new Map(logicalBlocks.map((block) => [block.block_id, block]));
+            activeContextIndex = workload.active_context_index;
+            traceEvents = workload.trace_events;
+            tailMutations = workload.tail_mutations;
+            activeContextInitialStartOrdinal = workload.active_context_start_ordinal;
+            activeContextFinalStartOrdinal = workload.active_context_start_ordinal;
+            activeContextUpdateCount = 0;
+            activeContextGenerationCount = 1;
+            sendRunCount = 0;
+            compactIndexBuildMs = workload.compact_index_build_ms;
+            const transaction = createProjectionTransaction("init_scenario");
+            const workerProcessingMs = performance.now() - startMs;
+            return {
+              type: "init_scenario_result",
+              transaction,
+              worker_processing_ms: workerProcessingMs,
+              ...baseRuntimeMetrics(transaction, {
+                trace_events_processed: 0,
+                assistant_stream_event_count: 0,
+                tool_call_event_count: 0,
+                tool_result_event_count: 0,
+                agent_status_event_count: 0,
+                code_diff_event_count: 0,
+                review_note_event_count: 0,
+                worker_product_trace_processing_ms: 0,
+                worker_trace_event_merge_ms: 0,
+                worker_dynamic_active_context_update_ms: 0,
+                worker_active_context_traversal_ms: 0,
+                worker_tail_mutation_ms: 0,
+                worker_append_ms: 0
+              })
+            };
+          }
+
+          function runTypingProxy() {
+            const startMs = performance.now();
+            let checksum = 19;
+            for (let index = 0; index < 96; index += 1) {
+              checksum = (checksum * 33 + index) % 65521;
+            }
+            return {
+              type: "typing_proxy_result",
+              worker_processing_ms: performance.now() - startMs,
+              typing_checksum: checksum,
+              ...baseRuntimeMetrics(null, {})
+            };
+          }
+
+          function runProductTraceOperation(operation) {
+            const processingStartMs = performance.now();
+            let activeContextMs = 0;
+            let compactScanMs = 0;
+            let tailMutationMs = 0;
+            let appendMs = 0;
+            let streamMergeMs = 0;
+            let maxStreamMergeMs = 0;
+            let updateMsTotal = 0;
+            let maxUpdateMs = 0;
+            let entriesVisited = 0;
+            let eventsProcessed = 0;
+            let assistantStreamEvents = 0;
+            let toolCallEvents = 0;
+            let toolResultEvents = 0;
+            let agentStatusEvents = 0;
+            let codeDiffEvents = 0;
+            let reviewNoteEvents = 0;
+            let entriesAdded = 0;
+            let entriesRemoved = 0;
+
+            for (let repeat = 0; repeat < scenario.send_click_repeat_count; repeat += 1) {
+              sendRunCount += 1;
+              const traversalStartMs = performance.now();
+              let checksum = repeat + 17;
+              for (const entry of activeContextIndex) {
+                checksum = (checksum + entry.compact_checksum + entry.compact_entry_weight) % 2147483647;
+              }
+              const traversalMs = performance.now() - traversalStartMs;
+              activeContextMs += traversalMs;
+              compactScanMs += traversalMs;
+              entriesVisited += activeContextIndex.length;
+
+              const mutationStartMs = performance.now();
+              for (const mutation of tailMutations) {
+                const block = logicalBlockById.get(mutation.block_id);
+                if (block) {
+                  block.body = block.body + " " + mutation.patch_text + " checksum " + checksum;
+                  block.metadata[0] = "mutated:" + sendRunCount + ":" + mutation.mutation_ordinal;
+                }
+              }
+              tailMutationMs += performance.now() - mutationStartMs;
+
+              const mergeStartMs = performance.now();
+              const mergedEvents = mergeTraceEvents(traceEvents, sendRunCount);
+              const mergeMs = performance.now() - mergeStartMs;
+              streamMergeMs += mergeMs;
+              maxStreamMergeMs = Math.max(maxStreamMergeMs, mergeMs);
+
+              const appendStartMs = performance.now();
+              for (const event of mergedEvents) {
+                const appendedBlock = eventToBlock(event);
+                logicalBlocks.push(appendedBlock);
+                logicalBlockById.set(appendedBlock.block_id, appendedBlock);
+                eventsProcessed += 1;
+                if (event.trace_lane === "assistant_stream") assistantStreamEvents += 1;
+                if (event.trace_lane === "tool_call") toolCallEvents += 1;
+                if (event.trace_lane === "tool_result") toolResultEvents += 1;
+                if (event.trace_lane === "agent_status") agentStatusEvents += 1;
+                if (event.trace_lane === "code_diff") codeDiffEvents += 1;
+                if (event.trace_lane === "review_note") reviewNoteEvents += 1;
+              }
+              appendMs += performance.now() - appendStartMs;
+
+              const updateResult = updateActiveContextIndex();
+              updateMsTotal += updateResult.update_ms;
+              maxUpdateMs = Math.max(maxUpdateMs, updateResult.update_ms);
+              entriesAdded += updateResult.entries_added;
+              entriesRemoved += updateResult.entries_removed;
+            }
+
+            const transaction = createProjectionTransaction(operation);
+            const workerProcessingMs = performance.now() - processingStartMs;
+            return {
+              type: operation + "_result",
+              transaction,
+              worker_processing_ms: workerProcessingMs,
+              worker_product_trace_processing_ms: workerProcessingMs,
+              worker_trace_event_merge_ms: streamMergeMs,
+              worker_dynamic_active_context_update_ms: updateMsTotal,
+              worker_active_context_traversal_ms: activeContextMs,
+              worker_active_context_compact_scan_ms: compactScanMs,
+              worker_tail_mutation_ms: tailMutationMs,
+              worker_append_ms: appendMs,
+              ...baseRuntimeMetrics(transaction, {
+                trace_events_processed: eventsProcessed,
+                assistant_stream_event_count: assistantStreamEvents,
+                tool_call_event_count: toolCallEvents,
+                tool_result_event_count: toolResultEvents,
+                agent_status_event_count: agentStatusEvents,
+                code_diff_event_count: codeDiffEvents,
+                review_note_event_count: reviewNoteEvents,
+                product_trace_send_work_ms: workerProcessingMs,
+                trace_event_merge_ms: streamMergeMs,
+                max_trace_event_merge_ms: maxStreamMergeMs,
+                active_context_entries_visited: entriesVisited,
+                send_active_context_entries_visited: entriesVisited,
+                send_active_context_compact_scan_ms: compactScanMs,
+                active_context_entries_added: entriesAdded,
+                active_context_entries_removed: entriesRemoved,
+                dynamic_active_context_update_ms: updateMsTotal,
+                max_dynamic_active_context_update_ms: maxUpdateMs,
+                dynamic_active_context_rebuild_ms: updateMsTotal,
+                tail_mutation_ms: tailMutationMs,
+                append_commit_ms: appendMs
+              })
+            };
+          }
+
+          function updateActiveContextIndex() {
+            const startMs = performance.now();
+            const previousIds = new Set(activeContextIndex.map((entry) => entry.block_id));
+            const nextBlocks = logicalBlocks.slice(-scenario.active_context_window);
+            const nextIndex = buildCompactIndexFromBlocks(nextBlocks);
+            const nextIds = new Set(nextIndex.map((entry) => entry.block_id));
+            let added = 0;
+            let removed = 0;
+            for (const id of nextIds) if (!previousIds.has(id)) added += 1;
+            for (const id of previousIds) if (!nextIds.has(id)) removed += 1;
+            activeContextIndex = nextIndex;
+            activeContextUpdateCount += 1;
+            activeContextGenerationCount += 1;
+            activeContextFinalStartOrdinal = activeContextIndex.length > 0 ? activeContextIndex[0].ordinal : 0;
+            return { update_ms: performance.now() - startMs, entries_added: added, entries_removed: removed };
+          }
+
+          function createProjectionTransaction(operation) {
+            const projection = buildBoundedProjection();
+            return {
+              operation,
+              projection,
+              rendered_block_count: projection.blocks.length,
+              logical_block_count: logicalBlocks.length,
+              visible_window_size: VISIBLE_WINDOW_SIZE
+            };
+          }
+
+          function buildBoundedProjection() {
+            const startIndex = Math.max(0, logicalBlocks.length - VISIBLE_WINDOW_SIZE);
+            const blocks = logicalBlocks.slice(startIndex, startIndex + VISIBLE_WINDOW_SIZE);
+            let estimatedBytes = 0;
+            for (const block of blocks) {
+              estimatedBytes += block.block_id.length + block.synthetic_key.length + block.title.length + block.body.length;
+              estimatedBytes += block.metadata.reduce((sum, item) => sum + item.length, 0);
+            }
+            return {
+              anchor_kind: "tail",
+              start_index: startIndex,
+              blocks,
+              projection_payload_block_count: blocks.length,
+              projection_payload_estimated_bytes: estimatedBytes
+            };
+          }
+
+          function baseRuntimeMetrics(transaction, dynamicMetrics) {
+            const projection = transaction ? transaction.projection : buildBoundedProjection();
+            return {
+              scenario_id: scenario.scenario_id,
+              visible_block_count: scenario.visible_block_count,
+              active_context_mode: scenario.active_context_mode,
+              active_context_window: scenario.active_context_window,
+              block_shape: scenario.block_shape,
+              rich_block_multiplier: scenario.rich_block_multiplier,
+              send_click_repeat_count: scenario.send_click_repeat_count,
+              baseline_variant: "r0c_worker_bounded_projection_compact_context_product_trace_shaped",
+              trace_phase_count: TRACE_PHASES.length,
+              trace_phases: TRACE_PHASES.slice(),
+              trace_lane_count: TRACE_LANES.length,
+              trace_lanes: TRACE_LANES.slice(),
+              trace_event_count_per_repeat: scenario.append_batch_size,
+              active_context_scan_mode: ACTIVE_CONTEXT_SCAN_MODE,
+              dynamic_active_context_update_mode: DYNAMIC_CONTEXT_MODE,
+              active_context_compact_index_size: activeContextIndex.length,
+              active_context_final_index_size: activeContextIndex.length,
+              active_context_compact_scan_units: sumCompactScanUnits(activeContextIndex),
+              active_context_initial_start_ordinal: activeContextInitialStartOrdinal,
+              active_context_final_start_ordinal: activeContextFinalStartOrdinal,
+              active_context_update_count: activeContextUpdateCount,
+              active_context_generation_count: activeContextGenerationCount,
+              expected_final_logical_block_count:
+                scenario.visible_block_count + (scenario.append_batch_size * scenario.send_click_repeat_count),
+              logical_block_count: logicalBlocks.length,
+              rendered_block_count: projection.blocks.length,
+              compact_checksum_mode: COMPACT_CHECKSUM_MODE,
+              compact_index_build_ms: compactIndexBuildMs,
+              projection_payload_estimated_bytes: projection.projection_payload_estimated_bytes,
+              ...dynamicMetrics
+            };
+          }
+
+          function mergeTraceEvents(events, runNumber) {
+            const phaseLaneQueues = new Map(
+              TRACE_PHASES.map((phase) => [phase, new Map(TRACE_LANES.map((lane) => [lane, []]))])
+            );
+            for (const event of events) {
+              phaseLaneQueues.get(event.trace_phase).get(event.trace_lane).push(event);
+            }
+            const merged = [];
+            for (const phase of TRACE_PHASES) {
+              const lanes = phaseLaneQueues.get(phase);
+              const phaseEventCount = [...lanes.values()].reduce((sum, queue) => sum + queue.length, 0);
+              let phaseMergedCount = 0;
+              let cursor = 0;
+              while (phaseMergedCount < phaseEventCount) {
+                const lane = TRACE_LANES[cursor % TRACE_LANES.length];
+                const queue = lanes.get(lane);
+                if (queue.length > 0) {
+                  const event = queue.shift();
+                  merged.push({
+                    ...event,
+                    event_id: event.event_id + "-run-" + runNumber,
+                    ordinal:
+                      scenario.visible_block_count + ((runNumber - 1) * scenario.append_batch_size) + merged.length + 1,
+                    synthetic_key: event.synthetic_key + "-run-" + runNumber,
+                    title: event.title + " run " + runNumber
+                  });
+                  phaseMergedCount += 1;
+                }
+                cursor += 1;
+              }
+            }
+            return merged;
+          }
+
+          function eventToBlock(event) {
+            return {
+              block_id: event.event_id,
+              ordinal: event.ordinal,
+              kind: event.kind,
+              synthetic_key: event.synthetic_key,
+              title: event.title,
+              body: event.body,
+              metadata: event.metadata.slice()
+            };
+          }
+
+          function buildInitialWorkload(input) {
+            const blocks = [];
+            for (let ordinal = 1; ordinal <= input.visible_block_count; ordinal += 1) {
+              blocks.push(buildInitialBlock(ordinal, input));
+            }
+            const compactStartMs = performance.now();
+            const activeIndex = buildCompactIndexFromBlocks(blocks.slice(-input.active_context_window));
+            return {
+              blocks,
+              active_context_start_ordinal: input.visible_block_count - input.active_context_window + 1,
+              active_context_index: activeIndex,
+              compact_index_build_ms: performance.now() - compactStartMs,
+              trace_events: buildTraceEvents(input),
+              tail_mutations: buildTailMutations(input)
+            };
+          }
+
+          function buildInitialBlock(ordinal, input) {
+            return {
+              block_id: formatId("block", ordinal),
+              ordinal,
+              kind: ordinal % 23 === 0 ? "agent_status_seed" : "synthetic_transcript",
+              synthetic_key: "seed-key-" + String(ordinal).padStart(6, "0"),
+              title: "Synthetic transcript block " + String(ordinal).padStart(6, "0"),
+              body:
+                "Synthetic long-lived AI surface block " + ordinal +
+                " with compact metadata and deterministic body text for P5-X.",
+              metadata: buildMetadata(ordinal, input.rich_block_multiplier)
+            };
+          }
+
+          function buildTraceEvents(input) {
+            const events = [];
+            const eventsPerPhase = Math.ceil(input.append_batch_size / TRACE_PHASES.length);
+            for (let index = 1; index <= input.append_batch_size; index += 1) {
+              const phase = TRACE_PHASES[Math.min(TRACE_PHASES.length - 1, Math.floor((index - 1) / eventsPerPhase))];
+              const lane = TRACE_LANES[(index - 1) % TRACE_LANES.length];
+              const laneLabel = lane.replaceAll("_", " ");
+              const phaseLabel = phase.replaceAll("_", " ");
+              events.push({
+                event_id: "event-" + lane + "-" + String(index).padStart(6, "0"),
+                trace_phase: phase,
+                trace_lane: lane,
+                ordinal: input.visible_block_count + index,
+                kind: laneKind(lane),
+                synthetic_key: "product_trace-" + lane + "-" + String(index).padStart(6, "0"),
+                title: "Synthetic " + phaseLabel + " / " + laneLabel + " event " + String(index).padStart(6, "0"),
+                body:
+                  "Fictional " + phaseLabel + " " + laneLabel +
+                  " payload for deterministic P5-X trace event merge and rolling context update.",
+                metadata: [
+                  "phase:" + phase,
+                  "lane:" + lane,
+                  "event:" + index,
+                  "synthetic:true",
+                  "not-real-product-trace"
+                ]
+              });
+            }
+            return events;
+          }
+
+          function laneKind(lane) {
+            if (lane === "assistant_stream") return "assistant_stream_event";
+            if (lane === "tool_call") return "tool_call_event";
+            if (lane === "tool_result") return "tool_result_event";
+            if (lane === "agent_status") return "agent_status_event";
+            if (lane === "code_diff") return "code_diff_event";
+            return "review_note_event";
+          }
+
+          function buildTailMutations(input) {
+            const mutations = [];
+            const tailStart = input.visible_block_count - input.tail_mutation_count + 1;
+            for (let ordinal = tailStart; ordinal <= input.visible_block_count; ordinal += 1) {
+              const mutationOrdinal = ordinal - tailStart + 1;
+              mutations.push({
+                block_id: formatId("block", ordinal),
+                mutation_ordinal: mutationOrdinal,
+                patch_text: "synthetic-tail-mutation-" + String(mutationOrdinal).padStart(5, "0")
+              });
+            }
+            return mutations;
+          }
+
+          function buildCompactIndexFromBlocks(blocks) {
+            return blocks.map((block, index) => buildCompactContextEntry(block, index));
+          }
+
+          function buildCompactContextEntry(block, contextIndex) {
+            const titleWeight = block.title.length * 3;
+            const bodyWeight = block.body.length;
+            const metadataWeight = block.metadata.reduce((sum, item) => sum + item.length, 0);
+            const compactChecksum = scanText(block.synthetic_key + "|" + block.title + "|" + metadataWeight, contextIndex + 1);
+            return {
+              block_id: block.block_id,
+              ordinal: block.ordinal,
+              compact_checksum: compactChecksum,
+              compact_metadata_weight: metadataWeight,
+              compact_entry_weight: titleWeight + bodyWeight + metadataWeight,
+              compact_scan_units: 1
+            };
+          }
+
+          function sumCompactScanUnits(index) {
+            return index.reduce((sum, entry) => sum + entry.compact_scan_units, 0);
+          }
+
+          function buildMetadata(ordinal, multiplier) {
+            const metadata = [];
+            for (let index = 0; index < multiplier; index += 1) {
+              metadata.push("m" + index + ":" + ((ordinal * (index + 7)) % 997));
+            }
+            return metadata;
+          }
+
+          function scanText(text, seed) {
+            let value = seed || 1;
+            for (let index = 0; index < text.length; index += 1) {
+              value = (value * 31 + text.charCodeAt(index)) % 2147483647;
+            }
+            return value;
+          }
+
+          function formatId(prefix, ordinal) {
+            return prefix + "-" + String(ordinal).padStart(6, "0");
+          }
+        `;
+        const workerBlob = new Blob([workerSource], { type: "text/javascript" });
+        const workerUrl = URL.createObjectURL(workerBlob);
+        const worker = new Worker(workerUrl);
+        worker.onmessage = (event) => {
+          const response = event.data;
+          const pending = pendingRequests.get(response.request_id);
+          if (!pending) return;
+          pendingRequests.delete(response.request_id);
+          response.worker_roundtrip_ms = performance.now() - pending.start_ms;
+          if (response.ok) {
+            pending.resolve(response);
+          } else {
+            pending.reject(new Error(response.error || "worker request failed"));
+          }
+        };
+        return worker;
+      }
+
+      function postRuntimeOp(type, payload = {}) {
+        const requestId = ++requestSequence;
+        return new Promise((resolve, reject) => {
+          pendingRequests.set(requestId, { resolve, reject, start_ms: performance.now() });
+          runtimeWorker.postMessage({ request_id: requestId, type, ...payload });
+        });
+      }
+
+      async function runTypingProxy() {
+        const startMs = performance.now();
+        await postRuntimeOp("typing_proxy");
+        metrics.typing_proxy_ms = performance.now() - startMs;
+        recordInteractionDuration(metrics.typing_proxy_ms);
+        publishSummary();
+      }
+
+      async function runProductTraceShapedProxy() {
+        resetInteractionMetrics();
+        const startMs = performance.now();
+        const response = await postRuntimeOp("product_trace_shaped_proxy");
+        const commitMs = commitProjectionTransaction(response.transaction);
+        applyRuntimeMetrics(response);
+        applyWorkerMetrics(response, commitMs);
+        metrics.product_trace_shaped_proxy_ms = performance.now() - startMs;
+        metrics.product_trace_send_work_ms = metrics.worker_product_trace_processing_ms + commitMs;
+        metrics.main_commit_ms = commitMs;
+        recordMeasuredDuration(metrics.worker_product_trace_processing_ms);
+        recordInteractionDuration(metrics.product_trace_shaped_proxy_ms);
+        publishSummary();
+      }
+
+      async function runConcurrentInputDuringProductTraceProxy() {
+        resetInteractionMetrics();
+        const startMs = performance.now();
+        const sendPromise = postRuntimeOp("concurrent_input_during_product_trace_proxy");
+        metrics.concurrent_product_trace_input_scheduled_at_ms = performance.now();
+        const inputTask = new Promise((resolve) => {
+          setTimeout(() => {
+            metrics.concurrent_product_trace_input_started_at_ms = performance.now();
+            const typingStartMs = performance.now();
+            runLocalTypingProxy("concurrent_input_during_product_trace_proxy");
+            metrics.concurrent_product_trace_typing_proxy_ms = performance.now() - typingStartMs;
+            metrics.concurrent_product_trace_input_delay_ms =
+              metrics.concurrent_product_trace_input_started_at_ms - metrics.concurrent_product_trace_input_scheduled_at_ms;
+            metrics.max_concurrent_product_trace_input_delay_ms = metrics.concurrent_product_trace_input_delay_ms;
+            resolve();
+          }, 0);
+        });
+        const response = await sendPromise;
+        const commitMs = commitProjectionTransaction(response.transaction);
+        await inputTask;
+        applyRuntimeMetrics(response);
+        applyWorkerMetrics(response, commitMs);
+        metrics.concurrent_worker_product_trace_processing_ms = metrics.worker_product_trace_processing_ms;
+        metrics.concurrent_worker_roundtrip_minus_processing_ms = metrics.worker_roundtrip_minus_processing_ms;
+        metrics.concurrent_main_commit_ms = commitMs;
+        metrics.product_trace_send_work_ms = metrics.worker_product_trace_processing_ms + commitMs;
+        metrics.product_trace_shaped_proxy_ms = metrics.product_trace_send_work_ms;
+        metrics.concurrent_product_trace_proxy_ms = performance.now() - startMs;
+        recordMeasuredDuration(metrics.worker_product_trace_processing_ms);
+        recordInteractionDuration(metrics.concurrent_product_trace_proxy_ms);
+        publishSummary();
+      }
+
+      function commitProjectionTransaction(transaction) {
+        const startMs = performance.now();
+        const fragment = document.createDocumentFragment();
+        for (const block of transaction.projection.blocks) {
+          fragment.appendChild(createRichBlockEntry(block));
+        }
+        surfaceNode.replaceChildren(fragment);
+        metrics.rendered_block_count = transaction.rendered_block_count;
+        return performance.now() - startMs;
+      }
+
+      function applyWorkerMetrics(response, commitMs) {
+        metrics.worker_product_trace_processing_ms = response.worker_product_trace_processing_ms || response.worker_processing_ms || 0;
+        metrics.worker_trace_event_merge_ms = response.worker_trace_event_merge_ms || 0;
+        metrics.worker_dynamic_active_context_update_ms = response.worker_dynamic_active_context_update_ms || 0;
+        metrics.worker_active_context_traversal_ms = response.worker_active_context_traversal_ms || 0;
+        metrics.worker_roundtrip_minus_processing_ms = Math.max(
+          0,
+          (response.worker_roundtrip_ms || 0) - (response.worker_processing_ms || 0)
+        );
+        metrics.main_commit_ms = commitMs;
+        metrics.projection_payload_estimated_bytes = response.projection_payload_estimated_bytes || 0;
+      }
+
+      function applyRuntimeMetrics(response) {
+        for (const field of [
+          "trace_phase_count",
+          "trace_phases",
+          "trace_lane_count",
+          "trace_lanes",
+          "trace_event_count_per_repeat",
+          "trace_events_processed",
+          "assistant_stream_event_count",
+          "tool_call_event_count",
+          "tool_result_event_count",
+          "agent_status_event_count",
+          "code_diff_event_count",
+          "review_note_event_count",
+          "logical_block_count",
+          "rendered_block_count",
+          "active_context_scan_mode",
+          "dynamic_active_context_update_mode",
+          "active_context_entries_visited",
+          "send_active_context_entries_visited",
+          "active_context_compact_index_size",
+          "active_context_final_index_size",
+          "active_context_compact_scan_units",
+          "active_context_initial_start_ordinal",
+          "active_context_final_start_ordinal",
+          "active_context_update_count",
+          "active_context_generation_count",
+          "active_context_entries_added",
+          "active_context_entries_removed",
+          "dynamic_active_context_update_ms",
+          "max_dynamic_active_context_update_ms",
+          "dynamic_active_context_rebuild_ms",
+          "compact_checksum_mode",
+          "compact_index_build_ms",
+          "send_active_context_compact_scan_ms",
+          "tail_mutation_ms",
+          "append_commit_ms",
+          "trace_event_merge_ms",
+          "max_trace_event_merge_ms",
+          "product_trace_send_work_ms",
+          "projection_payload_estimated_bytes"
+        ]) {
+          if (field in response) metrics[field] = response[field];
+        }
+      }
+
+      function createRichBlockEntry(block) {
+        const row = document.createElement("article");
+        row.className = "block-row";
+        const id = document.createElement("div");
+        id.className = "block-id";
+        id.textContent = "#" + block.ordinal + " " + block.block_id;
+        const card = document.createElement("section");
+        card.className = "block-card";
+        const title = document.createElement("div");
+        title.className = "block-title";
+        title.textContent = block.title;
+        const body = document.createElement("div");
+        body.className = "block-body";
+        body.textContent = block.body;
+        const meta = document.createElement("div");
+        meta.className = "metadata";
+        for (const value of block.metadata) {
+          const item = document.createElement("span");
+          item.textContent = value;
+          meta.appendChild(item);
+        }
+        const tokens = document.createElement("div");
+        tokens.className = "tokens";
+        for (let index = 0; index < Math.min(4, scenario.rich_block_multiplier + 1); index += 1) {
+          const token = document.createElement("span");
+          token.textContent = block.synthetic_key + ":t" + index;
+          tokens.appendChild(token);
+        }
+        card.append(title, body, meta, tokens);
+        if (block.ordinal % 37 === 0 || block.kind === "agent_status_event" || block.kind === "code_diff_event") {
+          const artifact = document.createElement("div");
+          artifact.className = "artifact";
+          artifact.textContent = "synthetic trace artifact " + block.synthetic_key;
+          card.appendChild(artifact);
+        }
+        row.append(id, card);
+        return row;
+      }
+
+      function resetInteractionMetrics() {
+        metrics.trace_events_processed = 0;
+        metrics.assistant_stream_event_count = 0;
+        metrics.tool_call_event_count = 0;
+        metrics.tool_result_event_count = 0;
+        metrics.agent_status_event_count = 0;
+        metrics.code_diff_event_count = 0;
+        metrics.review_note_event_count = 0;
+        metrics.product_trace_shaped_proxy_ms = 0;
+        metrics.concurrent_product_trace_proxy_ms = 0;
+        metrics.concurrent_product_trace_input_delay_ms = 0;
+        metrics.max_concurrent_product_trace_input_delay_ms = 0;
+        metrics.concurrent_product_trace_input_scheduled_at_ms = 0;
+        metrics.concurrent_product_trace_input_started_at_ms = 0;
+        metrics.concurrent_product_trace_typing_proxy_ms = 0;
+        metrics.product_trace_send_work_ms = 0;
+        metrics.trace_event_merge_ms = 0;
+        metrics.max_trace_event_merge_ms = 0;
+        metrics.active_context_entries_visited = 0;
+        metrics.send_active_context_entries_visited = 0;
+        metrics.active_context_update_count = 0;
+        metrics.active_context_generation_count = 1;
+        metrics.active_context_entries_added = 0;
+        metrics.active_context_entries_removed = 0;
+        metrics.dynamic_active_context_update_ms = 0;
+        metrics.max_dynamic_active_context_update_ms = 0;
+        metrics.dynamic_active_context_rebuild_ms = 0;
+        metrics.send_active_context_compact_scan_ms = 0;
+        metrics.tail_mutation_ms = 0;
+        metrics.append_commit_ms = 0;
+        metrics.worker_product_trace_processing_ms = 0;
+        metrics.worker_trace_event_merge_ms = 0;
+        metrics.worker_dynamic_active_context_update_ms = 0;
+        metrics.worker_active_context_traversal_ms = 0;
+        metrics.worker_roundtrip_minus_processing_ms = 0;
+        metrics.main_commit_ms = 0;
+        metrics.projection_payload_estimated_bytes = 0;
+        metrics.concurrent_worker_product_trace_processing_ms = 0;
+        metrics.concurrent_worker_roundtrip_minus_processing_ms = 0;
+        metrics.concurrent_main_commit_ms = 0;
+        metrics.timestamp = new Date().toISOString();
+      }
+
+      function runLocalTypingProxy(label) {
+        let checksum = label.length;
+        for (let index = 0; index < 96; index += 1) {
+          checksum = (checksum * 33 + index) % 65521;
+        }
+        return checksum;
+      }
+
+      function runInteraction(interactionType) {
+        if (interactionType === "typing_proxy") return runTypingProxy();
+        if (interactionType === "product_trace_shaped_proxy") return runProductTraceShapedProxy();
+        if (interactionType === "concurrent_input_during_product_trace_proxy") {
+          return runConcurrentInputDuringProductTraceProxy();
+        }
+        throw new Error("unknown interaction: " + interactionType);
+      }
+
+      function publishSummary() {
+        metrics.rendered_dom_node_count = surfaceNode.getElementsByTagName("*").length;
+        metrics.dom_node_count = document.getElementsByTagName("*").length;
+        scenarioIdNode.textContent = "scenario_id=" + metrics.scenario_id;
+        logicalCountNode.textContent = "logical_block_count=" + metrics.logical_block_count;
+        renderedCountNode.textContent = "rendered_block_count=" + metrics.rendered_block_count;
+        activeContextWindowNode.textContent = "active_context_window=" + metrics.active_context_window;
+        traceEventsNode.textContent = "trace_events_processed=" + metrics.trace_events_processed;
+        concurrentDelayNode.textContent =
+          "concurrent_product_trace_input_delay_ms=" + metrics.concurrent_product_trace_input_delay_ms.toFixed(3);
+        const summary = { ...metrics };
+        window.__P5X_R0C_PRODUCT_TRACE_SHAPED_SUMMARY__ = summary;
+        summaryNode.textContent = JSON.stringify(summary, null, 2);
+      }
+
+      function recordMeasuredDuration(durationMs) {
+        if (durationMs >= 50) metrics.long_task_like_count_50ms_proxy += 1;
+        if (durationMs >= 100) metrics.long_task_like_count_100ms_proxy += 1;
+        if (durationMs >= 200) metrics.long_task_like_count_200ms_proxy += 1;
+      }
+
+      function recordInteractionDuration(durationMs) {
+        metrics.max_interaction_ms = Math.max(metrics.max_interaction_ms, durationMs);
+      }
+
+      function renderConfigError(message) {
+        summaryNode.textContent = JSON.stringify({ error: message }, null, 2);
+      }
+
+      document.getElementById("typing-proxy-button").addEventListener("click", () => {
+        runTypingProxy().catch((error) => renderConfigError(error.message));
+      });
+      document.getElementById("product-trace-shaped-button").addEventListener("click", () => {
+        runProductTraceShapedProxy().catch((error) => renderConfigError(error.message));
+      });
+      document.getElementById("concurrent-product-trace-button").addEventListener("click", () => {
+        runConcurrentInputDuringProductTraceProxy().catch((error) => renderConfigError(error.message));
+      });
+
+      window.P5X_R0C_PRODUCT_TRACE_SHAPED_STRESS = {
+        scenario,
+        runInteraction,
+        runTypingProxy,
+        runProductTraceShapedProxy,
+        runConcurrentInputDuringProductTraceProxy,
+        getSummary: () => ({ ...metrics })
+      };
+    })();
+  </script>
+</body>
+</html>
