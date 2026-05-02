@@ -10,7 +10,7 @@ Can worker-resident ownership of long-lived AI-surface logical work reduce and l
 - R0: worker-resident logical runtime with bounded main-thread projection commit.
 - Collection: synthetic manual Chrome collection.
 - Proxy: `setTimeout(..., 0)` schedule-to-callback-start delay, measured with `performance.now()`.
-- Boundary: synthetic scheduling-delay proxy, not browser Event Timing and not INP.
+- Boundary: synthetic scheduling-delay proxy, not browser-level INP and not Event Timing.
 
 ## C. Evidence Chain
 
@@ -59,7 +59,7 @@ P5 supports the claim that worker-resident ownership can reduce and localize mai
 - No randomized lifecycle input arrival.
 - Manual collection.
 - Algorithmic optimizations must be paired.
-- P4 not authorized.
+- P4 remains not authorized.
 
 ## G. Next Work
 

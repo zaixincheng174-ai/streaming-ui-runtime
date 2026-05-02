@@ -229,7 +229,7 @@
     }
   ],
   "final_classification": {
-    "p5_status": "final_reviewer_evidence_packet_complete",
+    "p5_status": "final_reviewer_evidence_packet_frozen",
     "strongest_signal": "p5x_product_trace_shaped_input_path_isolation",
     "primary_mechanism": "worker_resident_logical_work_reduces_and_localizes_main_thread_blocking",
     "proxy_status": "internal_setTimeout_scheduling_delay_not_INP",

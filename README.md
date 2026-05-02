@@ -32,9 +32,9 @@ See [docs/portfolio/evidence-map.md](docs/portfolio/evidence-map.md) for claim-t
 
 P5 is a synthetic scheduling-mechanism evidence chain for long-lived AI surfaces. It studies main-thread blocking under send-start, commit-window, dynamic active-context, multistream, and product-trace-shaped synthetic workloads.
 
-The strongest current result is P5-X product-trace-shaped synthetic: B2x input delay `176.1ms` vs R0x `0.1ms` under equal trace/logical invariants. Interpret this as a blocked-vs-near-unblocked internal scheduling category, not browser INP and not a precise user-perceived speedup.
+The strongest current result is P5-X product-trace-shaped synthetic: B2x input delay `176.1ms` vs R0x `0.1ms` under equal trace/logical invariants. Interpret this as a blocked-vs-near-unblocked internal scheduling category, not browser-level INP and not a precise user-perceived speedup.
 
-R0 does not eliminate work. It moves logical send/update/multistream/product-trace-shaped work into Worker and localizes remaining main-thread blocking to bounded commit. P4 remains not authorized.
+R0 does not eliminate work. It moves logical send/update/multistream/product-trace-shaped work into Worker and localizes remaining main-thread blocking to bounded projection commit. P4 remains not authorized.
 
 See [P5 final reviewer evidence packet](docs/p5/p5y-final-reviewer-evidence-packet.md), [P5 adversarial audit](docs/p5/p5y-reviewer-adversarial-audit.md), and [P5 scheduling evidence summary](docs/portfolio/p5-scheduling-evidence-summary.md).
 

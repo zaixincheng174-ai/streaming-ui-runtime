@@ -193,7 +193,7 @@ Do not claim:
 - Event Timing evidence;
 - production readiness;
 - real product superiority;
-- R0 eliminates all main-thread blocking;
+- R0 removes every main-thread blocking window;
 - precise user-perceived speedup ratios;
 - P4/WebGPU authorization.
 

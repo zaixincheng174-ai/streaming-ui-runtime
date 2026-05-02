@@ -13,10 +13,10 @@ This is scheduling-mechanism evidence. It is not browser-level INP, not Event Ti
 ## 3. Claims That Must Be Rejected
 
 - "R0 improves INP."
-- "R0 is production-ready."
+- "R0 is ready for production use."
 - "R0 eliminates main-thread blocking."
-- "R0 proves real product superiority."
-- "P5 authorizes P4/WebGPU."
+- "R0 establishes real product superiority."
+- "P5 grants approval for P4/WebGPU."
 - "R0 is x-times faster in user-perceived latency."
 
 ## 4. Reviewer Risk Register

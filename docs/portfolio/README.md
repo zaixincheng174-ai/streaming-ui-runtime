@@ -85,6 +85,9 @@ The evidence chain is intentionally staged:
    - measure urgent projection acknowledgement and visible latency.
 5. P2 pure-core freeze:
    - freeze runtime-core implications as testable protocol/state/scheduler/projection scaffolding.
+6. P5 scheduling evidence:
+   - freeze synthetic scheduling-delay proxy evidence for send-start, commit-window, dynamic active-context, multistream, and product-trace-shaped workloads;
+   - keep the boundary explicit: not browser-level INP, not Event Timing, not production readiness, and not real product superiority.
 
 ## Evidence-Backed Results
 
