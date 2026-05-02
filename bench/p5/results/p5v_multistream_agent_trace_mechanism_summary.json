@@ -1,0 +1,129 @@
+{
+  "schema_version": "p5v.multistream-agent-trace-mechanism-summary.v0",
+  "generated_at": "2026-05-02T06:18:05Z",
+  "summary_type": "mechanism_aware_existing_results_only",
+  "source_results": {
+    "p5u_b2u": "bench/p5/results/p5u_b2c_multistream_agent_trace_results.json",
+    "p5u_r0u": "bench/p5/results/p5u_r0c_multistream_agent_trace_results.json",
+    "prior_summaries": [
+      "docs/p5/p5t-dynamic-update-concurrent-input-mechanism-summary.md",
+      "docs/p5/p5p-send-start-commit-window-mechanism-summary.md"
+    ]
+  },
+  "metrics_by_variant": {
+    "b2u": {
+      "max_concurrent_multistream_input_delay_ms": 164.29999995231628,
+      "max_concurrent_multistream_proxy_ms": 164.40000009536743,
+      "max_multistream_agent_trace_proxy_ms": 140.40000009536743,
+      "max_multistream_send_work_ms": 140.40000009536743,
+      "max_stream_merge_ms": 0.6999998092651367,
+      "max_dynamic_active_context_update_ms": 131.30000019073486,
+      "max_stream_events_processed": 4096,
+      "max_send_active_context_entries_visited": 100000,
+      "max_logical_block_count": 54096,
+      "max_expected_final_logical_block_count": 54096,
+      "max_rendered_dom_node_count": 4582,
+      "interpretation": "B2u keeps multistream merge, append, tail mutation, rolling active-context update, and bounded render on the main thread; synthetic input is queued behind that work."
+    },
+    "r0u": {
+      "max_concurrent_multistream_input_delay_ms": 0.10000014305114746,
+      "max_concurrent_multistream_proxy_ms": 137.5,
+      "max_multistream_agent_trace_proxy_ms": 136.59999990463257,
+      "max_multistream_send_work_ms": 136.59999990463257,
+      "max_stream_merge_ms": 0.8999998569488525,
+      "max_dynamic_active_context_update_ms": 129.40000009536743,
+      "max_stream_events_processed": 4096,
+      "max_send_active_context_entries_visited": 100000,
+      "max_logical_block_count": 54096,
+      "max_expected_final_logical_block_count": 54096,
+      "max_rendered_dom_node_count": 4582,
+      "max_worker_multistream_processing_ms": 133.59999990463257,
+      "max_worker_stream_merge_ms": 0.8999998569488525,
+      "max_worker_dynamic_active_context_update_ms": 129.40000009536743,
+      "max_worker_roundtrip_minus_processing_ms": 0.7999999523162842,
+      "max_main_commit_ms": 3.3000001907348633,
+      "max_concurrent_worker_multistream_processing_ms": 133.59999990463257,
+      "max_concurrent_worker_roundtrip_minus_processing_ms": 0.7999999523162842,
+      "max_concurrent_main_commit_ms": 3.3000001907348633,
+      "interpretation": "R0u moves multistream and dynamic-context processing into Worker; synthetic input starts near the timing floor while Worker processing is in flight, with bounded main commit still present."
+    }
+  },
+  "workload_semantics": {
+    "stream_lanes": [
+      "assistant_tokens",
+      "tool_events",
+      "agent_trace",
+      "code_diff_chunks"
+    ],
+    "stream_events_processed_formula": "append_batch_size * send_click_repeat_count",
+    "max_stream_events_processed": 4096,
+    "active_context_scan_mode": "compact_checksum_index",
+    "dynamic_active_context_update_mode": "rolling_tail_window_after_append",
+    "final_logical_block_count_equals_expected": true,
+    "rendered_dom_node_count": {
+      "b2u": 4582,
+      "r0u": 4582,
+      "note": "P5-U uses a different DOM shape than some earlier targets; do not compare 4582 directly against earlier 5700-node target families as if DOM shape were identical."
+    }
+  },
+  "mechanism_interpretation": {
+    "primary_claim": "P5-U provides the strongest workload-realism signal so far. Under a synthetic multi-stream agent-trace workload, B2u delays the synthetic input task while main-thread multistream / dynamic active-context work runs. R0u does not eliminate multistream or dynamic-context work; instead, it moves that work into Worker and keeps the main-thread synthetic input task near the timing floor while Worker-side processing is in flight. The architectural signal is input-path isolation under a more realistic long-lived AI surface workload.",
+    "b2u": [
+      "stream merge, append, tail mutation, rolling active-context update, and bounded render happen on main thread",
+      "input delay rises to 164.3ms because synthetic input is queued behind main-thread multistream/dynamic-context work",
+      "dynamic active-context update is the dominant measured workload component at 131.3ms"
+    ],
+    "r0u": [
+      "stream merge, append, tail mutation, rolling active-context update, and bounded projection generation happen in Worker",
+      "input delay remains near timing floor at 0.1ms",
+      "worker processing remains material at 133.6ms",
+      "dynamic active-context update remains material at 129.4ms",
+      "bounded main commit remains at 3.3ms"
+    ],
+    "required_interpretation": "P5-U does not show that R0 eliminates multistream/dynamic-context work; it shows that R0 moves that work out of the main-thread input path."
+  },
+  "fairness_invariants": {
+    "same_p5d_matrix": true,
+    "stream_lane_count": 4,
+    "same_stream_lanes": true,
+    "max_stream_events_processed": 4096,
+    "max_send_active_context_entries_visited": 100000,
+    "active_context_scan_mode": "compact_checksum_index",
+    "dynamic_active_context_update_mode": "rolling_tail_window_after_append",
+    "max_logical_block_count": 54096,
+    "max_expected_final_logical_block_count": 54096,
+    "max_rendered_dom_node_count_b2u": 4582,
+    "max_rendered_dom_node_count_r0u": 4582,
+    "implementation_difference": "B2 and R0 intentionally differ in ownership of multistream / dynamic-context work."
+  },
+  "caveats": [
+    "setTimeout-based synthetic task only",
+    "not keyboard or pointer event evidence",
+    "not browser Event Timing",
+    "not browser-level INP",
+    "not input-to-pixel latency",
+    "P5-U schedules input immediately around multistream work and does not measure random lifecycle arrival",
+    "R0u input delay does not prove commit-window input availability; commit-window was separately tested in P5-O",
+    "R0u does not eliminate all main-thread blocking",
+    "R0u does not eliminate multistream/dynamic-context CPU cost",
+    "raw algorithmic optimizations must be paired if introduced later",
+    "this is still synthetic agent-trace workload, not product trace evidence"
+  ],
+  "prior_chain_relation": {
+    "p5m": "send-start input availability",
+    "p5o": "commit-window availability / bounded commit caveat",
+    "p5s": "dynamic active-context update input availability",
+    "p5u": "multi-stream agent-trace workload realism",
+    "interpretation": "P5-U extends prior single-phase scheduling results into a more realistic multi-stream long-lived surface workload."
+  },
+  "final_classification": {
+    "p5_status": "multistream_agent_trace_axis_validated",
+    "primary_mechanism": "move_multistream_dynamic_context_work_off_main_thread_to_preserve_input_path",
+    "b2u_status": "main_thread_multistream_dynamic_context_work_blocks_synthetic_input",
+    "r0u_status": "worker_multistream_dynamic_context_work_keeps_main_input_near_floor_during_processing",
+    "workload_status": "strongest_p5_workload_realism_signal_so_far",
+    "proxy_status": "internal_setTimeout_scheduling_delay_not_INP",
+    "p4_status": "not_authorized",
+    "recommended_next": "evidence_packet_or_product_trace_shaped_synthetic_before_p4"
+  }
+}

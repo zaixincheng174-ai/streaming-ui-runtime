@@ -1,0 +1,3 @@
+variant,input_delay_ms,total_proxy_ms,multistream_send_work_ms,dynamic_update_ms,worker_processing_ms,main_commit_ms,stream_events_processed,entries_visited,logical_block_count,rendered_dom_node_count,interpretation
+B2u,164.29999995231628,164.40000009536743,140.40000009536743,131.30000019073486,,,4096,100000,54096,4582,"Main-thread multistream and dynamic-context work blocks the synthetic input task."
+R0u,0.10000014305114746,137.5,136.59999990463257,129.40000009536743,133.59999990463257,3.3000001907348633,4096,100000,54096,4582,"Worker multistream and dynamic-context work keeps the synthetic input task near timing floor; bounded commit remains."
