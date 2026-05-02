@@ -212,6 +212,7 @@ Boundary:
 | P5-Y adversarial audit | Strict overclaim and risk register | frozen |
 | P5 scheduling portfolio summary | Concise portfolio-facing P5 summary | current |
 | P5 paper appendix | Paper appendix packaging for P5 evidence | current |
+| Related systems positioning (`docs/paper/streaming-ui-runtime-related-work-v0.md`) | External-reader positioning against DOM/VDOM, virtualization, editors, terminals, Workers, OffscreenCanvas, WebGPU, and agent-trace workloads | current |
 | P5-X result JSONs | Product-trace-shaped synthetic source results | collected |
 | P5-W / P5-V / P5-T summaries | Prior evidence freeze and mechanism summaries | collected |
 

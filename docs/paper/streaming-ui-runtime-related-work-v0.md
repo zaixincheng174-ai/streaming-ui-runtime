@@ -1,103 +1,72 @@
-# Related Work / Related Systems v0
+# Related Systems Positioning
 
-## Purpose
+## Scope And Claim Boundary
 
-This section positions the paper against adjacent systems: virtualized lists, editors, terminals, React concurrent/render scheduling, workerized state architectures, browser scheduling APIs, and Canvas/OffscreenCanvas/WebGPU renderers.
+This document positions Streaming UI Runtime against adjacent systems. It is a related-systems audit for external readers, not a final bibliography-complete related work section.
 
-This is a positioning draft, not a bibliography-complete related work section. It uses category-level comparisons and leaves precise citations as `citation-needed` items. Until those citations are added, this section should be read as claim-boundary positioning, not settled scholarship.
+The project is not claiming to replace React, Vue, editors, terminals, virtualized lists, Web Workers, OffscreenCanvas, or WebGPU. The narrower claim is that long-lived AI surfaces combine append-heavy output, bounded viewport presentation, tail mutation, agent/trace-like events, and action-triggered coordination/fanout pressure in a way that makes ownership and scheduling boundaries central.
 
-## Virtualized Lists and Viewport Rendering
+The current evidence supports a conservative claim: controlled P1 results plus synthetic P5 scheduling-delay proxy results show that worker-resident ownership/offload can reduce and localize main-thread blocking under long-lived AI-surface workloads. This does not prove browser-level INP improvement, Event Timing improvement, real product superiority, production readiness, a complete production Worker/Main runtime, a complete Canvas/OffscreenCanvas/WebGPU backend, P4 authorization, P7 productization, or precise user-perceived speedup ratios.
 
-Virtualized lists reduce mounted DOM nodes and visible rendering work. They are highly relevant for long lists, transcripts, scrollback views, and any interface where the visible region is much smaller than the total logical list.
+## Comparison Matrix
 
-Virtualization solves an important presentation problem: it can keep the committed DOM bounded even when the logical list is large. For long-lived AI surfaces, this is a necessary baseline to consider.
+| System/category | What it solves | Source of truth / core abstraction | Why it is relevant | Why it does not fully subsume this project | Citation status |
+| --- | --- | --- | --- | --- | --- |
+| React / DOM-VDOM frameworks | Declarative UI composition, reconciliation, batching, and transition-marked rendering work. React transitions can mark updates as non-blocking and interrupt transition work when more urgent updates arrive. | Component tree, state updates, reconciler, DOM commit. | React is the strongest practical baseline family for long-lived web UI surfaces. | React scheduling helps rendering work, but does not by itself define worker-resident session truth, cross-thread transaction protocol, active-context maintenance, or bounded projection ownership for session-scale AI workloads. React also documents limits such as transitions not controlling text inputs. | Official React `useTransition` docs: https://react.dev/reference/react/useTransition |
+| Vue / generic VDOM frameworks | Declarative rendering, virtual DOM diffing/patching, compiler-informed optimizations, and reactive dependency tracking. | Template/render function output as virtual DOM, reactive dependencies, renderer patch pipeline. | Vue provides a concrete VDOM comparison point beyond React and shows that VDOM systems can apply compiler/runtime optimizations. | VDOM optimization still centers on UI tree construction/diff/patch. It does not automatically move long-session derived fanout, agent-trace merge, rolling active-context maintenance, or transaction scheduling into a worker-owned logical runtime. | Official Vue rendering mechanism docs: https://vuejs.org/guide/extras/rendering-mechanism.html |
+| Virtualized lists | Keeps mounted rows/cells bounded for large lists and grids; supports visible-range callbacks, overscan, and dynamic-size tradeoffs. | Visible window over a logical list/grid; row/cell renderers and size metadata. | Long-lived AI surfaces need bounded viewport presentation, so virtualization is a required baseline. | Virtualization reduces committed DOM, but it does not decide who owns session-scale state/fanout, stream merge, tool-event processing, rolling active-context update, or scheduling between urgent and background work. Dynamic heights are also explicitly less efficient in `react-window`, which matters for heterogeneous AI blocks. | `react-window` project docs: https://github.com/bvaughn/react-window and `react-virtualized`: https://github.com/bvaughn/react-virtualized |
+| CodeMirror 6 | Editor-state model, transactions, immutable document/state, extensions, viewport rendering, and measure/write discipline. | `EditorState`, immutable document/state values, transactions dispatched to an `EditorView`. | CodeMirror is the closest positive reference for source-of-truth separation, transactions, and viewport-limited rendering. | CodeMirror targets text editor workloads. Long-lived AI surfaces add heterogeneous blocks, markdown/code/tool outputs, citations, agent traces, multi-stream append, active-context policy, and product-surface routing. | Official CodeMirror system guide: https://codemirror.net/docs/guide/ |
+| Monaco Editor | Text model API, edit operations, snapshots, decorations, undo/redo, ranges, and editor-model separation. | `ITextModel` as the text source of truth plus editor view APIs. | Monaco is an editor-grade baseline for durable model/view separation and large-document interaction. | Monaco's abstraction is a text model, not a heterogeneous AI session graph with messages, trace lanes, tool events, dynamic active-context windows, and bounded projection transactions. | Official Monaco `ITextModel` API: https://microsoft.github.io/monaco-editor/typedoc/interfaces/editor.ITextModel.html |
+| xterm.js / terminal renderers | Terminal buffer, rows/cols viewport, scroll events, parser, input handling, and rendered-row callbacks for append-heavy terminal output. | Terminal buffer and viewport rows; terminal parser and renderer. | Terminal scrollback is a strong analogy for append-heavy retained history with bounded presentation. | Terminal data is comparatively uniform. AI surfaces have variable-height semantic blocks, markdown, code review chunks, tool cards, agent traces, multi-stream event lanes, active-context maintenance, and user-facing provenance. | Official xterm.js docs/API: https://xtermjs.org/docs/ and Terminal API: https://xtermjs.org/docs/api/terminal/classes/terminal/ |
+| Alacritty / terminal-like GPU text renderers | High-performance terminal presentation, OpenGL rendering, scrollback search, and terminal-focused interaction. | Terminal emulator process, terminal grid/buffer, GPU-backed text rendering. | Shows that terminal-class workloads often treat presentation and buffer/scrollback as specialized systems problems. | GPU text rendering does not address AI-surface session ownership, stream merge, active-context policy, trace semantics, or browser main-thread scheduling. | Official Alacritty site: https://alacritty.org/ |
+| Web Workers / OffscreenCanvas | Workers run scripts off the main thread; OffscreenCanvas can decouple Canvas from DOM and run rendering work in a worker context. | Worker thread plus message passing; OffscreenCanvas drawing surface. | These are enabling mechanisms for off-main-thread work and future presentation backends. | A Worker is not a runtime architecture by itself. OffscreenCanvas is a presentation mechanism; it does not define operation logs, transaction scheduling, active-context update semantics, bounded projection correctness, or fail-closed commits. | MDN Web Workers: https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API and OffscreenCanvas: https://developer.mozilla.org/en-US/docs/Web/API/OffscreenCanvas |
+| Prioritized Task Scheduling / `scheduler.yield()` | Browser-level primitives for posting prioritized tasks and yielding from long-running work. | `scheduler.postTask()`, `scheduler.yield()`, coarse task priorities. | Aligns with the project's scheduling theme and F2's chunk/yield/preemption direction. | Browser scheduling APIs do not define the long-lived AI session model, operation stream, worker-owned state, projection protocol, or active-context invariants. They are mechanisms a future runtime may use, not the thesis. | MDN Prioritized Task Scheduling API: https://developer.mozilla.org/en-US/docs/Web/API/Prioritized_Task_Scheduling_API |
+| WebGPU | Access to GPU computation and rendering pipelines for high-performance graphics/compute in the browser. | GPU adapter/device, buffers, pipelines, shaders. | Useful as a future ceiling backend if presentation throughput becomes the dominant bottleneck. | Current strongest evidence points to logical ownership, transaction scheduling, and bounded projection. WebGPU is not needed for the current claim and P4 remains not authorized. | MDN WebGPU API: https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API |
+| Agent trace / long-lived AI surfaces | Multi-stream outputs, tool calls, status/progress, code/diff chunks, long review surfaces, and user input while background work continues. | Heterogeneous session graph / trace stream, not just a DOM tree or text buffer. | This is the target workload category. P5-U and P5-X model multistream and product-trace-shaped synthetic scenarios. | Current evidence is synthetic scheduling-delay proxy evidence, not real product trace validation or production Agent Trace Viewer proof. | Project evidence: `docs/p5/p5y-final-reviewer-evidence-packet.md`, `docs/portfolio/p5-scheduling-evidence-summary.md`; external corpus citation-needed |
 
-However, virtualization alone does not necessarily move session-scale state/fanout, derived metadata, subscriber updates, or action-triggered microtask work off the main thread. If the application still performs full-session derived computation, context propagation, or subscriber notification on the main thread, reducing DOM node count does not remove that state/fanout pressure.
+## Key Distinction
 
-This paper focuses on runtime placement of session state/fanout and bounded projection, not only DOM node count. The safe comparison is that virtualized lists solve a different part of the problem; they are not ineffective, and they remain a relevant baseline.
+The project novelty should be stated as a narrow combination, not as a broad replacement claim.
 
-## Editor Buffer and Viewport Architectures
+It is not:
 
-Editors separate document buffers from viewport rendering. They use mature buffer models, incremental update strategies, viewport projection, and text/layout techniques to keep large documents interactive.
+- "DOM bad."
+- "WebGPU faster."
+- "Editors are irrelevant."
+- "Virtualization does not work."
+- "React concurrent rendering is useless."
 
-This paper is inspired by the buffer/viewport separation. Long-lived AI surfaces also need a durable session model that is larger than the visible viewport, and they also benefit from bounded presentation work.
+The intended distinction is:
 
-The difference is workload shape. Long-lived AI surfaces have heterogeneous semantic blocks: messages, markdown, code, tool calls, citations, agent traces, partial outputs, and provenance metadata. Many AI surfaces are not simply editable text buffers. They combine streaming append, structured tool state, interactive expansion, lineage, citations, and review actions.
+- workload characterization for long-lived AI surfaces: append-heavy, viewport-centric, tail-mutating, heterogeneous, and increasingly agent/trace-like;
+- action-triggered coordination/fanout pressure that can happen before renderer throughput is the first bottleneck;
+- worker-resident logical ownership of session-scale work;
+- transaction scheduling for urgent versus background work;
+- bounded projection commit on the main thread;
+- fail-closed correctness boundaries for stale, malformed, or oversized work.
 
-Editors are an important reference model, not something this paper replaces. The paper borrows the buffer/viewport intuition while targeting heterogeneous AI interaction surfaces and the placement of session-scale state/fanout work.
+This aligns with the current evidence boundary: P1 supports the controlled fanout/offload/scheduling chain, while P5 supports synthetic scheduling-delay proxy evidence across send-start, commit-window, dynamic context, multistream, and product-trace-shaped synthetic workloads. It does not claim browser-level INP, Event Timing, production readiness, real product superiority, or P4/WebGPU authorization.
 
-## Terminal and Scrollback Systems
+## Reviewer Objections And Responses
 
-Terminals are append-heavy and viewport-centric. Scrollback provides a close analogy for long session surfaces: the visible region is bounded, but historical output remains available.
+| objection | conservative response | current evidence | future work |
+| --- | --- | --- | --- |
+| "Isn't this just virtualization?" | Virtualization is necessary but not sufficient. It bounds mounted DOM, while this project studies ownership and scheduling of session-scale logical work. | P5 paired targets preserve bounded rendered windows while varying main-thread versus worker ownership. | Stronger editor/virtualized-list baselines remain useful for future comparison. |
+| "Isn't this just an editor?" | Editors are the best positive analogy, especially CodeMirror's state/transaction/viewport design. The AI workload adds heterogeneous blocks, tool events, agent traces, active-context maintenance, and multistream append. | P2 adopts transaction/projection ideas; P5-Q/S/U/X add dynamic context and multistream trace-shaped axes. | Compare against editor-grade buffers when implementing a later runtime prototype. |
+| "Isn't this just a terminal?" | Terminal scrollback is another strong analogy for append-heavy retained history and bounded viewport. AI surfaces are harder because they are variable-height, semantic, interactive, and trace-like rather than mostly uniform terminal cells. | P5-U/P5-X model multistream and trace-shaped event streams rather than plain appended rows. | Add terminal/log-style baseline only if a reviewer asks whether the workload is reducible to scrollback. |
+| "Isn't React concurrent rendering enough?" | React transitions and batching are relevant baselines, but render scheduling is not the same as worker-owned session state, operation logs, active-context update, and bounded projection protocol. | P0/P1 evidence points at action-triggered microtask/state/fanout pressure; P5 measures worker ownership versus main-thread ownership in synthetic targets. | Future work should compare against strong React concurrent and workerized-state baselines, not strawmen. |
+| "Why not just optimize markdown parsing?" | Markdown parsing may be one cost in real AI surfaces, but current evidence does not isolate it as the main bottleneck. The current claim concerns logical ownership, fanout, scheduling, and projection boundaries. | P0/P1 focus on action-triggered coordination/fanout; P5 focuses on dynamic context and multistream scheduling proxies. | If markdown/syntax parsing becomes a measured bottleneck, paired algorithmic optimizations must be applied to both B2/R0-style baselines. |
+| "Why not WebGPU-first?" | WebGPU is a future ceiling backend, not the thesis. Current evidence points first to logical ownership, transaction scheduling, and bounded projection. | README and P5-Y state P4 remains not authorized; P5 does not require Canvas/WebGPU. | WebGPU/P4 should require a separate gate showing presentation throughput is the limiting factor. |
+| "Where is the product proof?" | Current product traces motivate the mechanism family, while P5-X is product-trace-shaped synthetic evidence. The project does not claim real product superiority. | P0 motivates the mechanism; P5-X tests a product-trace-shaped synthetic workload under strict boundaries. | Real product trace validation would require a separate sanitized trace design and privacy review. |
 
-This paper shares the terminal intuition that presentation should be a bounded view of longer-lived session state. The append-heavy nature of terminals also makes them a useful conceptual baseline for AI sessions that grow over time.
+## Remaining Citation Gaps
 
-The difference is that AI surfaces require richer block semantics, interactive tool outputs, message provenance, citations, code/log blocks, and scheduling between background session work and urgent visible projection. A terminal scrollback buffer is usually more uniform than a long-lived AI trace with heterogeneous blocks and derived metadata.
-
-This paper can be seen as borrowing the terminal/buffer intuition but applying it to heterogeneous AI interaction surfaces.
-
-## React Concurrent Features and Render Scheduling
-
-React concurrent features and render scheduling help prioritize rendering and avoid blocking some UI updates. They are relevant baselines and should be considered in future evaluation.
-
-However, render scheduling alone does not define a worker-resident session state model, transaction protocol, or bounded projection contract. If action-triggered session-scale state/fanout work remains coupled to the main-thread update path, render prioritization may reduce some visible blocking while leaving the placement problem unresolved.
-
-This paper's claim is not that React is bad. The claim is that session-scale state/fanout placement can be a bottleneck that render prioritization alone may not remove. React concurrent features address overlapping but not identical problems, and future work should compare against strong React-based baselines rather than strawman DOM implementations.
-
-## Workerized State and Off-Main-Thread Architectures
-
-Moving state and compute off the main thread is a known design direction. The idea of using a Worker is not novel by itself.
-
-This paper's specific contribution is not merely "use a Worker." F1 evaluates equivalent worker offload for controlled derived fanout, preserving structural work counters and removing the reproduced main-thread long task in the controlled setting. F2 evaluates Worker-side transaction scheduling after offload, showing that monolithic Worker execution can still delay urgent projection and that chunking/yielding/preemption can reduce urgent projection-commit latency.
-
-P2 pure core defines a workload-specific contract around that evidence chain: protocol validation, op-log/state-store, transaction scheduling, bounded projection, recovery, metrics, and fail-closed correctness. The contribution is the workload-specific evidence chain and runtime contract, not the broad existence of Workers.
-
-## Browser Scheduling APIs and Cooperative Scheduling
-
-Browser scheduling primitives and cooperative scheduling are relevant to chunking and yielding work. They provide ways to split heavy work, yield control, and prioritize responsiveness.
-
-F2's scheduled Worker path is conceptually aligned with cooperative scheduling: chunk heavy work, yield, and admit urgent work. The result supports the paper's claim that Worker-side scheduling matters after offload.
-
-The paper does not depend on one browser scheduling API. Future work can compare scheduling primitives, fairness, starvation behavior, overhead, and multi-urgent stress. The current claim is narrower: in the controlled F2 workload, scheduled Worker processing lowers urgent acknowledgement and projection-commit latency relative to monolithic Worker execution.
-
-## Canvas, OffscreenCanvas, and WebGPU Renderers
-
-Canvas, OffscreenCanvas, and WebGPU are relevant presentation backends for large visual surfaces. They may become useful after the runtime boundary is correct, especially if a future workload shows that rendering throughput is the dominant bottleneck.
-
-Current evidence points first to state/fanout/scheduling and projection boundaries, not renderer throughput. Product motivation and controlled reproduction focus on action-triggered microtask/state/fanout work. F1 and F2 test worker offload and Worker-side scheduling rather than presentation backend replacement.
-
-This paper intentionally defers presentation backend claims. P2 pure core keeps Canvas/WebGPU paused, and current packaging should not imply that a production Canvas, OffscreenCanvas, or WebGPU backend is complete. The safe claim is not that Canvas/WebGPU are irrelevant; the safe claim is that they are not the first evidence-supported lever in this work.
-
-## Positioning Summary
-
-| Area | What It Solves | What It Does Not Necessarily Solve | This Paper's Position |
-|---|---|---|---|
-| Virtualized lists | Reduces mounted DOM nodes and visible list rendering work. | Session-scale state/fanout, derived metadata, subscriber updates, or microtask-heavy app coordination. | Important baseline; this paper targets runtime state/fanout placement and bounded projection beyond DOM node count. |
-| Editor architectures | Separates buffer state from viewport presentation and supports incremental document updates. | Heterogeneous AI blocks, tool outputs, citations, provenance, streaming partials, and transaction scheduling by default. | Strong reference model; this paper adapts buffer/viewport thinking to AI interaction surfaces. |
-| Terminal/scrollback systems | Handles append-heavy output with retained history and bounded viewport. | Rich semantic blocks, interactive tool states, citations, and urgent/background projection scheduling. | Close analogy for append/viewport shape; AI surfaces require richer state and projection contracts. |
-| React concurrent/render scheduling | Prioritizes rendering and can reduce some UI blocking. | Worker-resident session state, cross-thread transaction protocol, bounded projection contract, or off-main-thread fanout by itself. | Relevant baseline; this paper focuses on state/fanout placement and Worker-side scheduling, not React rejection. |
-| Workerized state | Moves compute or state off the main thread. | Workload-specific transaction scheduling, projection safety, lineage, recovery, and fail-closed contracts by itself. | Workers are known; the contribution is the evidence chain and AI-surface runtime contract. |
-| Browser scheduling APIs | Supports chunking, yielding, and cooperative responsiveness. | A full session model, projection protocol, or correctness boundary by itself. | Relevant mechanism family; F2 is API-agnostic scheduler-positive evidence. |
-| Canvas/OffscreenCanvas/WebGPU | Provides alternative presentation backends for visual throughput. | Session-scale state/fanout placement, transaction scheduling, or projection correctness. | Future backend gate; current evidence supports fixing runtime boundaries first. |
-
-## Citation TODOs
-
-- virtualized list / windowing systems: citation-needed
-- editor architecture / piece table / rope / viewport rendering: citation-needed
-- terminal scrollback systems: citation-needed
-- React concurrent features / scheduler: citation-needed
-- workerized state / off-main-thread UI architectures: citation-needed
-- browser scheduling APIs: citation-needed
-- Canvas/OffscreenCanvas/WebGPU UI rendering systems: citation-needed
+- Academic or peer-reviewed citations for virtualized/windowed rendering remain citation-needed.
+- Academic references for editor data structures such as ropes, piece tables, and incremental parsing remain citation-needed.
+- Academic references for terminal scrollback / terminal renderer architectures remain citation-needed.
+- External references for AI agent trace / long-lived AI-surface workload taxonomies remain citation-needed; current evidence is project-local.
+- Future paper packaging should decide whether official documentation links are enough for a workshop paper, or whether a formal bibliography is required.
 
 ## Final Recommendation
 
-This section should be integrated after Background or before/after Limitations depending on final paper structure. The next step should be either:
-
-A. patch the assembled short-paper draft with a compact Related Work section;
-
-or
-
-B. create a citation plan before integration.
-
-Recommend A for now, with citation placeholders and an explicit note that the section is not bibliography-complete.
+Use this document as the related-systems positioning source for the P6 paper/portfolio packet. It is ready to be linked or referenced from the short paper draft as a positioning source, but it is not yet a final bibliography.
