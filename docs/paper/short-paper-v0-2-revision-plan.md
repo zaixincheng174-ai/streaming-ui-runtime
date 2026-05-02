@@ -1,3 +1,6 @@
+> **Status:** Historical / superseded draft.
+> This document is retained for project history and should not be read as the current claim boundary. For current public-facing claims, start with `README.md` and `docs/portfolio/document-status-map.md`.
+
 # Short Paper v0.2 Revision Plan
 
 ## 1. Purpose

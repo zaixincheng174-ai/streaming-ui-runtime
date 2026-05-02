@@ -6,7 +6,7 @@ This document positions Streaming UI Runtime against adjacent systems. It is a r
 
 The project is not claiming to replace React, Vue, editors, terminals, virtualized lists, Web Workers, OffscreenCanvas, or WebGPU. The narrower claim is that long-lived AI surfaces combine append-heavy output, bounded viewport presentation, tail mutation, agent/trace-like events, and action-triggered coordination/fanout pressure in a way that makes ownership and scheduling boundaries central.
 
-The current evidence supports a conservative claim: controlled P1 results plus synthetic P5 scheduling-delay proxy results show that worker-resident ownership/offload can reduce and localize main-thread blocking under long-lived AI-surface workloads. This does not prove browser-level INP improvement, Event Timing improvement, real product superiority, production readiness, a complete production Worker/Main runtime, a complete Canvas/OffscreenCanvas/WebGPU backend, P4 authorization, P7 productization, or precise user-perceived speedup ratios.
+The current evidence supports a conservative claim: controlled P1 results plus synthetic P5 scheduling-delay proxy results support that worker-resident ownership/offload can reduce and localize main-thread blocking under long-lived AI-surface workloads. This does not prove browser-level INP improvement, Event Timing improvement, real product superiority, production readiness, a complete production Worker/Main runtime, a complete Canvas/OffscreenCanvas/WebGPU backend, P4 authorization, P7 productization, or precise user-perceived speedup ratios.
 
 ## Comparison Matrix
 
