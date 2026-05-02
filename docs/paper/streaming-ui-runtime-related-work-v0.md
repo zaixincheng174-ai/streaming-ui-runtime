@@ -4,7 +4,7 @@
 
 This section positions the paper against adjacent systems: virtualized lists, editors, terminals, React concurrent/render scheduling, workerized state architectures, browser scheduling APIs, and Canvas/OffscreenCanvas/WebGPU renderers.
 
-This is a positioning draft, not a bibliography-complete related work section. It uses category-level comparisons and leaves precise citations as `citation-needed` items.
+This is a positioning draft, not a bibliography-complete related work section. It uses category-level comparisons and leaves precise citations as `citation-needed` items. Until those citations are added, this section should be read as claim-boundary positioning, not settled scholarship.
 
 ## Virtualized Lists and Viewport Rendering
 
@@ -66,7 +66,7 @@ Canvas, OffscreenCanvas, and WebGPU are relevant presentation backends for large
 
 Current evidence points first to state/fanout/scheduling and projection boundaries, not renderer throughput. Product motivation and controlled reproduction focus on action-triggered microtask/state/fanout work. F1 and F2 test worker offload and Worker-side scheduling rather than presentation backend replacement.
 
-This paper intentionally defers presentation backend claims. P2 pure core keeps Canvas/WebGPU paused. The safe claim is not that Canvas/WebGPU are irrelevant; the safe claim is that they are not the first evidence-supported lever in this work.
+This paper intentionally defers presentation backend claims. P2 pure core keeps Canvas/WebGPU paused, and current packaging should not imply that a production Canvas, OffscreenCanvas, or WebGPU backend is complete. The safe claim is not that Canvas/WebGPU are irrelevant; the safe claim is that they are not the first evidence-supported lever in this work.
 
 ## Positioning Summary
 
@@ -100,4 +100,4 @@ or
 
 B. create a citation plan before integration.
 
-Recommend A for now, with citation placeholders.
+Recommend A for now, with citation placeholders and an explicit note that the section is not bibliography-complete.

@@ -10,7 +10,7 @@ This file maps resume and portfolio claims to repository evidence. It is intenti
 | 70ms F0-D benchmark long task | `docs/p1/p1-f0d-product-range-3x-result.md` | Controlled F0-D benchmark produced repeatable 50ms+ long tasks, with max `70.117ms` and mean `68.633ms` | Controlled derived-fanout workload, not product replay |
 | 68ms to 2.7ms worker offload result | `docs/p1/p1-f1-worker-offload-3x-result.md` | Worker offload reduced main-thread max task mean from `68.633ms` to `2.679ms` | Equivalent controlled workload; not proof all UI work can move off-main-thread |
 | zero long tasks | `docs/p1/p1-f1-worker-offload-3x-result.md` | Worker offload reduced 50ms+ main-thread long tasks from one per F0-D run to zero in F1 runs | Applies to F1 controlled offload experiment |
-| 22.9ms to 3.3ms urgent click-to-visible reduction | `docs/p1/p1-f2-worker-scheduler-ab-3x-result.md` | Worker scheduling reduced urgent end-to-end visible latency mean from `22.867ms` to `3.333ms` | Single urgent request per run; not total throughput improvement |
+| 22.9ms to 3.3ms controlled urgent projection timing | `docs/p1/p1-f2-worker-scheduler-ab-3x-result.md` | Worker scheduling reduced controlled urgent projection timing mean from `22.867ms` to `3.333ms` | Single urgent request per run; not total throughput improvement or full user-perceived latency |
 | 17-module TypeScript runtime | `docs/p2/p2-pure-core-v0-freeze.md`; `runtime/` | Implemented a TypeScript pure-core runtime across protocol, validation, scheduler, state, projection, adapter, metrics, and harness modules | Current tracked runtime source inventory contains 25 TypeScript files; if using "17-module", define it as capability modules, not source files |
 | 406 passing tests | `docs/p2/p2-pure-core-v0-freeze.md` | Runtime freeze validation recorded `406/406` runtime tests passing | Historical freeze snapshot; rerun current tests before each release |
 | P5 synthetic scheduling-mechanism evidence | `docs/p5/p5y-final-reviewer-evidence-packet.md`; `docs/p5/p5y-reviewer-adversarial-audit.md`; `docs/portfolio/p5-scheduling-evidence-summary.md`; `docs/paper/appendix/p5-scheduling-evidence-appendix.md` | P5 supports that worker-resident logical ownership can reduce and localize main-thread blocking under synthetic long-lived AI-surface workloads | Synthetic scheduling-delay proxy, not browser-level INP, not Event Timing, not production readiness, not real product superiority; P4 remains not authorized |
@@ -82,7 +82,7 @@ Safe wording:
 
 > Worker offload removed 50ms+ main-thread long tasks in the controlled F1 runs while preserving equivalent structural work.
 
-### 22.9ms To 3.3ms Urgent Click-To-Visible Reduction
+### 22.9ms To 3.3ms Controlled Urgent Projection Timing
 
 Evidence:
 
@@ -98,7 +98,7 @@ Key numbers:
 
 Safe wording:
 
-> Designed worker-side transaction scheduling with priority preemption, reducing urgent visible latency from about 22.9ms to about 3.3ms in a controlled A/B scheduler experiment.
+> Designed worker-side transaction scheduling with priority preemption, reducing controlled urgent projection timing from about 22.9ms to about 3.3ms in a controlled A/B scheduler experiment.
 
 Boundary:
 
@@ -178,9 +178,9 @@ Evidence:
 
 Key numbers:
 
-- P5-X product-trace-shaped synthetic: B2x input delay `176.1ms`, R0x input delay `0.1ms`
-- P5-U multistream agent-trace: B2u input delay `164.3ms`, R0u input delay `0.1ms`
-- P5-S dynamic update: B2s input delay `35.2ms`, R0s input delay `0.1ms`
+- P5-X product-trace-shaped synthetic scheduling-delay proxy: B2x `176.1ms` vs R0x `0.1ms` under equal trace/logical invariants
+- P5-U multistream agent-trace: B2u synthetic input-task scheduling delay `164.3ms`, R0u synthetic input-task scheduling delay `0.1ms`
+- P5-S dynamic update: B2s synthetic input-task scheduling delay `35.2ms`, R0s synthetic input-task scheduling delay `0.1ms`
 - P5-O commit-window: R0o commit-window delay `4.7ms`
 
 Safe wording:
@@ -214,3 +214,9 @@ Boundary:
 | P5 paper appendix | Paper appendix packaging for P5 evidence | current |
 | P5-X result JSONs | Product-trace-shaped synthetic source results | collected |
 | P5-W / P5-V / P5-T summaries | Prior evidence freeze and mechanism summaries | collected |
+
+## P6 / P7 Boundary
+
+P6 should package the research-backed OSS / portfolio engineering asset: short paper draft, appendix, README, portfolio summary, evidence map, and claim-boundary packet. P6 should not claim production readiness, real product superiority, browser-level INP, Event Timing, P4/WebGPU authorization, or a production Agent Trace Viewer.
+
+P7 is the later product-grade expansion phase. Product validation, production integration, accessibility/focus/caret behavior, and any Agent Trace Viewer or long-lived AI workspace productization belong there, not in the current P6 packaging pass.

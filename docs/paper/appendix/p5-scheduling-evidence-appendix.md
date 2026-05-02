@@ -16,12 +16,12 @@ Can worker-resident ownership of long-lived AI-surface logical work reduce and l
 
 | phase | B2 evidence | R0 evidence | interpretation | boundary |
 | --- | --- | --- | --- | --- |
-| P5-M send-start | 16.0ms input delay | 0.1ms input delay | B2 main-thread send work blocks the synthetic input task; R0 stays near timing floor while Worker send work runs. | `setTimeout` proxy, not browser-level INP |
-| P5-O commit-window | 28.1ms commit-window input delay | 4.7ms commit-window input delay | R0 has an isolable bounded commit phase; B2o reflects mixed late-send-plus-commit blocking, not pure commit cost. | R0 still blocks during commit; blocking is localized, not eliminated |
+| P5-M send-start | 16.0ms synthetic input-task scheduling delay | 0.1ms synthetic input-task scheduling delay | B2 main-thread send work blocks the synthetic input task; R0 stays near timing floor while Worker send work runs. | `setTimeout` proxy, not browser-level INP |
+| P5-O commit-window | 28.1ms commit-window synthetic input-task scheduling delay | 4.7ms commit-window synthetic input-task scheduling delay | R0 has an isolable bounded commit phase; B2o reflects mixed late-send-plus-commit blocking, not pure commit cost. | R0 still blocks during commit; blocking is localized, not eliminated |
 | P5-Q dynamic cost | 28.5ms dynamic update | 30.8ms dynamic update in Worker | Dynamic active-context update remains material; R0 moves the cost into Worker but does not eliminate it. | Cost localization only, not input scheduling evidence by itself |
-| P5-S dynamic-update input | 35.2ms input delay | 0.1ms input delay | B2 main-thread dynamic update blocks synthetic input; R0 keeps the synthetic input task near floor while Worker update runs. | Not Event Timing or random lifecycle input |
-| P5-U multistream | 164.3ms input delay | 0.1ms input delay | R0 moves multistream and dynamic-context processing out of the main-thread input path. | Synthetic agent-trace workload, not product trace evidence |
-| P5-X product-trace-shaped | 176.1ms input delay | 0.1ms input delay | The input-path isolation signal survives a product-trace-shaped synthetic workload. | Not real product trace superiority |
+| P5-S dynamic-update input | 35.2ms synthetic input-task scheduling delay | 0.1ms synthetic input-task scheduling delay | B2 main-thread dynamic update blocks synthetic input; R0 keeps the synthetic input task near floor while Worker update runs. | Not Event Timing or random lifecycle input |
+| P5-U multistream | 164.3ms synthetic input-task scheduling delay | 0.1ms synthetic input-task scheduling delay | R0 moves multistream and dynamic-context processing out of the main-thread input path. | Synthetic agent-trace workload, not product trace evidence |
+| P5-X product-trace-shaped synthetic scheduling-delay proxy | B2x 176.1ms | R0x 0.1ms | P5-X product-trace-shaped synthetic scheduling-delay proxy: B2x 176.1ms vs R0x 0.1ms under equal trace/logical invariants. | Not real product trace superiority |
 
 Read these as blocked-vs-near-unblocked scheduling categories, not precise user-perceived speedup ratios.
 
@@ -64,5 +64,5 @@ P5 supports the claim that worker-resident ownership can reduce and localize mai
 ## G. Next Work
 
 - Prefer packaging / review over new benchmark-axis expansion.
-- Add product-trace-shaped refinement only if a named reviewer objection requires it.
+- Do not add further product-trace-shaped variants unless a named reviewer objection requires it.
 - Add browser Event Timing / INP only if the project explicitly shifts to browser-level interaction evidence.

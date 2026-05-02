@@ -2,7 +2,7 @@
 
 ## One-Line Pitch
 
-Streaming UI Runtime is a measured TypeScript runtime-core project for long-lived AI surfaces, using worker offload, transaction scheduling, and bounded viewport projection to protect urgent interaction paths from background streaming/session-scale work.
+Streaming UI Runtime is a measured TypeScript runtime-core project for long-lived AI surfaces, studying worker offload, transaction scheduling, and bounded viewport projection as a way to reduce and localize main-thread blocking from background streaming/session-scale work.
 
 ## Problem
 
@@ -82,7 +82,7 @@ The evidence chain is intentionally staged:
    - compare main-thread max task and long-task count against F0-D.
 4. F2 worker scheduling:
    - compare monolithic worker execution against chunked/yielding scheduled worker execution;
-   - measure urgent projection acknowledgement and visible latency.
+   - measure urgent projection acknowledgement and controlled urgent projection timing.
 5. P2 pure-core freeze:
    - freeze runtime-core implications as testable protocol/state/scheduler/projection scaffolding.
 6. P5 scheduling evidence:
@@ -97,16 +97,16 @@ The evidence chain is intentionally staged:
 | F0-D reproduced a controlled long-task mechanism | `docs/p1/p1-f0d-product-range-3x-result.md`: `f0_run_task_max_ms` mean about `68.633ms`, max `70.117ms` |
 | Worker offload reduced main-thread max task | `docs/p1/p1-f1-worker-offload-3x-result.md`: `68.633ms -> 2.679ms` mean |
 | Worker offload removed 50ms+ main-thread long tasks | `docs/p1/p1-f1-worker-offload-3x-result.md`: long task count `1/run -> 0` |
-| Worker scheduling reduced urgent visible latency | `docs/p1/p1-f2-worker-scheduler-ab-3x-result.md`: `22.867ms -> 3.333ms` mean |
+| Worker scheduling reduced controlled urgent projection timing | `docs/p1/p1-f2-worker-scheduler-ab-3x-result.md`: `22.867ms -> 3.333ms` mean |
 | Runtime core has a broad TypeScript scaffold | `docs/p2/p2-pure-core-v0-freeze.md` and `runtime/` |
 | Runtime tests passed | `docs/p2/p2-pure-core-v0-freeze.md`: `406/406` runtime tests passed at freeze |
-| P5 scheduling-mechanism evidence | `docs/p5/p5y-final-reviewer-evidence-packet.md`; `docs/portfolio/p5-scheduling-evidence-summary.md` | Synthetic scheduling-delay proxy evidence shows worker-resident logical ownership can reduce and localize main-thread blocking under long-lived AI-surface workloads |
+| P5 scheduling-mechanism evidence | `docs/p5/p5y-final-reviewer-evidence-packet.md`; `docs/portfolio/p5-scheduling-evidence-summary.md`; synthetic scheduling-delay proxy evidence, not browser-level INP or production readiness |
 
 See [evidence-map.md](evidence-map.md) for a stricter resume-claim map.
 
 ## P5 Scheduling Evidence
 
-P5 freezes the current scheduling-mechanism evidence for long-lived AI surfaces. The strongest current signal is P5-X product-trace-shaped synthetic: B2x input delay `176.1ms` vs R0x `0.1ms` under equal trace/logical invariants.
+P5 freezes the current scheduling-mechanism evidence for long-lived AI surfaces. The strongest current signal is P5-X product-trace-shaped synthetic scheduling-delay proxy: B2x `176.1ms` vs R0x `0.1ms` under equal trace/logical invariants.
 
 This is a blocked-vs-near-unblocked synthetic scheduling-delay proxy, not browser-level INP, not Event Timing, not production readiness, and not real product superiority. R0 does not eliminate work; it moves logical work into Worker and leaves bounded projection commit on main. P4 remains not authorized.
 
@@ -176,9 +176,9 @@ Run P1 analysis scripts only with reviewed/sanitized trace inputs. Raw private t
 
 Next public-safe steps:
 
-1. Review and sanitize tracked trace-derived CSVs.
-2. Add a short demo recording or screenshots of controlled targets and result tables.
+1. Reconcile the paper draft, appendix, README, and portfolio evidence map around the P5-Y/P5-X claim boundary.
+2. Review and sanitize tracked trace-derived CSVs before public release.
 3. Add a public release branch with only sanitized benchmark summaries.
 4. Add license.
-5. Add a real Worker boundary smoke test when separately approved.
-6. Add broader workload matrices after the evidence-to-design gate allows it.
+5. Add a real Worker boundary smoke test only when separately approved.
+6. Avoid new benchmark-axis expansion unless it answers a named reviewer objection.
