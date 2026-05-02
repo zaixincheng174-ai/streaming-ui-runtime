@@ -63,10 +63,40 @@ const requiredR0MetricFields = [
   "anchor_transition_label"
 ];
 
+const requiredR0PhaseMetricFields = [
+  "init_worker_roundtrip_ms",
+  "init_worker_processing_ms",
+  "init_worker_projection_ms",
+  "init_main_commit_ms",
+  "typing_worker_roundtrip_ms",
+  "typing_worker_processing_ms",
+  "send_worker_roundtrip_ms",
+  "send_worker_processing_ms",
+  "send_worker_active_context_traversal_ms",
+  "send_worker_tail_mutation_ms",
+  "send_worker_append_ms",
+  "send_worker_projection_ms",
+  "send_main_commit_ms",
+  "send_end_to_end_ms",
+  "scroll_old_worker_roundtrip_ms",
+  "scroll_old_worker_processing_ms",
+  "scroll_old_worker_projection_ms",
+  "scroll_old_main_commit_ms",
+  "scroll_tail_worker_roundtrip_ms",
+  "scroll_tail_worker_processing_ms",
+  "scroll_tail_worker_projection_ms",
+  "scroll_tail_main_commit_ms",
+  "max_phase_worker_roundtrip_ms",
+  "max_phase_worker_processing_ms",
+  "max_phase_worker_projection_ms",
+  "max_phase_main_commit_ms"
+];
+
 const requiredMetricFields = [
   ...requiredCommonMetricFields,
   ...requiredProjectionMetricFields,
-  ...requiredR0MetricFields
+  ...requiredR0MetricFields,
+  ...requiredR0PhaseMetricFields
 ];
 
 const numericMetricFields = requiredMetricFields.filter(
@@ -149,6 +179,17 @@ async function main() {
       max_worker_processing_ms: maxMetric(resultRows, "worker_processing_ms"),
       max_worker_projection_ms: maxMetric(resultRows, "worker_projection_ms"),
       max_main_commit_ms: maxMetric(resultRows, "main_commit_ms"),
+      max_send_end_to_end_ms: maxMetric(resultRows, "send_end_to_end_ms"),
+      max_send_worker_processing_ms: maxMetric(resultRows, "send_worker_processing_ms"),
+      max_send_worker_active_context_traversal_ms: maxMetric(resultRows, "send_worker_active_context_traversal_ms"),
+      max_send_worker_tail_mutation_ms: maxMetric(resultRows, "send_worker_tail_mutation_ms"),
+      max_send_worker_append_ms: maxMetric(resultRows, "send_worker_append_ms"),
+      max_send_worker_projection_ms: maxMetric(resultRows, "send_worker_projection_ms"),
+      max_send_main_commit_ms: maxMetric(resultRows, "send_main_commit_ms"),
+      max_phase_worker_roundtrip_ms: maxMetric(resultRows, "max_phase_worker_roundtrip_ms"),
+      max_phase_worker_processing_ms: maxMetric(resultRows, "max_phase_worker_processing_ms"),
+      max_phase_worker_projection_ms: maxMetric(resultRows, "max_phase_worker_projection_ms"),
+      max_phase_main_commit_ms: maxMetric(resultRows, "max_phase_main_commit_ms"),
       max_commit_cycle_count: maxMetric(resultRows, "commit_cycle_count"),
       scenario_ids: expectedScenarios.map((scenario) => scenario.scenario_id)
     }
@@ -164,6 +205,8 @@ async function main() {
   console.log(`max_initial_render_ms=${formatMetric(result.summary.max_initial_render_ms)}`);
   console.log(`max_send_click_proxy_ms=${formatMetric(result.summary.max_send_click_proxy_ms)}`);
   console.log(`max_worker_processing_ms=${formatMetric(result.summary.max_worker_processing_ms)}`);
+  console.log(`max_send_worker_processing_ms=${formatMetric(result.summary.max_send_worker_processing_ms)}`);
+  console.log(`max_send_end_to_end_ms=${formatMetric(result.summary.max_send_end_to_end_ms)}`);
   console.log(`max_main_commit_ms=${formatMetric(result.summary.max_main_commit_ms)}`);
   console.log("AUDIT_STATUS=PASS");
 }

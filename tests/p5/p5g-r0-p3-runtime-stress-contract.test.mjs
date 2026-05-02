@@ -26,6 +26,35 @@ const expectedScenarioIds = [
   "p5d_v50000_rich_ctx_full_repeat2"
 ];
 
+const phaseSpecificMetricFields = [
+  "init_worker_roundtrip_ms",
+  "init_worker_processing_ms",
+  "init_worker_projection_ms",
+  "init_main_commit_ms",
+  "typing_worker_roundtrip_ms",
+  "typing_worker_processing_ms",
+  "send_worker_roundtrip_ms",
+  "send_worker_processing_ms",
+  "send_worker_active_context_traversal_ms",
+  "send_worker_tail_mutation_ms",
+  "send_worker_append_ms",
+  "send_worker_projection_ms",
+  "send_main_commit_ms",
+  "send_end_to_end_ms",
+  "scroll_old_worker_roundtrip_ms",
+  "scroll_old_worker_processing_ms",
+  "scroll_old_worker_projection_ms",
+  "scroll_old_main_commit_ms",
+  "scroll_tail_worker_roundtrip_ms",
+  "scroll_tail_worker_processing_ms",
+  "scroll_tail_worker_projection_ms",
+  "scroll_tail_main_commit_ms",
+  "max_phase_worker_roundtrip_ms",
+  "max_phase_worker_processing_ms",
+  "max_phase_worker_projection_ms",
+  "max_phase_main_commit_ms"
+];
+
 function read(filePath) {
   return fs.readFileSync(filePath, "utf8");
 }
@@ -107,6 +136,16 @@ test("P5-G target includes fairness indicators", () => {
   }
 });
 
+test("P5-G target exposes phase-specific R0 instrumentation fields", () => {
+  const html = read(targetPath);
+  for (const field of phaseSpecificMetricFields) {
+    assert.ok(html.includes(field), `missing ${field}`);
+  }
+  for (const needle of ["recordWorkerPhase", "recordMainCommitPhase"]) {
+    assert.ok(html.includes(needle), `missing ${needle}`);
+  }
+});
+
 test("P5-G target avoids deferred render backends and product URLs", () => {
   const html = read(targetPath);
   assert.doesNotMatch(html, /OffscreenCanvas\b/);
@@ -149,6 +188,28 @@ test("P5-G collector validates boundary language", () => {
     "r0_p3_derived_worker_bounded_projection"
   ]) {
     assert.ok(source.includes(needle), `missing ${needle}`);
+  }
+});
+
+test("P5-G collector validates phase-specific R0 instrumentation fields", () => {
+  const source = read(collectorPath);
+  for (const field of phaseSpecificMetricFields) {
+    assert.ok(source.includes(field), `missing ${field}`);
+  }
+  for (const field of [
+    "max_send_end_to_end_ms",
+    "max_send_worker_processing_ms",
+    "max_send_worker_active_context_traversal_ms",
+    "max_send_worker_tail_mutation_ms",
+    "max_send_worker_append_ms",
+    "max_send_worker_projection_ms",
+    "max_send_main_commit_ms",
+    "max_phase_worker_roundtrip_ms",
+    "max_phase_worker_processing_ms",
+    "max_phase_worker_projection_ms",
+    "max_phase_main_commit_ms"
+  ]) {
+    assert.ok(source.includes(field), `missing ${field}`);
   }
 });
 

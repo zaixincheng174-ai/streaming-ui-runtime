@@ -261,7 +261,33 @@
         commit_cycle_count: 0,
         admitted_transaction_count: 0,
         rejected_transaction_count: 0,
-        anchor_transition_label: "not_initialized"
+        anchor_transition_label: "not_initialized",
+        init_worker_roundtrip_ms: 0,
+        init_worker_processing_ms: 0,
+        init_worker_projection_ms: 0,
+        init_main_commit_ms: 0,
+        typing_worker_roundtrip_ms: 0,
+        typing_worker_processing_ms: 0,
+        send_worker_roundtrip_ms: 0,
+        send_worker_processing_ms: 0,
+        send_worker_active_context_traversal_ms: 0,
+        send_worker_tail_mutation_ms: 0,
+        send_worker_append_ms: 0,
+        send_worker_projection_ms: 0,
+        send_main_commit_ms: 0,
+        send_end_to_end_ms: 0,
+        scroll_old_worker_roundtrip_ms: 0,
+        scroll_old_worker_processing_ms: 0,
+        scroll_old_worker_projection_ms: 0,
+        scroll_old_main_commit_ms: 0,
+        scroll_tail_worker_roundtrip_ms: 0,
+        scroll_tail_worker_processing_ms: 0,
+        scroll_tail_worker_projection_ms: 0,
+        scroll_tail_main_commit_ms: 0,
+        max_phase_worker_roundtrip_ms: 0,
+        max_phase_worker_processing_ms: 0,
+        max_phase_worker_projection_ms: 0,
+        max_phase_main_commit_ms: 0
       };
 
       function resolveScenario() {
@@ -755,9 +781,13 @@
         applyWorkerMetrics(response, "init");
         const commitMs = commitProjectionTransaction(response.transaction, "tail");
         metrics.worker_init_ms = response.worker_init_ms;
-        metrics.worker_roundtrip_ms = response.worker_roundtrip_ms;
+        metrics.init_worker_roundtrip_ms = response.worker_roundtrip_ms || 0;
+        metrics.init_worker_processing_ms = response.worker_processing_ms || 0;
+        metrics.init_worker_projection_ms = response.worker_projection_ms || 0;
+        metrics.init_main_commit_ms = commitMs;
         metrics.initial_render_ms = performance.now() - startMs;
         metrics.main_commit_ms += commitMs;
+        recordMainCommitPhase(commitMs);
         recordMeasuredDuration(metrics.initial_render_ms);
         publishSummary();
       }
@@ -767,6 +797,8 @@
         typingInput.value = `synthetic stress typing proxy ${Date.now().toString(36)}`;
         const response = await postRuntimeOp("typing_proxy");
         applyWorkerMetrics(response, "typing");
+        metrics.typing_worker_roundtrip_ms = response.worker_roundtrip_ms || 0;
+        metrics.typing_worker_processing_ms = response.worker_processing_ms || 0;
         metrics.typing_proxy_ms = performance.now() - startMs;
         recordInteractionDuration(metrics.typing_proxy_ms);
         publishSummary();
@@ -778,11 +810,20 @@
         const response = await postRuntimeOp("send_click_proxy");
         applyWorkerMetrics(response, "send");
         const commitMs = commitProjectionTransaction(response.transaction, "tail");
+        metrics.send_worker_roundtrip_ms = response.worker_roundtrip_ms || 0;
+        metrics.send_worker_processing_ms = response.worker_processing_ms || 0;
+        metrics.send_worker_active_context_traversal_ms = response.worker_active_context_traversal_ms || 0;
+        metrics.send_worker_tail_mutation_ms = response.worker_tail_mutation_ms || 0;
+        metrics.send_worker_append_ms = response.worker_append_ms || 0;
+        metrics.send_worker_projection_ms = response.worker_projection_ms || 0;
+        metrics.send_main_commit_ms = commitMs;
         metrics.main_commit_ms += commitMs;
-        metrics.send_click_proxy_ms = performance.now() - startMs;
-        recordMeasuredDuration(metrics.worker_active_context_traversal_ms);
-        recordMeasuredDuration(metrics.worker_tail_mutation_ms);
-        recordMeasuredDuration(metrics.worker_append_ms);
+        metrics.send_end_to_end_ms = performance.now() - startMs;
+        metrics.send_click_proxy_ms = metrics.send_end_to_end_ms;
+        recordMainCommitPhase(commitMs);
+        recordMeasuredDuration(metrics.send_worker_active_context_traversal_ms);
+        recordMeasuredDuration(metrics.send_worker_tail_mutation_ms);
+        recordMeasuredDuration(metrics.send_worker_append_ms);
         recordMeasuredDuration(commitMs);
         recordInteractionDuration(metrics.send_click_proxy_ms);
         publishSummary();
@@ -794,13 +835,23 @@
         const oldHistoryResponse = await postRuntimeOp("request_projection", { anchor_kind: "old_history" });
         applyWorkerMetrics(oldHistoryResponse, "scroll_old_history");
         const oldCommitMs = commitProjectionTransaction(oldHistoryResponse.transaction, "old_history");
+        metrics.scroll_old_worker_roundtrip_ms = oldHistoryResponse.worker_roundtrip_ms || 0;
+        metrics.scroll_old_worker_processing_ms = oldHistoryResponse.worker_processing_ms || 0;
+        metrics.scroll_old_worker_projection_ms = oldHistoryResponse.worker_projection_ms || 0;
+        metrics.scroll_old_main_commit_ms = oldCommitMs;
         metrics.old_history_window_render_ms += oldCommitMs;
         const tailResponse = await postRuntimeOp("request_projection", { anchor_kind: "tail" });
         applyWorkerMetrics(tailResponse, "scroll_tail");
         const tailCommitMs = commitProjectionTransaction(tailResponse.transaction, "tail");
+        metrics.scroll_tail_worker_roundtrip_ms = tailResponse.worker_roundtrip_ms || 0;
+        metrics.scroll_tail_worker_processing_ms = tailResponse.worker_processing_ms || 0;
+        metrics.scroll_tail_worker_projection_ms = tailResponse.worker_projection_ms || 0;
+        metrics.scroll_tail_main_commit_ms = tailCommitMs;
         metrics.tail_window_render_ms += tailCommitMs;
         metrics.main_commit_ms += oldCommitMs + tailCommitMs;
         metrics.scroll_jump_return_ms = performance.now() - startMs;
+        recordMainCommitPhase(oldCommitMs);
+        recordMainCommitPhase(tailCommitMs);
         recordMeasuredDuration(oldCommitMs);
         recordMeasuredDuration(tailCommitMs);
         recordInteractionDuration(metrics.scroll_jump_return_ms);
@@ -839,12 +890,11 @@
       }
 
       function applyWorkerMetrics(response, phase) {
-        metrics.worker_roundtrip_ms = response.worker_roundtrip_ms || 0;
-        metrics.worker_processing_ms = response.worker_processing_ms || 0;
-        metrics.worker_active_context_traversal_ms = response.worker_active_context_traversal_ms || 0;
-        metrics.worker_tail_mutation_ms = response.worker_tail_mutation_ms || 0;
-        metrics.worker_append_ms = response.worker_append_ms || 0;
-        metrics.worker_projection_ms = response.worker_projection_ms || 0;
+        recordWorkerPhase({
+          worker_roundtrip_ms: response.worker_roundtrip_ms || 0,
+          worker_processing_ms: response.worker_processing_ms || 0,
+          worker_projection_ms: response.worker_projection_ms || 0
+        });
         metrics.logical_block_count = response.logical_block_count || metrics.logical_block_count;
         metrics.projection_block_count = response.projection_block_count || metrics.projection_block_count;
         metrics.commit_cycle_count = response.commit_cycle_count || metrics.commit_cycle_count;
@@ -852,10 +902,35 @@
         metrics.rejected_transaction_count = response.rejected_transaction_count || metrics.rejected_transaction_count;
         metrics.anchor_transition_label = response.anchor_transition_label || metrics.anchor_transition_label;
         if (phase === "send") {
+          metrics.worker_active_context_traversal_ms = response.worker_active_context_traversal_ms || 0;
+          metrics.worker_tail_mutation_ms = response.worker_tail_mutation_ms || 0;
+          metrics.worker_append_ms = response.worker_append_ms || 0;
           metrics.active_context_traversal_ms = metrics.worker_active_context_traversal_ms;
           metrics.tail_mutation_ms = metrics.worker_tail_mutation_ms;
           metrics.append_commit_ms = metrics.worker_append_ms;
         }
+      }
+
+      function recordWorkerPhase(workerPhase) {
+        metrics.max_phase_worker_roundtrip_ms = Math.max(
+          metrics.max_phase_worker_roundtrip_ms,
+          workerPhase.worker_roundtrip_ms
+        );
+        metrics.max_phase_worker_processing_ms = Math.max(
+          metrics.max_phase_worker_processing_ms,
+          workerPhase.worker_processing_ms
+        );
+        metrics.max_phase_worker_projection_ms = Math.max(
+          metrics.max_phase_worker_projection_ms,
+          workerPhase.worker_projection_ms
+        );
+        metrics.worker_roundtrip_ms = metrics.max_phase_worker_roundtrip_ms;
+        metrics.worker_processing_ms = metrics.max_phase_worker_processing_ms;
+        metrics.worker_projection_ms = metrics.max_phase_worker_projection_ms;
+      }
+
+      function recordMainCommitPhase(commitMs) {
+        metrics.max_phase_main_commit_ms = Math.max(metrics.max_phase_main_commit_ms, commitMs);
       }
 
       function createRichBlockEntry(block) {
