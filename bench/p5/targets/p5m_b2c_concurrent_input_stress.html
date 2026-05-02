@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>P5-M B2c Concurrent Input Stress Target</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        line-height: 1.4;
+      }
+      body {
+        margin: 0;
+        background: #f5f7fb;
+        color: #171717;
+      }
+      #status,
+      #controls {
+        position: sticky;
+        z-index: 2;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 12px 16px;
+        border-bottom: 1px solid #dbe3ef;
+        background: #f5f7fb;
+        font-size: 12px;
+      }
+      #status {
+        top: 0;
+      }
+      #controls {
+        top: 41px;
+      }
+      button {
+        padding: 8px 12px;
+        border: 1px solid #3f4b5c;
+        border-radius: 4px;
+        background: #1f2937;
+        color: #fff;
+        font: inherit;
+        cursor: pointer;
+      }
+      #typing-proxy-input {
+        min-width: 300px;
+        padding: 8px 10px;
+        border: 1px solid #c5cfdd;
+        background: #fff;
+        color: #171717;
+        font: inherit;
+      }
+      #summary-panel {
+        margin: 0;
+        padding: 12px 16px;
+        border-bottom: 1px solid #dbe3ef;
+        background: #fff;
+        font-size: 12px;
+      }
+      #p5m-b2c-summary-json {
+        margin: 8px 0 0;
+        white-space: pre-wrap;
+      }
+      #surface {
+        padding: 8px 16px 32px;
+      }
+      .block {
+        display: grid;
+        grid-template-columns: 128px 1fr;
+        gap: 16px;
+        padding: 8px 0;
+        border-bottom: 1px solid #e1e8f2;
+      }
+      .block-id {
+        color: #647083;
+      }
+      .block-card {
+        display: grid;
+        gap: 6px;
+      }
+      .block-title {
+        margin: 0;
+        font-size: 13px;
+      }
+      .block-body {
+        margin: 0;
+        white-space: pre-wrap;
+      }
+      .block-meta,
+      .token-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .meta-item,
+      .token-chip {
+        padding: 2px 6px;
+        border: 1px solid #d2dcea;
+        border-radius: 4px;
+        background: #edf3fb;
+        color: #3f4b5c;
+        font-size: 11px;
+      }
+      .artifact-region {
+        padding: 6px 8px;
+        border: 1px dashed #a7b4c6;
+        background: #e8eef7;
+        color: #364255;
+        font-size: 12px;
+      }
+      .config-error {
+        max-width: 900px;
+        margin: 32px auto;
+        padding: 16px;
+        border: 1px solid #b91c1c;
+        background: #fef2f2;
+        color: #7f1d1d;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="status">
+      <span id="scenario-id">scenario_id=unknown</span>
+      <span id="visible-block-count">visible_block_count=0</span>
+      <span id="active-context-window">active_context_window=0</span>
+      <span id="logical-block-count">logical_block_count=0</span>
+      <span id="rendered-dom-node-count">rendered_dom_node_count=0</span>
+      <span id="concurrent-input-delay-ms">concurrent_input_delay_ms=0</span>
+      <span id="max-interaction-ms">max_interaction_ms=0</span>
+    </div>
+    <div id="controls">
+      <input id="typing-proxy-input" aria-label="typing proxy input" autocomplete="off" spellcheck="false">
+      <button id="typing-proxy-button" type="button">typing_proxy</button>
+      <button id="send-click-proxy-button" type="button">send_click_proxy</button>
+      <button id="concurrent-input-button" type="button">concurrent_input_during_send_proxy</button>
+    </div>
+    <section id="summary-panel" aria-label="P5-M B2c machine readable summary">
+      <strong>P5-M B2c concurrent-input compact-context summary</strong>
+      <pre id="p5m-b2c-summary-json">{}</pre>
+    </section>
+    <main id="surface" aria-label="P5-M B2c concurrent-input surface"></main>
+    <script>
+      const P5M_B2C_MATRIX = {
+        scenarios: [
+          { scenario_id: "p5d_v10000_rich_ctx_full_repeat3", visible_block_count: 10000, active_context_mode: "full", active_context_window: 10000, block_shape: "rich", rich_block_multiplier: 4, append_batch_size: 512, tail_mutation_count: 256, recall_probe_count: 256, artifact_placeholder_ratio: 0.03, send_click_repeat_count: 3, interactions: ["typing_proxy", "send_click_proxy", "scroll_jump_return"] },
+          { scenario_id: "p5d_v25000_rich_ctx_medium_repeat3", visible_block_count: 25000, active_context_mode: "medium", active_context_window: 5000, block_shape: "rich", rich_block_multiplier: 4, append_batch_size: 1024, tail_mutation_count: 512, recall_probe_count: 512, artifact_placeholder_ratio: 0.03, send_click_repeat_count: 3, interactions: ["typing_proxy", "send_click_proxy", "scroll_jump_return"] },
+          { scenario_id: "p5d_v25000_rich_ctx_full_repeat3", visible_block_count: 25000, active_context_mode: "full", active_context_window: 25000, block_shape: "rich", rich_block_multiplier: 4, append_batch_size: 1024, tail_mutation_count: 512, recall_probe_count: 512, artifact_placeholder_ratio: 0.03, send_click_repeat_count: 3, interactions: ["typing_proxy", "send_click_proxy", "scroll_jump_return"] },
+          { scenario_id: "p5d_v50000_rich_ctx_medium_repeat2", visible_block_count: 50000, active_context_mode: "medium", active_context_window: 5000, block_shape: "rich", rich_block_multiplier: 4, append_batch_size: 2048, tail_mutation_count: 768, recall_probe_count: 768, artifact_placeholder_ratio: 0.03, send_click_repeat_count: 2, interactions: ["typing_proxy", "send_click_proxy", "scroll_jump_return"] },
+          { scenario_id: "p5d_v50000_rich_ctx_full_repeat2", visible_block_count: 50000, active_context_mode: "full", active_context_window: 50000, block_shape: "rich", rich_block_multiplier: 4, append_batch_size: 2048, tail_mutation_count: 768, recall_probe_count: 768, artifact_placeholder_ratio: 0.03, send_click_repeat_count: 2, interactions: ["typing_proxy", "send_click_proxy", "scroll_jump_return"] }
+        ]
+      };
+
+      const DEFAULT_SCENARIO_ID = "p5d_v10000_rich_ctx_full_repeat3";
+      const BASELINE_VARIANT = "b2c_virtualized_dom_compact_context_concurrent_input";
+      const VISIBLE_WINDOW_SIZE = 300;
+      const LONG_TASK_50_MS = 50;
+      const LONG_TASK_100_MS = 100;
+      const LONG_TASK_200_MS = 200;
+
+      const surface = document.getElementById("surface");
+      const summaryJson = document.getElementById("p5m-b2c-summary-json");
+      const typingInput = document.getElementById("typing-proxy-input");
+      const scenario = resolveScenario();
+      const workload = generateStressWorkload(scenario);
+      const logicalBlocks = workload.blocks.slice();
+      const logicalBlockById = new Map(logicalBlocks.map((block) => [block.block_id, block]));
+      const activeContextIndex = workload.active_context_index.slice();
+      const renderedBlockNodeById = new Map();
+      let currentWindowStart = Math.max(0, logicalBlocks.length - VISIBLE_WINDOW_SIZE);
+      let checksum = 0;
+      let sendRunCount = 0;
+
+      const metrics = {
+        scenario_id: workload.scenario_id,
+        visible_block_count: workload.visible_block_count,
+        active_context_mode: workload.active_context_mode,
+        active_context_window: workload.active_context_window,
+        block_shape: workload.block_shape,
+        rich_block_multiplier: workload.rich_block_multiplier,
+        send_click_repeat_count: workload.send_click_repeat_count,
+        baseline_variant: BASELINE_VARIANT,
+        initial_render_ms: 0,
+        dom_node_count: 0,
+        rendered_dom_node_count: 0,
+        logical_block_count: logicalBlocks.length,
+        rendered_block_count: 0,
+        typing_proxy_ms: 0,
+        send_click_proxy_ms: 0,
+        concurrent_input_during_send_proxy_ms: 0,
+        concurrent_input_delay_ms: 0,
+        concurrent_input_scheduled_at_ms: 0,
+        concurrent_input_started_at_ms: 0,
+        concurrent_typing_proxy_ms: 0,
+        concurrent_send_work_ms: 0,
+        max_interaction_ms: 0,
+        long_task_like_count_50ms_proxy: 0,
+        long_task_like_count_100ms_proxy: 0,
+        long_task_like_count_200ms_proxy: 0,
+        active_context_scan_mode: "compact_checksum_index",
+        dynamic_active_context_update_mode: "static_initial_active_context",
+        active_context_entries_visited: 0,
+        send_active_context_entries_visited: 0,
+        active_context_compact_index_size: workload.active_context_index.length,
+        active_context_compact_scan_units: workload.active_context_compact_scan_units,
+        compact_checksum_mode: "numeric_precomputed_weight",
+        compact_index_build_ms: workload.compact_index_build_ms,
+        send_active_context_compact_scan_ms: 0,
+        active_context_traversal_ms: 0,
+        tail_mutation_ms: 0,
+        append_commit_ms: 0,
+        timestamp: "",
+        run_id: createRunId(workload.scenario_id)
+      };
+
+      function resolveScenario() {
+        const params = new URLSearchParams(window.location.search);
+        const requestedScenarioId = params.get("scenario_id") || DEFAULT_SCENARIO_ID;
+        const found = P5M_B2C_MATRIX.scenarios.find((entry) => entry.scenario_id === requestedScenarioId);
+        if (found) return found;
+        renderConfigError(`invalid scenario_id=${requestedScenarioId}`);
+        throw new Error(`invalid scenario_id: ${requestedScenarioId}`);
+      }
+
+      function renderConfigError(message) {
+        const panel = document.createElement("main");
+        panel.className = "config-error";
+        panel.textContent = `P5-M B2c configuration error: ${message}`;
+        document.body.replaceChildren(panel);
+      }
+
+      function generateStressWorkload(input) {
+        const artifactOrdinals = buildArtifactOrdinalSet(input.visible_block_count, input.artifact_placeholder_ratio);
+        const activeContextStartOrdinal = input.visible_block_count - input.active_context_window + 1;
+        const blocks = [];
+        for (let ordinal = 1; ordinal <= input.visible_block_count; ordinal += 1) {
+          blocks.push({
+            block_id: formatId("block", ordinal),
+            ordinal,
+            kind: artifactOrdinals.has(ordinal) ? "artifact_placeholder" : "message",
+            synthetic_key: `stress-key-${String(ordinal).padStart(6, "0")}`,
+            title: `Synthetic stress block ${String(ordinal).padStart(6, "0")}`,
+            body: repeatedBody(ordinal, input.rich_block_multiplier),
+            metadata: buildMetadata(ordinal, input.rich_block_multiplier)
+          });
+        }
+        const compactIndexStartMs = performance.now();
+        const activeContextIndex = blocks
+          .filter((block) => block.ordinal >= activeContextStartOrdinal)
+          .map((block, index) => buildCompactContextEntry(block, index));
+        const compactIndexBuildMs = performance.now() - compactIndexStartMs;
+        return {
+          ...input,
+          blocks,
+          active_context_index: activeContextIndex,
+          active_context_compact_scan_units: sumCompactScanUnits(activeContextIndex),
+          compact_index_build_ms: compactIndexBuildMs,
+          append_stream: buildAppendStream(input),
+          tail_mutations: buildTailMutations(input)
+        };
+      }
+
+      function buildCompactContextEntry(block, contextIndex) {
+        const compact_checksum = compactChecksumForParts([block.synthetic_key, block.title, block.body, ...block.metadata]);
+        const compact_metadata_weight = compactChecksumForParts(block.metadata);
+        const compact_scan_units =
+          block.synthetic_key.length +
+          block.title.length +
+          block.body.length +
+          block.metadata.reduce((total, value) => total + value.length, 0);
+        return {
+          context_index: contextIndex,
+          block_id: block.block_id,
+          ordinal: block.ordinal,
+          compact_checksum,
+          compact_metadata_weight,
+          compact_entry_weight: (compact_checksum ^ compact_metadata_weight ^ compact_scan_units ^ block.ordinal) >>> 0,
+          compact_scan_units
+        };
+      }
+
+      function renderInitialWindow() {
+        const render = renderWindow(currentWindowStart);
+        metrics.initial_render_ms = render.duration_ms;
+        recordMeasuredDuration(render.duration_ms);
+        publishSummary();
+      }
+
+      function renderWindow(startIndex) {
+        const startMs = performance.now();
+        const clampedStart = Math.max(0, Math.min(startIndex, Math.max(0, logicalBlocks.length - VISIBLE_WINDOW_SIZE)));
+        const endIndex = Math.min(logicalBlocks.length, clampedStart + VISIBLE_WINDOW_SIZE);
+        const fragment = document.createDocumentFragment();
+        const nextRenderedMap = new Map();
+        let renderedNodeCount = 0;
+        for (let index = clampedStart; index < endIndex; index += 1) {
+          const block = logicalBlocks[index];
+          const entry = createRichBlockEntry(block);
+          nextRenderedMap.set(block.block_id, entry);
+          renderedNodeCount += countRichBlockNodes(block);
+          fragment.appendChild(entry.row);
+        }
+        surface.replaceChildren(fragment);
+        currentWindowStart = clampedStart;
+        renderedBlockNodeById.clear();
+        for (const [blockId, entry] of nextRenderedMap) renderedBlockNodeById.set(blockId, entry);
+        const duration_ms = performance.now() - startMs;
+        metrics.logical_block_count = logicalBlocks.length;
+        metrics.rendered_block_count = endIndex - clampedStart;
+        metrics.rendered_dom_node_count = renderedNodeCount;
+        metrics.dom_node_count = renderedNodeCount;
+        return { duration_ms };
+      }
+
+      function tailWindowStart() {
+        return Math.max(0, logicalBlocks.length - VISIBLE_WINDOW_SIZE);
+      }
+
+      function createRichBlockEntry(block) {
+        const row = document.createElement("article");
+        row.className = "block";
+        row.dataset.blockId = block.block_id;
+        const id = document.createElement("span");
+        id.className = "block-id";
+        id.textContent = String(block.ordinal).padStart(6, "0");
+        const card = document.createElement("section");
+        card.className = "block-card";
+        const title = document.createElement("h3");
+        title.className = "block-title";
+        title.textContent = block.title;
+        const body = document.createElement("p");
+        body.className = "block-body";
+        body.textContent = block.body;
+        const meta = document.createElement("div");
+        meta.className = "block-meta";
+        const metaItems = [];
+        for (const value of block.metadata) {
+          const item = document.createElement("span");
+          item.className = "meta-item";
+          item.textContent = value;
+          metaItems.push(item);
+          meta.appendChild(item);
+        }
+        const tokens = document.createElement("div");
+        tokens.className = "token-strip";
+        const tokenItems = [];
+        for (let index = 0; index < workload.rich_block_multiplier + 2; index += 1) {
+          const token = document.createElement("span");
+          token.className = "token-chip";
+          token.textContent = `token-${block.ordinal % 97}-${index}`;
+          tokenItems.push(token);
+          tokens.appendChild(token);
+        }
+        card.append(title, body, meta, tokens);
+        if (block.kind === "artifact_placeholder") {
+          const artifact = document.createElement("div");
+          artifact.className = "artifact-region";
+          artifact.textContent = `Synthetic artifact placeholder for ${block.block_id}`;
+          card.appendChild(artifact);
+        }
+        row.append(id, card);
+        return { row, title, body, metaItems, tokenItems };
+      }
+
+      function runTypingProxy() {
+        const startMs = performance.now();
+        runSmallTypingProxy("typing_proxy");
+        metrics.typing_proxy_ms = performance.now() - startMs;
+        recordInteractionDuration(metrics.typing_proxy_ms);
+        publishSummary();
+        return getSummary();
+      }
+
+      function runSmallTypingProxy(label) {
+        let localChecksum = checksum;
+        const iterations = 24 * workload.rich_block_multiplier;
+        for (let index = 0; index < iterations; index += 1) {
+          typingInput.value = `synthetic ${label} ${index}`;
+          const block = logicalBlocks[(logicalBlocks.length - 1 - index + logicalBlocks.length) % logicalBlocks.length];
+          localChecksum = scanText(`${typingInput.value}|${block.synthetic_key}|${block.body}`, localChecksum);
+        }
+        checksum = localChecksum;
+      }
+
+      function runSendClickProxy(options = {}) {
+        const startMs = performance.now();
+        resetSendMetrics();
+        for (let repeat = 0; repeat < workload.send_click_repeat_count; repeat += 1) {
+          runOneSendClickPass(repeat);
+        }
+        metrics.send_click_proxy_ms = performance.now() - startMs;
+        metrics.concurrent_send_work_ms = options.concurrent ? metrics.send_click_proxy_ms : metrics.concurrent_send_work_ms;
+        recordMeasuredDuration(metrics.active_context_traversal_ms);
+        recordMeasuredDuration(metrics.tail_mutation_ms);
+        recordMeasuredDuration(metrics.append_commit_ms);
+        recordInteractionDuration(metrics.send_click_proxy_ms);
+        if (options.publish !== false) publishSummary();
+        return getSummary();
+      }
+
+      async function runConcurrentInputDuringSendProxy() {
+        const startMs = performance.now();
+        metrics.concurrent_input_scheduled_at_ms = performance.now();
+        const inputTask = new Promise((resolve) => {
+          setTimeout(() => {
+            metrics.concurrent_input_started_at_ms = performance.now();
+            const typingStartMs = performance.now();
+            runSmallTypingProxy("concurrent_input_during_send_proxy");
+            metrics.concurrent_typing_proxy_ms = performance.now() - typingStartMs;
+            metrics.concurrent_input_delay_ms =
+              metrics.concurrent_input_started_at_ms - metrics.concurrent_input_scheduled_at_ms;
+            resolve();
+          }, 0);
+        });
+        runSendClickProxy({ publish: false, concurrent: true });
+        await inputTask;
+        metrics.concurrent_input_during_send_proxy_ms = performance.now() - startMs;
+        recordInteractionDuration(metrics.concurrent_input_during_send_proxy_ms);
+        publishSummary();
+        return getSummary();
+      }
+
+      function resetSendMetrics() {
+        metrics.active_context_traversal_ms = 0;
+        metrics.tail_mutation_ms = 0;
+        metrics.append_commit_ms = 0;
+        metrics.active_context_entries_visited = 0;
+        metrics.send_active_context_entries_visited = 0;
+        metrics.send_active_context_compact_scan_ms = 0;
+      }
+
+      function runOneSendClickPass(repeat) {
+        sendRunCount += 1;
+        const traversalStartMs = performance.now();
+        let localChecksum = checksum;
+        let entriesVisited = 0;
+        for (const entry of activeContextIndex) {
+          entriesVisited += 1;
+          localChecksum = combineCompactContextEntry(entry, localChecksum, repeat);
+        }
+        const traversalMs = performance.now() - traversalStartMs;
+        metrics.active_context_traversal_ms += traversalMs;
+        metrics.send_active_context_compact_scan_ms += traversalMs;
+        metrics.active_context_entries_visited += entriesVisited;
+        metrics.send_active_context_entries_visited = metrics.active_context_entries_visited;
+
+        const mutationStartMs = performance.now();
+        for (const mutation of workload.tail_mutations) {
+          const block = logicalBlockById.get(mutation.block_id);
+          if (!block) continue;
+          block.title = `${mutation.replacement_title} r${repeat}`;
+          block.body = `${mutation.replacement_body} r${repeat}`;
+          block.metadata = mutation.replacement_metadata.map((value) => `${value}:r${repeat}`);
+          const renderedEntry = renderedBlockNodeById.get(mutation.block_id);
+          if (renderedEntry) {
+            renderedEntry.title.textContent = block.title;
+            renderedEntry.body.textContent = block.body;
+            renderedEntry.metaItems.forEach((item, index) => {
+              item.textContent = block.metadata[index % block.metadata.length];
+            });
+          }
+          localChecksum = scanText(`${block.title}|${block.body}`, localChecksum);
+        }
+        metrics.tail_mutation_ms += performance.now() - mutationStartMs;
+
+        const appendStartMs = performance.now();
+        for (const append of workload.append_stream) {
+          const appendedBlock = {
+            block_id: `${append.append_id}-run-${sendRunCount}`,
+            ordinal: append.ordinal + ((sendRunCount - 1) * workload.append_stream.length),
+            kind: append.kind,
+            synthetic_key: `${append.synthetic_key}-run-${sendRunCount}`,
+            title: `${append.title} run ${sendRunCount}`,
+            body: append.body,
+            metadata: append.metadata.slice()
+          };
+          logicalBlocks.push(appendedBlock);
+          logicalBlockById.set(appendedBlock.block_id, appendedBlock);
+          localChecksum = scanText(`${append.title}|${append.body}`, localChecksum);
+        }
+        renderWindow(tailWindowStart());
+        metrics.append_commit_ms += performance.now() - appendStartMs;
+        checksum = localChecksum;
+      }
+
+      function runInteraction(interactionType) {
+        if (interactionType === "typing_proxy") return runTypingProxy();
+        if (interactionType === "send_click_proxy") return runSendClickProxy();
+        if (interactionType === "concurrent_input_during_send_proxy") return runConcurrentInputDuringSendProxy();
+        throw new Error(`unknown P5-M B2c interaction: ${interactionType}`);
+      }
+
+      function publishSummary() {
+        metrics.timestamp = new Date().toISOString();
+        metrics.logical_block_count = logicalBlocks.length;
+        document.getElementById("scenario-id").textContent = `scenario_id=${metrics.scenario_id}`;
+        document.getElementById("visible-block-count").textContent = `visible_block_count=${metrics.visible_block_count}`;
+        document.getElementById("active-context-window").textContent = `active_context_window=${metrics.active_context_window}`;
+        document.getElementById("logical-block-count").textContent = `logical_block_count=${metrics.logical_block_count}`;
+        document.getElementById("rendered-dom-node-count").textContent = `rendered_dom_node_count=${metrics.rendered_dom_node_count}`;
+        document.getElementById("concurrent-input-delay-ms").textContent =
+          `concurrent_input_delay_ms=${metrics.concurrent_input_delay_ms.toFixed(3)}`;
+        document.getElementById("max-interaction-ms").textContent = `max_interaction_ms=${metrics.max_interaction_ms.toFixed(3)}`;
+        summaryJson.textContent = JSON.stringify(getSummary(), null, 2);
+        window.__P5M_B2C_CONCURRENT_SUMMARY__ = getSummary();
+      }
+
+      function getSummary() {
+        return { ...metrics };
+      }
+
+      function recordInteractionDuration(durationMs) {
+        metrics.max_interaction_ms = Math.max(metrics.max_interaction_ms, durationMs);
+        recordMeasuredDuration(durationMs);
+      }
+
+      function recordMeasuredDuration(durationMs) {
+        if (durationMs >= LONG_TASK_50_MS) metrics.long_task_like_count_50ms_proxy += 1;
+        if (durationMs >= LONG_TASK_100_MS) metrics.long_task_like_count_100ms_proxy += 1;
+        if (durationMs >= LONG_TASK_200_MS) metrics.long_task_like_count_200ms_proxy += 1;
+      }
+
+      function sumCompactScanUnits(index) {
+        return index.reduce((total, entry) => total + entry.compact_scan_units, 0);
+      }
+      function combineCompactContextEntry(entry, seed, repeat) {
+        return (
+          seed +
+          entry.compact_checksum +
+          entry.compact_metadata_weight +
+          entry.compact_entry_weight +
+          entry.compact_scan_units +
+          repeat
+        ) >>> 0;
+      }
+      function scanText(text, seed) {
+        let next = seed;
+        for (let index = 0; index < text.length; index += 1) next = (next + text.charCodeAt(index) * (index + 1)) >>> 0;
+        return next;
+      }
+      function compactChecksumForParts(parts) {
+        let next = 0;
+        for (const part of parts) next = scanText(String(part), next);
+        return next >>> 0;
+      }
+      function repeatedBody(ordinal, multiplier) {
+        const parts = [];
+        for (let index = 0; index < multiplier; index += 1) parts.push(`body-unit=${ordinal % 997}:${index}:${(ordinal + index) % 37}`);
+        return `Synthetic rich block body ${ordinal}. ${parts.join(" | ")}`;
+      }
+      function buildMetadata(ordinal, multiplier) {
+        const metadata = [];
+        for (let index = 0; index < multiplier + 2; index += 1) metadata.push(`m${index}:${(ordinal * (index + 3)) % 1009}`);
+        return metadata;
+      }
+      function buildArtifactOrdinalSet(visibleBlockCount, ratio) {
+        const count = Math.floor(visibleBlockCount * ratio);
+        const ordinals = new Set();
+        for (let index = 1; index <= count; index += 1) ordinals.add(Math.floor((index * visibleBlockCount) / (count + 1)) + 1);
+        return ordinals;
+      }
+      function buildAppendStream(input) {
+        const stream = [];
+        for (let index = 1; index <= input.append_batch_size; index += 1) {
+          const ordinal = input.visible_block_count + index;
+          stream.push({
+            append_id: formatId("append", index),
+            ordinal,
+            kind: "stream_append",
+            synthetic_key: `append-stress-key-${String(index).padStart(6, "0")}`,
+            title: `Synthetic appended stress block ${String(index).padStart(6, "0")}`,
+            body: repeatedBody(ordinal, input.rich_block_multiplier),
+            metadata: buildMetadata(ordinal, input.rich_block_multiplier)
+          });
+        }
+        return stream;
+      }
+      function buildTailMutations(input) {
+        const mutations = [];
+        const tailStart = input.visible_block_count - input.tail_mutation_count + 1;
+        for (let ordinal = tailStart; ordinal <= input.visible_block_count; ordinal += 1) {
+          const mutationOrdinal = ordinal - tailStart + 1;
+          mutations.push({
+            mutation_id: formatId("tail-mutation", mutationOrdinal),
+            block_id: formatId("block", ordinal),
+            ordinal,
+            replacement_title: `Synthetic updated stress block ${String(mutationOrdinal).padStart(6, "0")}`,
+            replacement_body: repeatedBody(ordinal + mutationOrdinal, input.rich_block_multiplier),
+            replacement_metadata: buildMetadata(ordinal + mutationOrdinal, input.rich_block_multiplier)
+          });
+        }
+        return mutations;
+      }
+      function countRichBlockNodes(block) {
+        return 7 + block.metadata.length + workload.rich_block_multiplier + 2 + (block.kind === "artifact_placeholder" ? 1 : 0);
+      }
+      function createRunId(scenarioId) {
+        return `p5m-b2c-${scenarioId}-${Date.now().toString(36)}`;
+      }
+      function formatId(prefix, ordinal) {
+        return `${prefix}-${String(ordinal).padStart(6, "0")}`;
+      }
+
+      document.getElementById("typing-proxy-button").addEventListener("click", runTypingProxy);
+      document.getElementById("send-click-proxy-button").addEventListener("click", runSendClickProxy);
+      document.getElementById("concurrent-input-button").addEventListener("click", () => {
+        runConcurrentInputDuringSendProxy().catch((error) => renderConfigError(error.message));
+      });
+
+      window.P5M_B2C_CONCURRENT_INPUT_STRESS = {
+        scenario,
+        workload,
+        getSummary,
+        runInteraction,
+        runTypingProxy,
+        runSendClickProxy,
+        runConcurrentInputDuringSendProxy,
+        availableScenarioIds: P5M_B2C_MATRIX.scenarios.map((entry) => entry.scenario_id)
+      };
+
+      renderInitialWindow();
+    </script>
+  </body>
+</html>
