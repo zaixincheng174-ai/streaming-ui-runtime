@@ -4,6 +4,18 @@
 
 Streaming UI Runtime is a measured TypeScript runtime-core project for long-lived AI surfaces, studying worker offload, transaction scheduling, and bounded viewport projection as a way to reduce and localize main-thread blocking from background streaming/session-scale work.
 
+## 30-Second Portfolio Summary
+
+- **Domain:** long-lived AI surfaces such as chat sessions, coding assistants, logs, and agent traces.
+- **Problem:** append-heavy, viewport-centric, tail-mutating workloads can create a workload-architecture mismatch with document/tree-oriented UI stacks.
+- **Direction:** worker-resident ownership/offload, transaction scheduling, and bounded projection commit.
+- **Evidence:** controlled P1 evidence plus synthetic P5 scheduling-delay proxy evidence.
+- **Boundary:** research-backed OSS / portfolio evidence, not production readiness, not browser-level INP, not Event Timing, and not real product superiority.
+
+## Resume-Safe Description
+
+Built a TypeScript runtime-core research prototype and benchmark evidence packet studying worker-resident scheduling for long-lived AI surfaces. Controlled and synthetic evidence supports worker offload/scheduling as a way to reduce and localize main-thread blocking under bounded projection constraints.
+
 ## Problem
 
 AI chat, agent trace viewers, coding assistants, notebook-like review surfaces, and log viewers can stay open for long sessions while content keeps streaming in. As the session grows, normal user actions can collide with accumulated state, fanout, parsing, and projection work.
@@ -116,6 +128,12 @@ For a five-minute external review, read:
 6. [P5 scheduling evidence appendix](../paper/appendix/p5-scheduling-evidence-appendix.md)
 7. [P5 final reviewer packet](../p5/p5y-final-reviewer-evidence-packet.md)
 8. [P5 adversarial audit](../p5/p5y-reviewer-adversarial-audit.md)
+
+Reader shortcuts:
+
+- **Recruiters:** use the repository README, this portfolio brief, and the resume-safe description above.
+- **Engineers:** use the evidence map, related systems positioning, and runtime source layout.
+- **Reviewers:** use the short paper, P5 appendix, final P5 packet, and adversarial audit.
 
 ## P5 Scheduling Evidence
 

@@ -89,8 +89,14 @@ Must not claim:
 
 ## How To Read This Repo
 
-1. Start with `README.md`.
-2. Read `docs/portfolio/README.md` for the portfolio summary.
-3. Use `docs/portfolio/evidence-map.md` for claim-to-evidence mapping.
-4. Read `docs/paper/streaming-ui-runtime-related-work-v0.md` for related-systems positioning.
-5. Read `docs/paper/streaming-ui-runtime-short-paper-draft-v0.md`, then `docs/paper/appendix/p5-scheduling-evidence-appendix.md`, `docs/p5/p5y-final-reviewer-evidence-packet.md`, and `docs/p5/p5y-reviewer-adversarial-audit.md` for the current paper/evidence packet.
+1. Start with [README.md](../../README.md).
+2. Read [docs/portfolio/README.md](README.md) for the portfolio summary.
+3. Use [docs/portfolio/evidence-map.md](evidence-map.md) for claim-to-evidence mapping.
+4. Read [docs/paper/streaming-ui-runtime-related-work-v0.md](../paper/streaming-ui-runtime-related-work-v0.md) for related-systems positioning.
+5. Read [docs/paper/streaming-ui-runtime-short-paper-draft-v0.md](../paper/streaming-ui-runtime-short-paper-draft-v0.md), then [docs/paper/appendix/p5-scheduling-evidence-appendix.md](../paper/appendix/p5-scheduling-evidence-appendix.md), [docs/p5/p5y-final-reviewer-evidence-packet.md](../p5/p5y-final-reviewer-evidence-packet.md), and [docs/p5/p5y-reviewer-adversarial-audit.md](../p5/p5y-reviewer-adversarial-audit.md) for the current paper/evidence packet.
+
+Reader shortcuts:
+
+- **Recruiters:** README, portfolio overview, and evidence map.
+- **Engineers:** evidence map, related systems positioning, and short paper draft.
+- **Reviewers:** short paper draft, P5 appendix, P5 final reviewer packet, and P5 adversarial audit.

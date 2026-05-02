@@ -4,6 +4,14 @@ Performance research and runtime-core scaffolding for long-lived AI interfaces: 
 
 This is not a production UI framework. It is a measured portfolio/research project that studies why long-running AI surfaces can become interaction-sensitive, then derives a worker-resident runtime direction from controlled evidence.
 
+## 30-Second Summary
+
+- **What it is:** a research-backed OSS / portfolio engineering asset for long-lived AI surfaces.
+- **Problem studied:** append-heavy, viewport-centric, tail-mutating AI workloads can stress document/tree-oriented DOM or VDOM ownership models.
+- **Technical direction:** worker-resident ownership/offload, transaction scheduling, and bounded projection commit.
+- **Evidence:** controlled P1 benchmarks plus synthetic P5 scheduling-delay proxy evidence support reducing and localizing main-thread blocking under these workloads.
+- **Boundary:** not a production UI, not browser-level INP or Event Timing evidence, not real product superiority, and not P4/WebGPU or P7 productization.
+
 ## What This Project Is
 
 Streaming UI Runtime is a research-backed OSS / portfolio engineering asset for long-lived AI surfaces. It studies the workload-architecture mismatch between append-heavy, viewport-centric, tail-mutating AI workloads and document/tree-oriented DOM or VDOM UI stacks.
@@ -51,6 +59,12 @@ Use [docs/portfolio/document-status-map.md](docs/portfolio/document-status-map.m
 Controlled P1 and synthetic P5 evidence support worker-resident ownership/offload as a way to reduce and localize main-thread blocking under long-lived AI-surface workloads. Bounded main-thread projection commit remains the remaining blocking window.
 
 This is a conservative mechanism claim. It is not browser-level INP, not Event Timing, not real product superiority, and not production readiness.
+
+## For Recruiters / Engineers / Reviewers
+
+- **Recruiters:** read this README and the [portfolio overview](docs/portfolio/README.md) for the project story and resume-safe scope.
+- **Engineers:** read the [evidence map](docs/portfolio/evidence-map.md) and [related systems positioning](docs/paper/streaming-ui-runtime-related-work-v0.md) for architecture and comparison context.
+- **Reviewers:** read the [short paper draft](docs/paper/streaming-ui-runtime-short-paper-draft-v0.md), [P5 appendix](docs/paper/appendix/p5-scheduling-evidence-appendix.md), [P5 final packet](docs/p5/p5y-final-reviewer-evidence-packet.md), and [P5 adversarial audit](docs/p5/p5y-reviewer-adversarial-audit.md).
 
 ## Evidence Path For Reviewers
 

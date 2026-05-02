@@ -4,6 +4,13 @@ This file maps resume and portfolio claims to repository evidence. It is intenti
 
 For document status and superseded-draft guidance, see [document-status-map.md](document-status-map.md).
 
+## Navigation
+
+- Start with the [repository README](../../README.md) and [portfolio overview](README.md).
+- Use the [document status map](document-status-map.md) before quoting older drafts.
+- Use this evidence map for claim-to-artifact checks.
+- Use the [related systems positioning](../paper/streaming-ui-runtime-related-work-v0.md), [short paper draft](../paper/streaming-ui-runtime-short-paper-draft-v0.md), [P5 appendix](../paper/appendix/p5-scheduling-evidence-appendix.md), [P5 final reviewer packet](../p5/p5y-final-reviewer-evidence-packet.md), and [P5 adversarial audit](../p5/p5y-reviewer-adversarial-audit.md) for reviewer-facing evidence.
+
 ## Summary Table
 
 | Resume claim | Evidence location | Safe public wording | Boundary |
