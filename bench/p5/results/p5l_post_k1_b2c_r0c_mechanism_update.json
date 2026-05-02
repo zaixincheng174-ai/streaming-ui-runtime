@@ -1,0 +1,154 @@
+{
+  "schema_version": "p5l.post-k1-b2c-r0c-mechanism-update.v0",
+  "generated_at": "2026-05-02T02:24:14Z",
+  "source_results": {
+    "B2c_latest": "bench/p5/results/p5i_b2_compact_context_results.json",
+    "R0c_K1_latest": "bench/p5/results/p5i_r0_compact_context_results.json",
+    "prior_P5J": "bench/p5/results/p5j_b2_r0_b2c_r0c_mechanism_summary.json",
+    "prior_P5H": "bench/p5/results/p5h_b0_b1_b2_r0_comparison_summary.json"
+  },
+  "boundary": {
+    "source": "existing P5 result JSON summaries only",
+    "does_not_modify": [
+      "benchmark targets",
+      "collectors",
+      "source result JSON files",
+      "paper files",
+      "package.json"
+    ],
+    "does_not_measure": [
+      "browser-level INP",
+      "frame stability",
+      "new browser runs",
+      "product sites",
+      "production readiness",
+      "P4 eligibility"
+    ],
+    "claim_boundary": "P5-L updates the B2c/R0c mechanism interpretation after R0c K1 scroll batching and a B2c rerun. It does not prove impossible-zone completion, runtime superiority, or P4 eligibility."
+  },
+  "metrics_by_variant": {
+    "B2c_latest": {
+      "status": "strong_compact_virtualized_dom_baseline",
+      "max_initial_render_ms": 4,
+      "max_send_click_proxy_ms": 20.40000009536743,
+      "max_scroll_jump_return_ms": 11.700000047683716,
+      "max_typing_proxy_ms": 0.20000004768371582,
+      "max_long_task_like_count_50ms_proxy": 0,
+      "max_long_task_like_count_100ms_proxy": 0,
+      "max_long_task_like_count_200ms_proxy": 0,
+      "max_rendered_dom_node_count": 5700,
+      "max_logical_block_count": 54096,
+      "max_send_active_context_entries_visited": 100000,
+      "active_context_scan_modes": [
+        "compact_checksum_index"
+      ],
+      "dynamic_active_context_update_modes": [
+        "static_initial_active_context"
+      ]
+    },
+    "R0c_K1": {
+      "status": "send_path_advantage_and_scroll_parity_with_non_send_caveats",
+      "max_initial_render_ms": 80.89999985694885,
+      "max_send_click_proxy_ms": 15.799999952316284,
+      "max_scroll_jump_return_ms": 12.200000047683716,
+      "max_typing_proxy_ms": 1.4000000953674316,
+      "max_long_task_like_count_50ms_proxy": 1,
+      "max_long_task_like_count_100ms_proxy": 0,
+      "max_long_task_like_count_200ms_proxy": 0,
+      "max_rendered_dom_node_count": 5700,
+      "max_logical_block_count": 54096,
+      "max_send_active_context_entries_visited": 100000,
+      "active_context_scan_modes": [
+        "compact_checksum_index"
+      ],
+      "dynamic_active_context_update_modes": [
+        "static_initial_active_context"
+      ],
+      "max_scroll_batched_worker_roundtrip_ms": 1.2000000476837158,
+      "max_scroll_batched_worker_processing_ms": 0.39999985694885254,
+      "max_scroll_batched_roundtrip_minus_processing_ms": 0.8999998569488525,
+      "max_scroll_batched_main_commit_ms": 10.699999809265137,
+      "scroll_batch_modes": [
+        "old_and_tail_single_worker_message"
+      ]
+    }
+  },
+  "ratios": {
+    "b2c_send_over_r0c_k1_send": 1.291,
+    "r0c_k1_send_improvement_percent_over_b2c": 22.5,
+    "b2c_scroll_over_r0c_k1_scroll": 0.959,
+    "r0c_k1_scroll_delta_vs_b2c_ms": 0.5,
+    "scroll_classification": "parity",
+    "b2c_typing_over_r0c_k1_typing": 0.143,
+    "b2c_initial_over_r0c_k1_initial": 0.049,
+    "b2c_rendered_nodes_over_r0c_rendered_nodes": 1
+  },
+  "mechanism_interpretation": {
+    "updated_primary_claim": [
+      "R0c K1 preserves the send-path-specific advantage over B2c: 15.8ms vs 20.4ms.",
+      "R0c K1 removes the prior scroll-proxy disadvantage and reaches B2c-level scroll parity: 12.2ms vs 11.7ms.",
+      "R0c K1 still does not dominate B2c overall because initial render and typing proxy remain worse.",
+      "Current evidence supports continued workload-axis investigation, not P4 authorization."
+    ],
+    "mechanism": [
+      "Compact active-context indexing removed the shared send-path full-string scan bottleneck.",
+      "R0c's send-path advantage after shared optimization remains modest and send-specific.",
+      "K1 scroll batching replaced two serial Worker projection roundtrips with one batched old-history plus tail projection request.",
+      "After K1, scroll is approximately at B2c parity.",
+      "R0c still has startup/accounting overhead and small absolute typing Worker-dispatch overhead."
+    ]
+  },
+  "overhead_classification": [
+    {
+      "metric": "send_click_proxy_ms",
+      "b2c": 20.40000009536743,
+      "r0c_k1": 15.799999952316284,
+      "status": "r0c_k1_positive_signal",
+      "interpretation": "R0c K1 is modestly faster on the send-click proxy after shared compact-index optimization.",
+      "risk": "send-path-specific only; does not imply all-interaction dominance"
+    },
+    {
+      "metric": "scroll_jump_return_ms",
+      "b2c": 11.700000047683716,
+      "r0c_k1": 12.200000047683716,
+      "status": "parity_after_batching",
+      "interpretation": "K1 batching removes the prior R0c scroll-proxy disadvantage; the remaining 0.5ms delta is parity-level in this manual proxy setup.",
+      "risk": "scroll proxy is not browser frame-stability evidence"
+    },
+    {
+      "metric": "typing_proxy_ms",
+      "b2c": 0.20000004768371582,
+      "r0c_k1": 1.4000000953674316,
+      "status": "small_absolute_worker_dispatch_overhead_single_shot",
+      "interpretation": "R0c K1 remains worse on typing proxy, but the absolute value is small and the metric is single-shot.",
+      "risk": "prevents all-interaction dominance claims"
+    },
+    {
+      "metric": "initial_render_ms",
+      "b2c": 4,
+      "r0c_k1": 80.89999985694885,
+      "status": "startup_accounting_caveat",
+      "interpretation": "R0c K1 remains substantially slower on initial render, likely reflecting Worker startup, runtime initialization, and initial projection accounting.",
+      "risk": "not cleanly comparable to B2c initial render and not proven amortizable"
+    },
+    {
+      "metric": "long_task_like_50ms_proxy",
+      "b2c": 0,
+      "r0c_k1": 1,
+      "status": "internal_proxy_only",
+      "interpretation": "R0c K1 has one internal 50ms-like proxy count while B2c has zero.",
+      "risk": "not browser Long Task API evidence"
+    }
+  ],
+  "final_classification": {
+    "p5_status": "post_k1_mechanism_update_complete",
+    "b2c_status": "strong_compact_virtualized_dom_baseline",
+    "r0c_status": "send_path_advantage_and_scroll_parity_with_non_send_caveats",
+    "send_status": "r0c_k1_modest_advantage",
+    "scroll_status": "parity_after_batching",
+    "typing_status": "small_absolute_worker_dispatch_overhead_single_shot",
+    "initial_status": "startup_accounting_caveat",
+    "p4_status": "not_authorized",
+    "recommended_next": "workload_axis_refinement_before_p4"
+  }
+}
