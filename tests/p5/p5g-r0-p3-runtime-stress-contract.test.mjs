@@ -55,6 +55,23 @@ const phaseSpecificMetricFields = [
   "max_phase_main_commit_ms"
 ];
 
+const confoundMetricFields = [
+  "send_worker_roundtrip_minus_processing_ms",
+  "max_phase_worker_roundtrip_minus_processing_ms",
+  "init_worker_roundtrip_minus_processing_ms",
+  "typing_worker_roundtrip_minus_processing_ms",
+  "scroll_old_worker_roundtrip_minus_processing_ms",
+  "scroll_tail_worker_roundtrip_minus_processing_ms",
+  "send_projection_payload_block_count",
+  "send_projection_payload_estimated_bytes",
+  "max_projection_payload_estimated_bytes",
+  "projection_payload_estimate_mode",
+  "active_context_entries_visited",
+  "send_active_context_entries_visited",
+  "active_context_scan_mode",
+  "dynamic_active_context_update_mode"
+];
+
 function read(filePath) {
   return fs.readFileSync(filePath, "utf8");
 }
@@ -146,6 +163,22 @@ test("P5-G target exposes phase-specific R0 instrumentation fields", () => {
   }
 });
 
+test("P5-G target exposes pre-optimization confound instrumentation fields", () => {
+  const html = read(targetPath);
+  for (const field of confoundMetricFields) {
+    assert.ok(html.includes(field), `missing ${field}`);
+  }
+  for (const needle of [
+    "roundtripMinusProcessing",
+    "estimateProjectionPayloadBytes",
+    "full_string_scan",
+    "static_initial_active_context",
+    "synthetic_block_text_metadata_length"
+  ]) {
+    assert.ok(html.includes(needle), `missing ${needle}`);
+  }
+});
+
 test("P5-G target avoids deferred render backends and product URLs", () => {
   const html = read(targetPath);
   assert.doesNotMatch(html, /OffscreenCanvas\b/);
@@ -208,6 +241,25 @@ test("P5-G collector validates phase-specific R0 instrumentation fields", () => 
     "max_phase_worker_processing_ms",
     "max_phase_worker_projection_ms",
     "max_phase_main_commit_ms"
+  ]) {
+    assert.ok(source.includes(field), `missing ${field}`);
+  }
+});
+
+test("P5-G collector validates pre-optimization confound instrumentation fields", () => {
+  const source = read(collectorPath);
+  for (const field of confoundMetricFields) {
+    assert.ok(source.includes(field), `missing ${field}`);
+  }
+  for (const field of [
+    "max_send_worker_roundtrip_minus_processing_ms",
+    "max_phase_worker_roundtrip_minus_processing_ms",
+    "max_send_projection_payload_estimated_bytes",
+    "max_projection_payload_estimated_bytes",
+    "max_send_active_context_entries_visited",
+    "active_context_scan_modes",
+    "dynamic_active_context_update_modes",
+    "uniqueStrings"
   ]) {
     assert.ok(source.includes(field), `missing ${field}`);
   }

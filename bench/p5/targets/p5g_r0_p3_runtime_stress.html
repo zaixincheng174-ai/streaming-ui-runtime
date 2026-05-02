@@ -287,7 +287,21 @@
         max_phase_worker_roundtrip_ms: 0,
         max_phase_worker_processing_ms: 0,
         max_phase_worker_projection_ms: 0,
-        max_phase_main_commit_ms: 0
+        max_phase_main_commit_ms: 0,
+        send_worker_roundtrip_minus_processing_ms: 0,
+        max_phase_worker_roundtrip_minus_processing_ms: 0,
+        init_worker_roundtrip_minus_processing_ms: 0,
+        typing_worker_roundtrip_minus_processing_ms: 0,
+        scroll_old_worker_roundtrip_minus_processing_ms: 0,
+        scroll_tail_worker_roundtrip_minus_processing_ms: 0,
+        send_projection_payload_block_count: 0,
+        send_projection_payload_estimated_bytes: 0,
+        max_projection_payload_estimated_bytes: 0,
+        projection_payload_estimate_mode: "synthetic_block_text_metadata_length",
+        active_context_entries_visited: 0,
+        send_active_context_entries_visited: 0,
+        active_context_scan_mode: "full_string_scan",
+        dynamic_active_context_update_mode: "static_initial_active_context"
       };
 
       function resolveScenario() {
@@ -423,12 +437,14 @@
             let activeContextMs = 0;
             let tailMutationMs = 0;
             let appendMs = 0;
+            let activeContextEntriesVisited = 0;
 
             for (let repeat = 0; repeat < scenario.send_click_repeat_count; repeat += 1) {
               sendRunCount += 1;
               const traversalStartMs = performance.now();
               let localChecksum = checksum;
               for (const entry of activeContextIndex) {
+                activeContextEntriesVisited += 1;
                 localChecksum = scanText(entry.scan_text, localChecksum);
                 for (const value of entry.metadata) {
                   localChecksum = scanText(value, localChecksum);
@@ -476,6 +492,7 @@
               transaction,
               worker_processing_ms: workerProcessingMs,
               worker_active_context_traversal_ms: activeContextMs,
+              worker_active_context_entries_visited: activeContextEntriesVisited,
               worker_tail_mutation_ms: tailMutationMs,
               worker_append_ms: appendMs,
               ...baseRuntimeMetrics(transaction)
@@ -522,8 +539,11 @@
             const endIndex = Math.min(logicalBlocks.length, startIndex + visibleWindowSize);
             const blocks = [];
             let estimatedBytes = 0;
+            let projectionPayloadEstimatedBytes = 0;
             for (let index = startIndex; index < endIndex; index += 1) {
               const block = logicalBlocks[index];
+              const blockPayloadBytes = estimateProjectionPayloadBytes(block);
+              projectionPayloadEstimatedBytes += blockPayloadBytes;
               estimatedBytes += block.body.length + block.title.length + block.metadata.join("|").length;
               blocks.push({
                 block_id: block.block_id,
@@ -545,6 +565,9 @@
               visible_range: { start_index: startIndex, end_index: endIndex },
               blocks,
               projection_block_count: blocks.length,
+              projection_payload_block_count: blocks.length,
+              projection_payload_estimated_bytes: projectionPayloadEstimatedBytes,
+              projection_payload_estimate_mode: "synthetic_block_text_metadata_length",
               logical_block_count: logicalBlocks.length,
               visible_window_size: visibleWindowSize,
               worker_projection_ms: projectionMs
@@ -617,6 +640,11 @@
             const projection = transaction ? transaction.projection : null;
             return {
               worker_projection_ms: projection ? projection.worker_projection_ms : 0,
+              projection_payload_block_count: projection ? projection.projection_payload_block_count : 0,
+              projection_payload_estimated_bytes: projection ? projection.projection_payload_estimated_bytes : 0,
+              projection_payload_estimate_mode: projection
+                ? projection.projection_payload_estimate_mode
+                : "synthetic_block_text_metadata_length",
               logical_block_count: logicalBlocks.length,
               projection_block_count: projection ? projection.blocks.length : 0,
               commit_cycle_count: commitCycleCount,
@@ -626,6 +654,10 @@
                 ? transaction.commit_cycle.transition_label
                 : previousAnchorKind
             };
+          }
+
+          function estimateProjectionPayloadBytes(block) {
+            return block.synthetic_key.length + block.title.length + block.body.length + block.metadata.join("|").length;
           }
 
           function generateStressWorkload(input) {
@@ -784,6 +816,10 @@
         metrics.init_worker_roundtrip_ms = response.worker_roundtrip_ms || 0;
         metrics.init_worker_processing_ms = response.worker_processing_ms || 0;
         metrics.init_worker_projection_ms = response.worker_projection_ms || 0;
+        metrics.init_worker_roundtrip_minus_processing_ms = roundtripMinusProcessing(
+          metrics.init_worker_roundtrip_ms,
+          metrics.init_worker_processing_ms
+        );
         metrics.init_main_commit_ms = commitMs;
         metrics.initial_render_ms = performance.now() - startMs;
         metrics.main_commit_ms += commitMs;
@@ -799,6 +835,10 @@
         applyWorkerMetrics(response, "typing");
         metrics.typing_worker_roundtrip_ms = response.worker_roundtrip_ms || 0;
         metrics.typing_worker_processing_ms = response.worker_processing_ms || 0;
+        metrics.typing_worker_roundtrip_minus_processing_ms = roundtripMinusProcessing(
+          metrics.typing_worker_roundtrip_ms,
+          metrics.typing_worker_processing_ms
+        );
         metrics.typing_proxy_ms = performance.now() - startMs;
         recordInteractionDuration(metrics.typing_proxy_ms);
         publishSummary();
@@ -813,9 +853,17 @@
         metrics.send_worker_roundtrip_ms = response.worker_roundtrip_ms || 0;
         metrics.send_worker_processing_ms = response.worker_processing_ms || 0;
         metrics.send_worker_active_context_traversal_ms = response.worker_active_context_traversal_ms || 0;
+        metrics.send_active_context_entries_visited = response.worker_active_context_entries_visited || 0;
+        metrics.active_context_entries_visited = metrics.send_active_context_entries_visited;
         metrics.send_worker_tail_mutation_ms = response.worker_tail_mutation_ms || 0;
         metrics.send_worker_append_ms = response.worker_append_ms || 0;
         metrics.send_worker_projection_ms = response.worker_projection_ms || 0;
+        metrics.send_worker_roundtrip_minus_processing_ms = roundtripMinusProcessing(
+          metrics.send_worker_roundtrip_ms,
+          metrics.send_worker_processing_ms
+        );
+        metrics.send_projection_payload_block_count = response.projection_payload_block_count || 0;
+        metrics.send_projection_payload_estimated_bytes = response.projection_payload_estimated_bytes || 0;
         metrics.send_main_commit_ms = commitMs;
         metrics.main_commit_ms += commitMs;
         metrics.send_end_to_end_ms = performance.now() - startMs;
@@ -838,6 +886,10 @@
         metrics.scroll_old_worker_roundtrip_ms = oldHistoryResponse.worker_roundtrip_ms || 0;
         metrics.scroll_old_worker_processing_ms = oldHistoryResponse.worker_processing_ms || 0;
         metrics.scroll_old_worker_projection_ms = oldHistoryResponse.worker_projection_ms || 0;
+        metrics.scroll_old_worker_roundtrip_minus_processing_ms = roundtripMinusProcessing(
+          metrics.scroll_old_worker_roundtrip_ms,
+          metrics.scroll_old_worker_processing_ms
+        );
         metrics.scroll_old_main_commit_ms = oldCommitMs;
         metrics.old_history_window_render_ms += oldCommitMs;
         const tailResponse = await postRuntimeOp("request_projection", { anchor_kind: "tail" });
@@ -846,6 +898,10 @@
         metrics.scroll_tail_worker_roundtrip_ms = tailResponse.worker_roundtrip_ms || 0;
         metrics.scroll_tail_worker_processing_ms = tailResponse.worker_processing_ms || 0;
         metrics.scroll_tail_worker_projection_ms = tailResponse.worker_projection_ms || 0;
+        metrics.scroll_tail_worker_roundtrip_minus_processing_ms = roundtripMinusProcessing(
+          metrics.scroll_tail_worker_roundtrip_ms,
+          metrics.scroll_tail_worker_processing_ms
+        );
         metrics.scroll_tail_main_commit_ms = tailCommitMs;
         metrics.tail_window_render_ms += tailCommitMs;
         metrics.main_commit_ms += oldCommitMs + tailCommitMs;
@@ -897,6 +953,10 @@
         });
         metrics.logical_block_count = response.logical_block_count || metrics.logical_block_count;
         metrics.projection_block_count = response.projection_block_count || metrics.projection_block_count;
+        metrics.max_projection_payload_estimated_bytes = Math.max(
+          metrics.max_projection_payload_estimated_bytes,
+          response.projection_payload_estimated_bytes || 0
+        );
         metrics.commit_cycle_count = response.commit_cycle_count || metrics.commit_cycle_count;
         metrics.admitted_transaction_count = response.admitted_transaction_count || metrics.admitted_transaction_count;
         metrics.rejected_transaction_count = response.rejected_transaction_count || metrics.rejected_transaction_count;
@@ -905,6 +965,8 @@
           metrics.worker_active_context_traversal_ms = response.worker_active_context_traversal_ms || 0;
           metrics.worker_tail_mutation_ms = response.worker_tail_mutation_ms || 0;
           metrics.worker_append_ms = response.worker_append_ms || 0;
+          metrics.active_context_entries_visited = response.worker_active_context_entries_visited || 0;
+          metrics.send_active_context_entries_visited = metrics.active_context_entries_visited;
           metrics.active_context_traversal_ms = metrics.worker_active_context_traversal_ms;
           metrics.tail_mutation_ms = metrics.worker_tail_mutation_ms;
           metrics.append_commit_ms = metrics.worker_append_ms;
@@ -924,6 +986,10 @@
           metrics.max_phase_worker_projection_ms,
           workerPhase.worker_projection_ms
         );
+        metrics.max_phase_worker_roundtrip_minus_processing_ms = Math.max(
+          metrics.max_phase_worker_roundtrip_minus_processing_ms,
+          roundtripMinusProcessing(workerPhase.worker_roundtrip_ms, workerPhase.worker_processing_ms)
+        );
         metrics.worker_roundtrip_ms = metrics.max_phase_worker_roundtrip_ms;
         metrics.worker_processing_ms = metrics.max_phase_worker_processing_ms;
         metrics.worker_projection_ms = metrics.max_phase_worker_projection_ms;
@@ -931,6 +997,10 @@
 
       function recordMainCommitPhase(commitMs) {
         metrics.max_phase_main_commit_ms = Math.max(metrics.max_phase_main_commit_ms, commitMs);
+      }
+
+      function roundtripMinusProcessing(roundtripMs, processingMs) {
+        return Math.max(0, roundtripMs - processingMs);
       }
 
       function createRichBlockEntry(block) {

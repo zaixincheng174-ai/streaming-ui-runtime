@@ -92,11 +92,29 @@ const requiredR0PhaseMetricFields = [
   "max_phase_main_commit_ms"
 ];
 
+const requiredConfoundMetricFields = [
+  "send_worker_roundtrip_minus_processing_ms",
+  "max_phase_worker_roundtrip_minus_processing_ms",
+  "init_worker_roundtrip_minus_processing_ms",
+  "typing_worker_roundtrip_minus_processing_ms",
+  "scroll_old_worker_roundtrip_minus_processing_ms",
+  "scroll_tail_worker_roundtrip_minus_processing_ms",
+  "send_projection_payload_block_count",
+  "send_projection_payload_estimated_bytes",
+  "max_projection_payload_estimated_bytes",
+  "projection_payload_estimate_mode",
+  "active_context_entries_visited",
+  "send_active_context_entries_visited",
+  "active_context_scan_mode",
+  "dynamic_active_context_update_mode"
+];
+
 const requiredMetricFields = [
   ...requiredCommonMetricFields,
   ...requiredProjectionMetricFields,
   ...requiredR0MetricFields,
-  ...requiredR0PhaseMetricFields
+  ...requiredR0PhaseMetricFields,
+  ...requiredConfoundMetricFields
 ];
 
 const numericMetricFields = requiredMetricFields.filter(
@@ -107,7 +125,10 @@ const numericMetricFields = requiredMetricFields.filter(
       "block_shape",
       "timestamp",
       "run_id",
-      "anchor_transition_label"
+      "anchor_transition_label",
+      "projection_payload_estimate_mode",
+      "active_context_scan_mode",
+      "dynamic_active_context_update_mode"
     ].includes(field)
 );
 
@@ -186,10 +207,20 @@ async function main() {
       max_send_worker_append_ms: maxMetric(resultRows, "send_worker_append_ms"),
       max_send_worker_projection_ms: maxMetric(resultRows, "send_worker_projection_ms"),
       max_send_main_commit_ms: maxMetric(resultRows, "send_main_commit_ms"),
+      max_send_worker_roundtrip_minus_processing_ms: maxMetric(resultRows, "send_worker_roundtrip_minus_processing_ms"),
       max_phase_worker_roundtrip_ms: maxMetric(resultRows, "max_phase_worker_roundtrip_ms"),
       max_phase_worker_processing_ms: maxMetric(resultRows, "max_phase_worker_processing_ms"),
       max_phase_worker_projection_ms: maxMetric(resultRows, "max_phase_worker_projection_ms"),
       max_phase_main_commit_ms: maxMetric(resultRows, "max_phase_main_commit_ms"),
+      max_phase_worker_roundtrip_minus_processing_ms: maxMetric(
+        resultRows,
+        "max_phase_worker_roundtrip_minus_processing_ms"
+      ),
+      max_send_projection_payload_estimated_bytes: maxMetric(resultRows, "send_projection_payload_estimated_bytes"),
+      max_projection_payload_estimated_bytes: maxMetric(resultRows, "max_projection_payload_estimated_bytes"),
+      max_send_active_context_entries_visited: maxMetric(resultRows, "send_active_context_entries_visited"),
+      active_context_scan_modes: uniqueStrings(resultRows, "active_context_scan_mode"),
+      dynamic_active_context_update_modes: uniqueStrings(resultRows, "dynamic_active_context_update_mode"),
       max_commit_cycle_count: maxMetric(resultRows, "commit_cycle_count"),
       scenario_ids: expectedScenarios.map((scenario) => scenario.scenario_id)
     }
@@ -282,9 +313,30 @@ function validateManualRows(rows, expectedScenarios) {
     if (typeof row.anchor_transition_label !== "string" || row.anchor_transition_label === "") {
       throw new Error(`${row.scenario_id} anchor_transition_label must be a non-empty string`);
     }
+    for (const field of [
+      "projection_payload_estimate_mode",
+      "active_context_scan_mode",
+      "dynamic_active_context_update_mode"
+    ]) {
+      if (typeof row[field] !== "string" || row[field] === "") {
+        throw new Error(`${row.scenario_id} ${field} must be a non-empty string`);
+      }
+    }
     for (const field of numericMetricFields) {
       if (!Number.isFinite(row[field])) {
         throw new Error(`${row.scenario_id} ${field} must be a finite number`);
+      }
+    }
+    for (const field of [
+      "send_worker_roundtrip_minus_processing_ms",
+      "max_phase_worker_roundtrip_minus_processing_ms",
+      "init_worker_roundtrip_minus_processing_ms",
+      "typing_worker_roundtrip_minus_processing_ms",
+      "scroll_old_worker_roundtrip_minus_processing_ms",
+      "scroll_tail_worker_roundtrip_minus_processing_ms"
+    ]) {
+      if (row[field] < 0) {
+        throw new Error(`${row.scenario_id} ${field} must be >= 0`);
       }
     }
     if (row.logical_block_count < row.visible_block_count) {
@@ -322,6 +374,10 @@ function pickRequiredFields(row) {
 function maxMetric(rows, key) {
   const values = rows.map((row) => row[key]).filter((value) => Number.isFinite(value));
   return values.length > 0 ? Math.max(...values) : null;
+}
+
+function uniqueStrings(rows, key) {
+  return [...new Set(rows.map((row) => row[key]).filter((value) => typeof value === "string" && value !== ""))].sort();
 }
 
 function formatMetric(value) {
