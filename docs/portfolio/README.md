@@ -104,6 +104,18 @@ The evidence chain is intentionally staged:
 
 See [evidence-map.md](evidence-map.md) for a stricter resume-claim map.
 
+## Reader Path
+
+For a five-minute external review, read:
+
+1. [Repository README](../../README.md)
+2. [Evidence map](evidence-map.md)
+3. [Related systems positioning](../paper/streaming-ui-runtime-related-work-v0.md)
+4. [Short paper draft](../paper/streaming-ui-runtime-short-paper-draft-v0.md)
+5. [P5 scheduling evidence appendix](../paper/appendix/p5-scheduling-evidence-appendix.md)
+6. [P5 final reviewer packet](../p5/p5y-final-reviewer-evidence-packet.md)
+7. [P5 adversarial audit](../p5/p5y-reviewer-adversarial-audit.md)
+
 ## P5 Scheduling Evidence
 
 P5 freezes the current scheduling-mechanism evidence for long-lived AI surfaces. The strongest current signal is P5-X product-trace-shaped synthetic scheduling-delay proxy: B2x `176.1ms` vs R0x `0.1ms` under equal trace/logical invariants.
