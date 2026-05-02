@@ -1,0 +1,223 @@
+{
+  "schema_version": "p5w.evidence_packet_index.v0",
+  "generated_at": "2026-05-02T06:24:49Z",
+  "source_results": {
+    "p5m_send_start": [
+      "bench/p5/results/p5m_b2c_concurrent_input_results.json",
+      "bench/p5/results/p5m_r0c_concurrent_input_results.json"
+    ],
+    "p5o_commit_window": [
+      "bench/p5/results/p5o_b2c_commit_window_input_results.json",
+      "bench/p5/results/p5o_r0c_commit_window_input_results.json"
+    ],
+    "p5q_dynamic_context": [
+      "bench/p5/results/p5q_b2c_dynamic_context_results.json",
+      "bench/p5/results/p5q_r0c_dynamic_context_results.json"
+    ],
+    "p5s_concurrent_dynamic_context": [
+      "bench/p5/results/p5s_b2c_concurrent_dynamic_context_results.json",
+      "bench/p5/results/p5s_r0c_concurrent_dynamic_context_results.json"
+    ],
+    "p5u_multistream_agent_trace": [
+      "bench/p5/results/p5u_b2c_multistream_agent_trace_results.json",
+      "bench/p5/results/p5u_r0c_multistream_agent_trace_results.json"
+    ],
+    "mechanism_summaries": [
+      "docs/p5/p5n-concurrent-input-mechanism-summary.md",
+      "docs/p5/p5p-send-start-commit-window-mechanism-summary.md",
+      "docs/p5/p5r-dynamic-active-context-mechanism-summary.md",
+      "docs/p5/p5t-dynamic-update-concurrent-input-mechanism-summary.md",
+      "docs/p5/p5v-multistream-agent-trace-mechanism-summary.md"
+    ]
+  },
+  "evidence_chain": [
+    {
+      "phase": "P5-M send-start scheduling",
+      "b2_metric": "B2m concurrent input delay 16.0ms; concurrent send work 15.9ms",
+      "r0_metric": "R0m concurrent input delay 0.1ms; concurrent send work 11.2ms; worker send processing 5.5ms; main commit 4.7ms",
+      "mechanism_interpretation": "B2m synthetic input is queued behind main-thread send work; R0m synthetic input starts near the timing floor while worker-side send computation is in flight.",
+      "claim_strength": "strong internal scheduling-delay proxy",
+      "boundary": "setTimeout-based proxy, not browser Event Timing or INP"
+    },
+    {
+      "phase": "P5-O commit-window scheduling",
+      "b2_metric": "B2o commit-window input delay 28.1ms; main commit 10.5ms; send work 17.1ms; total proxy 63.6ms",
+      "r0_metric": "R0o commit-window input delay 4.7ms; main commit 4.7ms; send work 9.2ms; total proxy 9.5ms",
+      "mechanism_interpretation": "R0o still blocks during bounded main-thread projection commit; P5-O localizes rather than eliminates the remaining main-thread blocking window.",
+      "claim_strength": "commit-window caveat and bounded-blocking evidence",
+      "boundary": "commit-window proxy is not browser INP and does not prove all main-thread blocking is gone"
+    },
+    {
+      "phase": "P5-Q dynamic active-context cost localization",
+      "b2_metric": "B2q dynamic update 28.5ms; dynamic context send proxy 57.3ms",
+      "r0_metric": "R0q dynamic update 30.8ms in Worker; dynamic context send proxy 54.0ms; main commit 4.6ms",
+      "mechanism_interpretation": "Rolling-tail dynamic active-context maintenance is a material workload cost in both systems; R0q moves the cost into Worker but does not eliminate it.",
+      "claim_strength": "cost-localization evidence",
+      "boundary": "does not show R0q dominance or input responsiveness by itself"
+    },
+    {
+      "phase": "P5-S dynamic-update input availability",
+      "b2_metric": "B2s dynamic-update input delay 35.2ms; dynamic active-context update 45.7ms",
+      "r0_metric": "R0s dynamic-update input delay 0.1ms; worker dynamic-context processing 49.6ms; main commit 4.5ms",
+      "mechanism_interpretation": "B2s synthetic input is blocked by main-thread dynamic update; R0s synthetic input starts near the timing floor while worker-side dynamic update is in flight.",
+      "claim_strength": "strong internal scheduling-delay proxy",
+      "boundary": "does not measure browser Event Timing, INP, or later commit-window arrival"
+    },
+    {
+      "phase": "P5-U multistream agent-trace workload",
+      "b2_metric": "B2u concurrent multistream input delay 164.3ms; dynamic update 131.3ms; stream events processed 4096",
+      "r0_metric": "R0u concurrent multistream input delay 0.1ms; worker multistream processing 133.6ms; worker dynamic update 129.4ms; main commit 3.3ms",
+      "mechanism_interpretation": "R0u does not remove multistream or dynamic-context CPU work; it moves that work out of the main-thread input path under a more realistic long-lived synthetic workload.",
+      "claim_strength": "strongest P5 workload-realism signal",
+      "boundary": "synthetic agent-trace workload, not product trace evidence"
+    }
+  ],
+  "claim_boundary_matrix": [
+    {
+      "claim": "R0 can keep synthetic input near timing floor during worker-side send work.",
+      "supported": "yes",
+      "evidence": "P5-M and P5-P",
+      "allowed_wording": "R0m shows near-floor synthetic timer-task start while worker-side send computation is in flight.",
+      "forbidden_wording": "R0 proves browser-level INP improvement or eliminates all input latency."
+    },
+    {
+      "claim": "R0 still blocks during bounded main-thread commit.",
+      "supported": "yes",
+      "evidence": "P5-O and P5-P",
+      "allowed_wording": "R0 localizes remaining blocking to bounded projection commit.",
+      "forbidden_wording": "R0 eliminates all main-thread blocking."
+    },
+    {
+      "claim": "R0 does not eliminate dynamic active-context cost.",
+      "supported": "yes",
+      "evidence": "P5-Q and P5-R",
+      "allowed_wording": "Dynamic update remains material; R0 moves it into Worker.",
+      "forbidden_wording": "R0 solves dynamic active-context CPU cost."
+    },
+    {
+      "claim": "R0 can isolate dynamic update cost from the main-thread input path.",
+      "supported": "yes",
+      "evidence": "P5-S and P5-T",
+      "allowed_wording": "R0s keeps the synthetic input task near the timing floor while worker-side dynamic update is in flight.",
+      "forbidden_wording": "R0s proves real keyboard or pointer responsiveness is superior."
+    },
+    {
+      "claim": "R0 can isolate multistream/agent-trace processing from the main-thread input path.",
+      "supported": "yes",
+      "evidence": "P5-U and P5-V",
+      "allowed_wording": "Under the synthetic multistream workload, R0u keeps synthetic input near the timing floor during worker-side processing.",
+      "forbidden_wording": "R0u is production-ready or proves real product superiority."
+    },
+    {
+      "claim": "Current results prove browser-level INP improvement.",
+      "supported": "no",
+      "evidence": "No browser Event Timing or INP measurement was collected.",
+      "allowed_wording": "The current evidence is an internal scheduling-delay proxy.",
+      "forbidden_wording": "R0 improves INP."
+    },
+    {
+      "claim": "Current results authorize P4/WebGPU.",
+      "supported": "no",
+      "evidence": "P5 results are DOM/Worker scheduling evidence only.",
+      "allowed_wording": "P4 remains not authorized.",
+      "forbidden_wording": "P5 proves WebGPU or P4 is required."
+    },
+    {
+      "claim": "Current results prove production runtime readiness.",
+      "supported": "no",
+      "evidence": "Targets are synthetic manual benchmark harnesses.",
+      "allowed_wording": "The results support a research direction and claim-boundary packet.",
+      "forbidden_wording": "R0 is production-ready."
+    },
+    {
+      "claim": "Current results prove real product superiority.",
+      "supported": "no",
+      "evidence": "No product trace or product site was measured.",
+      "allowed_wording": "A product-trace-shaped synthetic scenario could improve external validity.",
+      "forbidden_wording": "R0 is superior on real product workloads."
+    }
+  ],
+  "fairness_invariants": {
+    "matrix": "Same P5-D matrix where applicable.",
+    "active_context_scan": "compact_checksum_index",
+    "dynamic_update_mode": "rolling_tail_window_after_append for dynamic-context variants.",
+    "max_active_context_entries_visited": 100000,
+    "max_final_logical_block_count": 54096,
+    "max_expected_final_logical_block_count": 54096,
+    "bounded_rendered_dom": "Same bounded rendered DOM inside each paired target family.",
+    "p5u_rendered_dom_node_count": "4582 on both B2u and R0u; do not compare directly with earlier 5700-node families as identical DOM shape.",
+    "architecture_difference": "B2 and R0 intentionally differ in ownership of logical work."
+  },
+  "strongest_evidence": [
+    {
+      "phase": "P5-U/P5-V multistream agent-trace",
+      "evidence": "B2u input delay 164.3ms vs R0u 0.1ms under equal stream/logical invariants.",
+      "interpretation": "Strongest workload-realism signal for input-path isolation during worker-side multistream and dynamic-context processing."
+    },
+    {
+      "phase": "P5-S/P5-T dynamic update",
+      "evidence": "B2s input delay 35.2ms vs R0s 0.1ms.",
+      "interpretation": "Dynamic-update cost blocks B2 main thread and is isolated from the R0 main-thread input path while it runs in Worker."
+    },
+    {
+      "phase": "P5-M/P5-P send-start",
+      "evidence": "B2m input delay 16.0ms vs R0m 0.1ms.",
+      "interpretation": "Send-start scheduling shows blocked vs near-unblocked synthetic timer-task availability."
+    },
+    {
+      "phase": "P5-O/P5-P commit window",
+      "evidence": "R0o commit-window delay 4.7ms.",
+      "interpretation": "R0 blocking is bounded, not eliminated."
+    }
+  ],
+  "reviewer_objections": [
+    {
+      "objection": "This is setTimeout, not real input.",
+      "response": "Correct. The packet labels these as internal setTimeout-based scheduling-delay proxies and does not claim keyboard, pointer, Event Timing, or INP evidence."
+    },
+    {
+      "objection": "This is not INP.",
+      "response": "Correct. No browser-level INP measurement is claimed or authorized by P5."
+    },
+    {
+      "objection": "R0 just moves cost to Worker; CPU cost remains.",
+      "response": "Correct. P5-Q and P5-U explicitly show dynamic-context and multistream CPU costs remain material; the mechanism claim is input-path isolation and bounded main commit."
+    },
+    {
+      "objection": "Commit still blocks.",
+      "response": "Correct. P5-O is included to show remaining bounded main-thread commit blocking instead of claiming elimination."
+    },
+    {
+      "objection": "B2 could use the same algorithmic optimizations.",
+      "response": "Correct. Shared algorithmic optimizations must be paired. The P5 chain separates algorithmic confounds from ownership and scheduling effects."
+    },
+    {
+      "objection": "Synthetic workloads may not reflect product traces.",
+      "response": "Correct. The packet recommends product-trace-shaped synthetic work if external validity is the main remaining concern."
+    },
+    {
+      "objection": "DOM shape differs across target families.",
+      "response": "Correct. P5-U has 4582 rendered DOM nodes on both sides; it should not be compared directly with earlier 5700-node families as if DOM shape were identical."
+    },
+    {
+      "objection": "This does not justify WebGPU/P4.",
+      "response": "Correct. P4 remains not authorized."
+    }
+  ],
+  "remaining_gaps": [
+    "Browser Event Timing and INP are not measured.",
+    "Real product trace superiority is not proven.",
+    "Average-case or randomized input arrival across the full lifecycle is not measured.",
+    "Future algorithmic optimizations need paired treatment.",
+    "A product-trace-shaped synthetic scenario could improve external validity.",
+    "P4/WebGPU is not authorized by current evidence."
+  ],
+  "final_classification": {
+    "p5_status": "evidence_packet_frozen",
+    "primary_mechanism": "worker_resident_logical_work_reduces_and_localizes_main_thread_blocking",
+    "strongest_signal": "multistream_agent_trace_input_path_isolation",
+    "proxy_status": "internal_setTimeout_scheduling_delay_not_INP",
+    "p4_status": "not_authorized",
+    "recommended_next": "product_trace_shaped_synthetic_or_paper_packet_packaging_before_p4"
+  }
+}
