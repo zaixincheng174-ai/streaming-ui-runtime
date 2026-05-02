@@ -1,0 +1,217 @@
+{
+  "schema_version": "p5j.b2-r0-b2c-r0c-mechanism-summary.v0",
+  "generated_at": "2026-05-02T01:41:44.251Z",
+  "source_results": {
+    "B2": "bench/p5/results/p5f_b2_virtualized_dom_stress_results.json",
+    "R0": "bench/p5/results/p5g_r0_p3_runtime_stress_results.json",
+    "B2c": "bench/p5/results/p5i_b2_compact_context_results.json",
+    "R0c": "bench/p5/results/p5i_r0_compact_context_results.json",
+    "P5H": "bench/p5/results/p5h_b0_b1_b2_r0_comparison_summary.json"
+  },
+  "metrics_by_variant": {
+    "B2": {
+      "max_initial_render_ms": 3.700000047683716,
+      "max_send_click_proxy_ms": 161.79999995231628,
+      "max_scroll_jump_return_ms": 13.300000190734863,
+      "max_typing_proxy_ms": 0.40000009536743164,
+      "max_long_task_like_count_50ms_proxy": 2,
+      "max_long_task_like_count_100ms_proxy": 2,
+      "max_long_task_like_count_200ms_proxy": 0,
+      "max_dom_node_count": 5700,
+      "max_logical_block_count": 54096,
+      "max_rendered_dom_node_count": 5700,
+      "active_context_scan_mode": "not_recorded_in_result",
+      "dynamic_active_context_update_mode": "not_recorded_in_result",
+      "max_send_active_context_entries_visited": null
+    },
+    "R0": {
+      "max_initial_render_ms": 63,
+      "max_send_click_proxy_ms": 144.5,
+      "max_scroll_jump_return_ms": 34.40000009536743,
+      "max_typing_proxy_ms": 0.5,
+      "max_long_task_like_count_50ms_proxy": 3,
+      "max_long_task_like_count_100ms_proxy": 2,
+      "max_long_task_like_count_200ms_proxy": 0,
+      "max_dom_node_count": 5700,
+      "max_logical_block_count": 54096,
+      "max_rendered_dom_node_count": 5700,
+      "active_context_scan_mode": "full_string_scan",
+      "dynamic_active_context_update_mode": "static_initial_active_context",
+      "max_send_active_context_entries_visited": 100000
+    },
+    "B2c": {
+      "max_initial_render_ms": 2.799999952316284,
+      "max_send_click_proxy_ms": 20.799999952316284,
+      "max_scroll_jump_return_ms": 12.700000047683716,
+      "max_typing_proxy_ms": 0.10000014305114746,
+      "max_long_task_like_count_50ms_proxy": 0,
+      "max_long_task_like_count_100ms_proxy": 0,
+      "max_long_task_like_count_200ms_proxy": 0,
+      "max_dom_node_count": 5700,
+      "max_logical_block_count": 54096,
+      "max_rendered_dom_node_count": 5700,
+      "active_context_scan_mode": "compact_checksum_index",
+      "dynamic_active_context_update_mode": "static_initial_active_context",
+      "max_send_active_context_entries_visited": 100000
+    },
+    "R0c": {
+      "max_initial_render_ms": 78.20000004768372,
+      "max_send_click_proxy_ms": 15.099999904632568,
+      "max_scroll_jump_return_ms": 48.700000047683716,
+      "max_typing_proxy_ms": 1.3999998569488525,
+      "max_long_task_like_count_50ms_proxy": 1,
+      "max_long_task_like_count_100ms_proxy": 0,
+      "max_long_task_like_count_200ms_proxy": 0,
+      "max_dom_node_count": 5700,
+      "max_logical_block_count": 54096,
+      "max_rendered_dom_node_count": 5700,
+      "active_context_scan_mode": "compact_checksum_index",
+      "dynamic_active_context_update_mode": "static_initial_active_context",
+      "max_send_active_context_entries_visited": 100000
+    }
+  },
+  "ratios": {
+    "b2_send_over_b2c_send": 7.779,
+    "r0_send_over_r0c_send": 9.57,
+    "b2_send_over_r0_send": 1.12,
+    "b2c_send_over_r0c_send": 1.377,
+    "b2c_initial_render_over_r0c_initial_render": 0.036,
+    "b2c_scroll_proxy_over_r0c_scroll_proxy": 0.261,
+    "b2c_typing_proxy_over_r0c_typing_proxy": 0.071,
+    "b2c_rendered_dom_nodes_over_r0c_rendered_dom_nodes": 1,
+    "r0c_send_advantage_percent_vs_b2c": 27.4
+  },
+  "measurement_definition_check": {
+    "b2c_send_click_proxy_ms": "End-to-end synchronous main-thread timer from send click handler start through compact active-context scan, tail mutation, append, bounded DOM update, summary publish, and return.",
+    "r0c_send_click_proxy_ms": "End-to-end async main-thread timer from send click handler start through Worker send operation, Worker completion, bounded projection response, main-thread commit, summary publish, and return.",
+    "both_start_at_user_handler": true,
+    "r0c_waits_for_worker_completion": true,
+    "r0c_includes_main_commit_before_stopping_timer": true,
+    "cautious_send_path_comparison_valid": true,
+    "conclusion": "The R0c 15.1ms vs B2c 20.8ms send advantage is not obviously a measurement artifact, but it is send-path-specific."
+  },
+  "mechanism_interpretation": {
+    "primary_claim": [
+      "Paired compact-index results show that active-context full string scan was a major shared send-path bottleneck.",
+      "Applying the same compact active-context optimization to B2 and R0 gives large send-path improvements to both.",
+      "After equalizing this algorithmic bottleneck, R0c retains a send-click proxy advantage over B2c: 15.1ms vs 20.8ms.",
+      "This is a send-path-specific architectural signal, not all-interaction dominance."
+    ],
+    "mechanism": [
+      "B2c performs compact active-context scan, tail mutation, append, and bounded DOM update on the main thread.",
+      "R0c performs compact active-context scan, tail mutation, append, and bounded projection in Worker, then commits the bounded projection on the main thread.",
+      "R0c likely benefits on send from separating worker-side logical work from bounded main-thread commit.",
+      "The harness does not yet measure concurrent user input during Worker work, so the full main-thread availability benefit is not yet measured."
+    ]
+  },
+  "overhead_classification": [
+    {
+      "metric": "initial_render_ms",
+      "b2c": 2.799999952316284,
+      "r0c": 78.20000004768372,
+      "classification": "likely startup_worker_init_initial_projection_overhead",
+      "risk": "not_proven_amortizable",
+      "safe_wording": "R0c pays substantially higher initial setup cost in this harness."
+    },
+    {
+      "metric": "scroll_jump_return_ms",
+      "b2c": 12.700000047683716,
+      "r0c": 48.700000047683716,
+      "classification": "per_interaction_scroll_projection_overhead_not_yet_diagnosed",
+      "risk": "scroll_proxy_not_browser_frame_stability",
+      "safe_wording": "R0c is slower on the scroll-return proxy; the cause needs separate diagnosis."
+    },
+    {
+      "metric": "typing_proxy_ms",
+      "b2c": 0.10000014305114746,
+      "r0c": 1.3999998569488525,
+      "classification": "small_absolute_worker_dispatch_roundtrip_overhead_single_shot",
+      "risk": "large_ratio_due_to_b2c_timing_floor",
+      "safe_wording": "R0c typing has small absolute overhead but cannot support all-interaction dominance claims."
+    },
+    {
+      "metric": "long_task_like_count_50ms_proxy",
+      "b2c": 0,
+      "r0c": 1,
+      "classification": "r0c_has_one_50ms_like_proxy_event",
+      "risk": "internal_proxy_not_long_task_api",
+      "safe_wording": "R0c has one internal 50ms-like proxy count while B2c has zero; this is not browser Long Task evidence."
+    }
+  ],
+  "typing_caveat": {
+    "row_level_typing": [
+      {
+        "scenario": "p5d_v10000_rich_ctx_full_repeat3",
+        "logical_block_count": 11536,
+        "b2c_typing_proxy_ms": 0.10000014305114746,
+        "r0c_typing_proxy_ms": 0.2999999523162842
+      },
+      {
+        "scenario": "p5d_v25000_rich_ctx_medium_repeat3",
+        "logical_block_count": 28072,
+        "b2c_typing_proxy_ms": 0.09999990463256836,
+        "r0c_typing_proxy_ms": 0.3000001907348633
+      },
+      {
+        "scenario": "p5d_v25000_rich_ctx_full_repeat3",
+        "logical_block_count": 28072,
+        "b2c_typing_proxy_ms": 0.10000014305114746,
+        "r0c_typing_proxy_ms": 0.5
+      },
+      {
+        "scenario": "p5d_v50000_rich_ctx_medium_repeat2",
+        "logical_block_count": 54096,
+        "b2c_typing_proxy_ms": 0.09999990463256836,
+        "r0c_typing_proxy_ms": 0.5
+      },
+      {
+        "scenario": "p5d_v50000_rich_ctx_full_repeat2",
+        "logical_block_count": 54096,
+        "b2c_typing_proxy_ms": 0.09999990463256836,
+        "r0c_typing_proxy_ms": 1.3999998569488525
+      }
+    ],
+    "interpretation": [
+      "B2c typing is near the measurement floor.",
+      "R0c typing max is 1.4ms, an absolute value that remains small.",
+      "The 14x ratio should not be called a severe regression without context.",
+      "Current typing data is single-shot per scenario, not distributional.",
+      "R0c typing likely includes Worker dispatch and roundtrip overhead.",
+      "This does not block send-path analysis, but prevents all-interaction dominance claims."
+    ]
+  },
+  "active_context_limitation": {
+    "b2c_dynamic_active_context_update_mode": "static_initial_active_context",
+    "r0c_dynamic_active_context_update_mode": "static_initial_active_context",
+    "interpretation": [
+      "Both compact variants use static_initial_active_context.",
+      "Current paired comparison assumes a static active-context corpus.",
+      "Dynamic active-context maintenance is not measured.",
+      "Under dynamic active-context workloads, R0 worker-resident architecture could either gain or lose.",
+      "Dynamic active-context maintenance must be a future P5 axis."
+    ]
+  },
+  "final_classification": {
+    "p5_status": "paired_compact_context_results_collected",
+    "shared_bottleneck": "active_context_full_string_scan",
+    "b2c_status": "strong_compact_virtualized_dom_baseline",
+    "r0c_status": "send_path_specific_advantage_with_non_send_overheads",
+    "r0c_caveat": "not_overall_dominance_over_b2c",
+    "typing_status": "small_absolute_worker_dispatch_overhead_single_shot",
+    "active_context_status": "static_initial_only_dynamic_not_measured",
+    "p4_status": "not_authorized",
+    "recommended_next": "diagnose_non_send_overheads_or_design_concurrent_input_axis_before_p4"
+  },
+  "boundary": {
+    "does_not_claim": [
+      "R0c overall dominance over B2c",
+      "browser-level INP",
+      "frame stability",
+      "production runtime readiness",
+      "dynamic active-context performance",
+      "P4 eligibility",
+      "broader workload claims"
+    ],
+    "notes": "P5-J summarizes existing local proxy result JSON files only. It is not a new measurement and does not authorize P4."
+  }
+}
