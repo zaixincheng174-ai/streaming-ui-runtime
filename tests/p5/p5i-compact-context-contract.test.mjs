@@ -54,6 +54,23 @@ const compactFields = [
   "send_active_context_compact_scan_ms"
 ];
 
+const scrollBatchFields = [
+  "scroll_jump_return_batched",
+  "scroll_batch_mode",
+  "old_and_tail_single_worker_message",
+  "scroll_batched_worker_roundtrip_ms",
+  "scroll_batched_worker_processing_ms",
+  "scroll_batched_worker_projection_ms",
+  "scroll_batched_roundtrip_minus_processing_ms",
+  "scroll_batched_projection_payload_estimated_bytes",
+  "scroll_batched_projection_payload_block_count",
+  "scroll_batched_main_commit_ms",
+  "scroll_batched_old_main_commit_ms",
+  "scroll_batched_tail_main_commit_ms"
+];
+
+const scrollBatchMetricFields = scrollBatchFields.filter((field) => field !== "scroll_jump_return_batched");
+
 function read(filePath) {
   return fs.readFileSync(filePath, "utf8");
 }
@@ -132,7 +149,8 @@ test("P5-I R0c target exposes compact-context worker/runtime hooks", () => {
     "selectNextCommitCandidate",
     "createCommitCycleRecord",
     "classifyAnchorTransition",
-    ...compactFields
+    ...compactFields,
+    ...scrollBatchFields
   ]) {
     assert.ok(html.includes(needle), `missing ${needle}`);
   }
@@ -164,6 +182,23 @@ test("P5-I collectors validate compact metrics and entry count semantics", () =>
     ]) {
       assert.ok(source.includes(needle), `missing ${needle}`);
     }
+  }
+});
+
+test("P5-I R0c collector validates scroll batching metrics", () => {
+  const source = read(r0CollectorPath);
+  for (const needle of [
+    ...scrollBatchMetricFields,
+    "max_scroll_batched_worker_roundtrip_ms",
+    "max_scroll_batched_worker_processing_ms",
+    "max_scroll_batched_roundtrip_minus_processing_ms",
+    "max_scroll_batched_main_commit_ms",
+    "max_scroll_batched_projection_payload_estimated_bytes",
+    "scroll_batch_modes",
+    "scroll_batch_mode must be old_and_tail_single_worker_message",
+    "scroll_batched_roundtrip_minus_processing_ms must be >= 0"
+  ]) {
+    assert.ok(source.includes(needle), `missing ${needle}`);
   }
 });
 

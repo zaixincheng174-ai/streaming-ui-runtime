@@ -284,6 +284,16 @@
         scroll_tail_worker_processing_ms: 0,
         scroll_tail_worker_projection_ms: 0,
         scroll_tail_main_commit_ms: 0,
+        scroll_batched_worker_roundtrip_ms: 0,
+        scroll_batched_worker_processing_ms: 0,
+        scroll_batched_worker_projection_ms: 0,
+        scroll_batched_roundtrip_minus_processing_ms: 0,
+        scroll_batched_projection_payload_estimated_bytes: 0,
+        scroll_batched_projection_payload_block_count: 0,
+        scroll_batched_main_commit_ms: 0,
+        scroll_batched_old_main_commit_ms: 0,
+        scroll_batched_tail_main_commit_ms: 0,
+        scroll_batch_mode: "old_and_tail_single_worker_message",
         max_phase_worker_roundtrip_ms: 0,
         max_phase_worker_processing_ms: 0,
         max_phase_worker_projection_ms: 0,
@@ -379,6 +389,9 @@
             }
             if (request.type === "send_click_proxy") {
               return runSendClickProxy();
+            }
+            if (request.type === "scroll_jump_return_batched") {
+              return runScrollJumpReturnBatched();
             }
             if (request.type === "request_projection") {
               return requestProjection(request.anchor_kind);
@@ -521,6 +534,57 @@
               worker_tail_mutation_ms: 0,
               worker_append_ms: 0,
               ...baseRuntimeMetrics(transaction)
+            };
+          }
+
+          function runScrollJumpReturnBatched() {
+            const startMs = performance.now();
+            const oldStartMs = performance.now();
+            const oldHistoryTransaction = createProjectedCommit("scroll_jump_return_batched", "old_history", "user-visible");
+            const oldHistoryProcessingMs = performance.now() - oldStartMs;
+            const tailStartMs = performance.now();
+            const tailTransaction = createProjectedCommit("scroll_jump_return_batched", "tail", "user-visible");
+            const tailProcessingMs = performance.now() - tailStartMs;
+            const oldHistoryProjectionMs = oldHistoryTransaction.projection
+              ? oldHistoryTransaction.projection.worker_projection_ms
+              : 0;
+            const tailProjectionMs = tailTransaction.projection
+              ? tailTransaction.projection.worker_projection_ms
+              : 0;
+            const oldHistoryPayloadBytes = oldHistoryTransaction.projection
+              ? oldHistoryTransaction.projection.projection_payload_estimated_bytes
+              : 0;
+            const tailPayloadBytes = tailTransaction.projection
+              ? tailTransaction.projection.projection_payload_estimated_bytes
+              : 0;
+            const oldHistoryPayloadBlocks = oldHistoryTransaction.projection
+              ? oldHistoryTransaction.projection.projection_payload_block_count
+              : 0;
+            const tailPayloadBlocks = tailTransaction.projection
+              ? tailTransaction.projection.projection_payload_block_count
+              : 0;
+            const workerProcessingMs = performance.now() - startMs;
+            return {
+              type: "scroll_jump_return_batched_result",
+              old_history_transaction: oldHistoryTransaction,
+              tail_transaction: tailTransaction,
+              transaction: tailTransaction,
+              ...baseRuntimeMetrics(tailTransaction),
+              worker_processing_ms: workerProcessingMs,
+              worker_active_context_traversal_ms: 0,
+              worker_tail_mutation_ms: 0,
+              worker_append_ms: 0,
+              worker_projection_ms: oldHistoryProjectionMs + tailProjectionMs,
+              scroll_old_worker_processing_ms: oldHistoryProcessingMs,
+              scroll_old_worker_projection_ms: oldHistoryProjectionMs,
+              scroll_tail_worker_processing_ms: tailProcessingMs,
+              scroll_tail_worker_projection_ms: tailProjectionMs,
+              scroll_batched_projection_payload_estimated_bytes: oldHistoryPayloadBytes + tailPayloadBytes,
+              scroll_batched_projection_payload_block_count: oldHistoryPayloadBlocks + tailPayloadBlocks,
+              scroll_batch_mode: "old_and_tail_single_worker_message",
+              projection_payload_block_count: oldHistoryPayloadBlocks + tailPayloadBlocks,
+              projection_payload_estimated_bytes: oldHistoryPayloadBytes + tailPayloadBytes,
+              projection_payload_estimate_mode: "synthetic_block_text_metadata_length"
             };
           }
 
@@ -944,29 +1008,42 @@
 
       async function runScrollJumpReturn() {
         const startMs = performance.now();
-        const oldHistoryResponse = await postRuntimeOp("request_projection", { anchor_kind: "old_history" });
-        applyWorkerMetrics(oldHistoryResponse, "scroll_old_history");
-        const oldCommitMs = commitProjectionTransaction(oldHistoryResponse.transaction, "old_history");
-        metrics.scroll_old_worker_roundtrip_ms = oldHistoryResponse.worker_roundtrip_ms || 0;
-        metrics.scroll_old_worker_processing_ms = oldHistoryResponse.worker_processing_ms || 0;
-        metrics.scroll_old_worker_projection_ms = oldHistoryResponse.worker_projection_ms || 0;
+        const response = await postRuntimeOp("scroll_jump_return_batched");
+        applyWorkerMetrics(response, "scroll_batched");
+        const oldCommitMs = commitProjectionTransaction(response.old_history_transaction, "old_history");
+        metrics.scroll_old_worker_roundtrip_ms = 0;
+        metrics.scroll_old_worker_processing_ms = response.scroll_old_worker_processing_ms || 0;
+        metrics.scroll_old_worker_projection_ms = response.scroll_old_worker_projection_ms || 0;
         metrics.scroll_old_worker_roundtrip_minus_processing_ms = roundtripMinusProcessing(
           metrics.scroll_old_worker_roundtrip_ms,
           metrics.scroll_old_worker_processing_ms
         );
         metrics.scroll_old_main_commit_ms = oldCommitMs;
         metrics.old_history_window_render_ms += oldCommitMs;
-        const tailResponse = await postRuntimeOp("request_projection", { anchor_kind: "tail" });
-        applyWorkerMetrics(tailResponse, "scroll_tail");
-        const tailCommitMs = commitProjectionTransaction(tailResponse.transaction, "tail");
-        metrics.scroll_tail_worker_roundtrip_ms = tailResponse.worker_roundtrip_ms || 0;
-        metrics.scroll_tail_worker_processing_ms = tailResponse.worker_processing_ms || 0;
-        metrics.scroll_tail_worker_projection_ms = tailResponse.worker_projection_ms || 0;
+        const tailCommitMs = commitProjectionTransaction(response.tail_transaction, "tail");
+        metrics.scroll_tail_worker_roundtrip_ms = 0;
+        metrics.scroll_tail_worker_processing_ms = response.scroll_tail_worker_processing_ms || 0;
+        metrics.scroll_tail_worker_projection_ms = response.scroll_tail_worker_projection_ms || 0;
         metrics.scroll_tail_worker_roundtrip_minus_processing_ms = roundtripMinusProcessing(
           metrics.scroll_tail_worker_roundtrip_ms,
           metrics.scroll_tail_worker_processing_ms
         );
         metrics.scroll_tail_main_commit_ms = tailCommitMs;
+        metrics.scroll_batched_worker_roundtrip_ms = response.worker_roundtrip_ms || 0;
+        metrics.scroll_batched_worker_processing_ms = response.worker_processing_ms || 0;
+        metrics.scroll_batched_worker_projection_ms = response.worker_projection_ms || 0;
+        metrics.scroll_batched_roundtrip_minus_processing_ms = roundtripMinusProcessing(
+          metrics.scroll_batched_worker_roundtrip_ms,
+          metrics.scroll_batched_worker_processing_ms
+        );
+        metrics.scroll_batched_projection_payload_estimated_bytes =
+          response.scroll_batched_projection_payload_estimated_bytes || 0;
+        metrics.scroll_batched_projection_payload_block_count =
+          response.scroll_batched_projection_payload_block_count || 0;
+        metrics.scroll_batched_old_main_commit_ms = oldCommitMs;
+        metrics.scroll_batched_tail_main_commit_ms = tailCommitMs;
+        metrics.scroll_batched_main_commit_ms = oldCommitMs + tailCommitMs;
+        metrics.scroll_batch_mode = response.scroll_batch_mode || "old_and_tail_single_worker_message";
         metrics.tail_window_render_ms += tailCommitMs;
         metrics.main_commit_ms += oldCommitMs + tailCommitMs;
         metrics.scroll_jump_return_ms = performance.now() - startMs;

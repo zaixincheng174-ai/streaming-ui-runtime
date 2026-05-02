@@ -117,13 +117,27 @@ const requiredCompactMetricFields = [
   "send_active_context_compact_scan_ms"
 ];
 
+const requiredScrollBatchMetricFields = [
+  "scroll_batched_worker_roundtrip_ms",
+  "scroll_batched_worker_processing_ms",
+  "scroll_batched_worker_projection_ms",
+  "scroll_batched_roundtrip_minus_processing_ms",
+  "scroll_batched_projection_payload_estimated_bytes",
+  "scroll_batched_projection_payload_block_count",
+  "scroll_batched_main_commit_ms",
+  "scroll_batched_old_main_commit_ms",
+  "scroll_batched_tail_main_commit_ms",
+  "scroll_batch_mode"
+];
+
 const requiredMetricFields = [
   ...requiredCommonMetricFields,
   ...requiredProjectionMetricFields,
   ...requiredR0MetricFields,
   ...requiredR0PhaseMetricFields,
   ...requiredConfoundMetricFields,
-  ...requiredCompactMetricFields
+  ...requiredCompactMetricFields,
+  ...requiredScrollBatchMetricFields
 ];
 
 const stringMetricFields = new Set([
@@ -136,7 +150,8 @@ const stringMetricFields = new Set([
   "projection_payload_estimate_mode",
   "active_context_scan_mode",
   "dynamic_active_context_update_mode",
-  "compact_checksum_mode"
+  "compact_checksum_mode",
+  "scroll_batch_mode"
 ]);
 
 const numericMetricFields = requiredMetricFields.filter((field) => !stringMetricFields.has(field));
@@ -217,8 +232,20 @@ async function main() {
       max_send_worker_roundtrip_minus_processing_ms: maxMetric(resultRows, "send_worker_roundtrip_minus_processing_ms"),
       max_send_main_commit_ms: maxMetric(resultRows, "send_main_commit_ms"),
       max_send_projection_payload_estimated_bytes: maxMetric(resultRows, "send_projection_payload_estimated_bytes"),
+      max_scroll_batched_worker_roundtrip_ms: maxMetric(resultRows, "scroll_batched_worker_roundtrip_ms"),
+      max_scroll_batched_worker_processing_ms: maxMetric(resultRows, "scroll_batched_worker_processing_ms"),
+      max_scroll_batched_roundtrip_minus_processing_ms: maxMetric(
+        resultRows,
+        "scroll_batched_roundtrip_minus_processing_ms"
+      ),
+      max_scroll_batched_main_commit_ms: maxMetric(resultRows, "scroll_batched_main_commit_ms"),
+      max_scroll_batched_projection_payload_estimated_bytes: maxMetric(
+        resultRows,
+        "scroll_batched_projection_payload_estimated_bytes"
+      ),
       active_context_scan_modes: uniqueStrings(resultRows, "active_context_scan_mode"),
       dynamic_active_context_update_modes: uniqueStrings(resultRows, "dynamic_active_context_update_mode"),
+      scroll_batch_modes: uniqueStrings(resultRows, "scroll_batch_mode"),
       scenario_ids: expectedScenarios.map((scenario) => scenario.scenario_id)
     }
   };
@@ -312,10 +339,16 @@ function validateManualRows(rows, expectedScenarios) {
     if (row.compact_checksum_mode !== "numeric_precomputed_weight") {
       throw new Error(`${row.scenario_id} compact_checksum_mode must be numeric_precomputed_weight`);
     }
+    if (row.scroll_batch_mode !== "old_and_tail_single_worker_message") {
+      throw new Error(`${row.scenario_id} scroll_batch_mode must be old_and_tail_single_worker_message`);
+    }
     for (const field of numericMetricFields) {
       if (!Number.isFinite(row[field])) {
         throw new Error(`${row.scenario_id} ${field} must be a finite number`);
       }
+    }
+    if (row.scroll_batched_roundtrip_minus_processing_ms < 0) {
+      throw new Error(`${row.scenario_id} scroll_batched_roundtrip_minus_processing_ms must be >= 0`);
     }
     const expectedVisited = scenario.active_context_window * scenario.send_click_repeat_count;
     if (row.send_active_context_entries_visited !== expectedVisited) {
