@@ -1,0 +1,151 @@
+{
+  "schema_version": "p5t.dynamic-update-concurrent-input-mechanism-summary.v0",
+  "generated_at": "2026-05-02T05:52:38Z",
+  "summary_type": "mechanism_aware_existing_results_only",
+  "source_results": {
+    "p5q_b2q": "bench/p5/results/p5q_b2c_dynamic_context_results.json",
+    "p5q_r0q": "bench/p5/results/p5q_r0c_dynamic_context_results.json",
+    "p5s_b2s": "bench/p5/results/p5s_b2c_concurrent_dynamic_context_results.json",
+    "p5s_r0s": "bench/p5/results/p5s_r0c_concurrent_dynamic_context_results.json",
+    "prior_summaries": [
+      "docs/p5/p5r-dynamic-active-context-mechanism-summary.md",
+      "docs/p5/p5p-send-start-commit-window-mechanism-summary.md"
+    ]
+  },
+  "metrics_by_phase": {
+    "p5q_cost_localization": {
+      "b2q": {
+        "max_dynamic_context_send_proxy_ms": 57.299999952316284,
+        "max_dynamic_active_context_update_ms": 28.5,
+        "max_dynamic_active_context_rebuild_ms": 28.5,
+        "max_send_active_context_entries_visited": 100000,
+        "max_active_context_update_count": 3,
+        "max_active_context_generation_count": 4,
+        "max_logical_block_count": 54096,
+        "max_expected_final_logical_block_count": 54096,
+        "max_rendered_dom_node_count": 5700,
+        "interpretation": "Dynamic active-context update is a material main-thread cost in B2q."
+      },
+      "r0q": {
+        "max_dynamic_context_send_proxy_ms": 54,
+        "max_dynamic_active_context_update_ms": 30.800000190734863,
+        "max_dynamic_active_context_rebuild_ms": 30.800000190734863,
+        "max_send_worker_dynamic_active_context_update_ms": 30.800000190734863,
+        "max_send_worker_processing_ms": 48.89999985694885,
+        "max_send_main_commit_ms": 4.599999904632568,
+        "max_send_active_context_entries_visited": 100000,
+        "max_active_context_update_count": 3,
+        "max_active_context_generation_count": 4,
+        "max_logical_block_count": 54096,
+        "max_expected_final_logical_block_count": 54096,
+        "max_rendered_dom_node_count": 5700,
+        "interpretation": "R0q moves dynamic active-context update into Worker and shows only a small total proxy advantage."
+      }
+    },
+    "p5s_input_availability_during_update": {
+      "b2s": {
+        "max_dynamic_update_input_delay_ms": 35.200000047683716,
+        "max_concurrent_dynamic_context_send_proxy_ms": 99.89999985694885,
+        "max_dynamic_update_typing_proxy_ms": 0.20000004768371582,
+        "max_dynamic_update_send_work_ms": 58.299999952316284,
+        "max_dynamic_active_context_update_ms": 45.700000047683716,
+        "max_dynamic_active_context_rebuild_ms": 45.700000047683716,
+        "max_send_active_context_entries_visited": 100000,
+        "max_active_context_update_count": 3,
+        "max_active_context_generation_count": 4,
+        "max_logical_block_count": 54096,
+        "max_expected_final_logical_block_count": 54096,
+        "max_rendered_dom_node_count": 5700,
+        "interpretation": "B2s delays the synthetic input task while dynamic active-context update runs on the main thread."
+      },
+      "r0s": {
+        "max_dynamic_update_input_delay_ms": 0.10000014305114746,
+        "max_concurrent_dynamic_context_send_proxy_ms": 54.90000009536743,
+        "max_dynamic_update_typing_proxy_ms": 0.20000004768371582,
+        "max_dynamic_update_send_work_ms": 54.09999990463257,
+        "max_dynamic_active_context_update_ms": 31.100000143051147,
+        "max_dynamic_active_context_rebuild_ms": 31.100000143051147,
+        "max_concurrent_worker_dynamic_context_processing_ms": 49.59999990463257,
+        "max_concurrent_worker_roundtrip_minus_processing_ms": 0.9000000953674316,
+        "max_concurrent_main_commit_ms": 4.5,
+        "max_send_worker_dynamic_active_context_update_ms": 31.100000143051147,
+        "max_send_main_commit_ms": 4.5,
+        "max_send_active_context_entries_visited": 100000,
+        "max_active_context_update_count": 3,
+        "max_active_context_generation_count": 4,
+        "max_logical_block_count": 54096,
+        "max_expected_final_logical_block_count": 54096,
+        "max_rendered_dom_node_count": 5700,
+        "interpretation": "R0s keeps the synthetic input task near the timing floor while Worker-side dynamic update runs, with bounded main commit still present afterward."
+      }
+    }
+  },
+  "mechanism_interpretation": {
+    "primary_claim": "P5-Q shows that rolling-tail dynamic active-context maintenance is a material workload cost in both B2 and R0. R0 does not eliminate this cost; it moves it into Worker. P5-S then shows that, when dynamic-update work is in flight, B2s delays the synthetic input task because the update runs on the main thread, while R0s lets the synthetic input task start near the timing floor because the dynamic update runs in Worker. The architectural signal is input-path isolation during dynamic update, not raw update-cost elimination.",
+    "two_step_mechanism": [
+      {
+        "step": "P5-Q cost localization",
+        "finding": "Dynamic active-context rebuild/update is material in both systems.",
+        "mechanism": "B2q performs update on main thread; R0q performs update in Worker.",
+        "implication": "P5-Q identifies the dynamic-update cost but does not by itself prove input responsiveness advantage."
+      },
+      {
+        "step": "P5-S input availability during update",
+        "finding": "B2s input delay rises during main-thread update, while R0s input delay stays near timing floor during Worker update.",
+        "mechanism": "Ownership of dynamic-update work changes the main-thread scheduling path.",
+        "implication": "P5-S shows the scheduling effect of where the dynamic-update cost lives."
+      }
+    ]
+  },
+  "fairness_invariants": {
+    "same_p5d_matrix": true,
+    "active_context_scan_mode": "compact_checksum_index",
+    "dynamic_active_context_update_mode": "rolling_tail_window_after_append",
+    "max_send_active_context_entries_visited": 100000,
+    "max_active_context_update_count": 3,
+    "max_active_context_generation_count": 4,
+    "max_logical_block_count": 54096,
+    "max_expected_final_logical_block_count": 54096,
+    "max_rendered_dom_node_count": 5700,
+    "implementation_difference": "B2 and R0 intentionally differ in ownership of dynamic active-context work."
+  },
+  "caveats": [
+    "setTimeout-based synthetic task only",
+    "not keyboard or pointer event evidence",
+    "not browser Event Timing",
+    "not browser-level INP",
+    "not input-to-pixel latency",
+    "P5-S schedules input immediately around the dynamic-update phase and does not measure random lifecycle arrival",
+    "R0s input delay does not prove commit-window input availability; commit window was separately addressed by P5-O",
+    "R0s does not eliminate all main-thread blocking",
+    "R0q and R0s do not eliminate dynamic-update CPU cost",
+    "raw algorithmic optimizations must be paired if introduced later"
+  ],
+  "optimization_implications": {
+    "shared_algorithmic_optimizations": [
+      "ring-buffer rolling context",
+      "incremental compact-index update",
+      "dirty-range update",
+      "segmented active-context index",
+      "chunk aggregate summaries"
+    ],
+    "architecture_specific_r0_directions": [
+      "worker-side dynamic context maintenance",
+      "transaction scheduling",
+      "chunked/yieldable Worker update",
+      "double-buffer active-context snapshots",
+      "bounded / incremental main-thread commit"
+    ],
+    "interpretation": "P5-S supports R0's architectural direction because it isolates dynamic-update cost from the main-thread input path. It does not prove the update algorithm itself is optimal."
+  },
+  "final_classification": {
+    "p5_status": "dynamic_update_input_scheduling_story_complete",
+    "primary_mechanism": "move_dynamic_update_off_main_thread_to_preserve_input_path",
+    "b2_status": "main_thread_dynamic_update_blocks_synthetic_input",
+    "r0_status": "worker_dynamic_update_keeps_main_input_near_floor_during_update",
+    "dynamic_update_cost_status": "material_but_not_eliminated",
+    "proxy_status": "internal_setTimeout_scheduling_delay_not_INP",
+    "p4_status": "not_authorized",
+    "recommended_next": "multistream_agent_trace_workload_before_p4"
+  }
+}

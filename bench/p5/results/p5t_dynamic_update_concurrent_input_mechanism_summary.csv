@@ -1,0 +1,5 @@
+phase,variant,input_delay_ms,total_proxy_ms,dynamic_update_ms,worker_processing_ms,main_commit_ms,entries_visited,logical_block_count,rendered_dom_node_count,interpretation
+p5q_cost_localization,B2q,,57.299999952316284,28.5,,,100000,54096,5700,"Dynamic update is material on the main thread; P5-Q alone does not measure input availability."
+p5q_cost_localization,R0q,,54,30.800000190734863,48.89999985694885,4.599999904632568,100000,54096,5700,"Dynamic update is material in Worker; total proxy advantage is small and not raw dominance."
+p5s_input_availability,B2s,35.200000047683716,99.89999985694885,45.700000047683716,,,100000,54096,5700,"Synthetic input is delayed while dynamic update runs on the main thread."
+p5s_input_availability,R0s,0.10000014305114746,54.90000009536743,31.100000143051147,49.59999990463257,4.5,100000,54096,5700,"Synthetic input starts near timing floor while Worker-side dynamic update runs; bounded commit remains."
