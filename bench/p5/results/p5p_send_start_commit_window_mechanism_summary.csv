@@ -1,0 +1,5 @@
+phase,variant,input_delay_ms,send_work_ms,main_commit_ms,total_proxy_ms,worker_processing_ms,interpretation
+send_start,B2m,16.0,15.9,,16.2,,input task blocked by main-thread send work
+send_start,R0m,0.1,11.2,4.7,11.3,5.5,input task starts near timing floor during worker-side send compute
+commit_window,B2o,28.1,17.1,10.5,63.6,,commit-window scheduling-delay proxy; not pure commit cost
+commit_window,R0o,4.7,9.2,4.7,9.5,4.6,input task delay tracks bounded main commit window

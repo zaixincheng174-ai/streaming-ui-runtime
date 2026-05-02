@@ -1,0 +1,102 @@
+{
+  "schema_version": "p5p.send-start-commit-window-mechanism-summary.v0",
+  "generated_at": "2026-05-02T00:00:00.000Z",
+  "source_results": {
+    "p5m_b2m_send_start": "bench/p5/results/p5m_b2c_concurrent_input_results.json",
+    "p5m_r0m_send_start": "bench/p5/results/p5m_r0c_concurrent_input_results.json",
+    "p5o_b2o_commit_window": "bench/p5/results/p5o_b2c_commit_window_input_results.json",
+    "p5o_r0o_commit_window": "bench/p5/results/p5o_r0c_commit_window_input_results.json",
+    "prior_summary": "docs/p5/p5n-concurrent-input-mechanism-summary.md"
+  },
+  "metrics_by_phase": {
+    "send_start": {
+      "b2m": {
+        "max_concurrent_input_delay_ms": 16.0,
+        "max_concurrent_send_work_ms": 15.9,
+        "max_concurrent_input_during_send_proxy_ms": 16.2,
+        "max_rendered_dom_node_count": 5700,
+        "max_logical_block_count": 54096,
+        "max_send_active_context_entries_visited": 100000
+      },
+      "r0m": {
+        "max_concurrent_input_delay_ms": 0.1,
+        "max_concurrent_send_work_ms": 11.2,
+        "max_concurrent_input_during_send_proxy_ms": 11.3,
+        "max_concurrent_worker_send_processing_ms": 5.5,
+        "max_concurrent_worker_roundtrip_minus_processing_ms": 1.4,
+        "max_concurrent_main_commit_ms": 4.7,
+        "max_rendered_dom_node_count": 5700,
+        "max_logical_block_count": 54096,
+        "max_send_active_context_entries_visited": 100000
+      },
+      "interpretation": "B2m input delay tracks synchronous main-thread send work; R0m input starts near the timer floor while worker-side send computation is in flight."
+    },
+    "commit_window": {
+      "b2o": {
+        "max_commit_window_input_delay_ms": 28.1,
+        "max_commit_window_main_commit_ms": 10.5,
+        "max_commit_window_send_work_ms": 17.1,
+        "max_commit_window_total_proxy_ms": 63.6,
+        "max_rendered_dom_node_count": 5700,
+        "max_logical_block_count": 54096,
+        "max_send_active_context_entries_visited": 100000
+      },
+      "r0o": {
+        "max_commit_window_input_delay_ms": 4.7,
+        "max_commit_window_main_commit_ms": 4.7,
+        "max_commit_window_send_work_ms": 9.2,
+        "max_commit_window_total_proxy_ms": 9.5,
+        "max_commit_window_worker_send_processing_ms": 4.6,
+        "max_commit_window_worker_roundtrip_minus_processing_ms": 0.5,
+        "max_rendered_dom_node_count": 5700,
+        "max_logical_block_count": 54096,
+        "max_send_active_context_entries_visited": 100000
+      },
+      "interpretation": "R0o commit-window input delay tracks the bounded main commit; B2o commit-window delay is a scheduling-delay proxy and not pure commit cost."
+    }
+  },
+  "two_phase_model": [
+    {
+      "phase": "send-start / worker-compute phase",
+      "b2_behavior": "B2 keeps compact active-context scan, tail mutation, append stream, and bounded DOM update on the main thread.",
+      "r0_behavior": "R0 dispatches compact active-context scan, tail mutation, append stream, and projection construction to the Worker before bounded main-thread commit.",
+      "measured_proxy": "P5-M setTimeout-based synthetic input task scheduled at send start."
+    },
+    {
+      "phase": "commit-window phase",
+      "b2_behavior": "B2 schedules the synthetic task immediately before bounded renderWindow commit during the main-thread send path.",
+      "r0_behavior": "R0 schedules the synthetic task immediately before bounded projection commit after Worker send completion.",
+      "measured_proxy": "P5-O setTimeout-based synthetic input task scheduled immediately before the known commit/render window."
+    }
+  ],
+  "fairness_invariants": {
+    "same_p5d_matrix": true,
+    "active_context_scan_mode": "compact_checksum_index",
+    "dynamic_active_context_update_mode": "static_initial_active_context",
+    "max_send_active_context_entries_visited": 100000,
+    "max_rendered_dom_node_count": 5700,
+    "max_logical_block_count": 54096,
+    "intentional_difference": "B2 and R0 intentionally differ in ownership of logical send work."
+  },
+  "caveats": [
+    "setTimeout-based synthetic task only",
+    "not keyboard or pointer event evidence",
+    "not browser Event Timing",
+    "not browser-level INP",
+    "not input-to-pixel latency",
+    "send-start proxy is favorable for R0 and blocking for B2 by construction",
+    "commit-window proxy tests one specific arrival phase, not random lifecycle average",
+    "B2o 28.1ms is not pure commit cost",
+    "R0 does not eliminate all main-thread blocking"
+  ],
+  "final_classification": {
+    "p5_status": "send_start_and_commit_window_scheduling_story_complete",
+    "primary_mechanism": "offload_logical_send_work_and_bound_main_commit_window",
+    "b2_status": "main_thread_send_path_blocks_synthetic_input",
+    "r0_status": "worker_send_keeps_main_available_until_bounded_commit",
+    "commit_window_status": "bounded_but_not_eliminated",
+    "proxy_status": "internal_setTimeout_scheduling_delay_not_INP",
+    "p4_status": "not_authorized",
+    "recommended_next": "dynamic_active_context_or_multistream_workload_before_p4"
+  }
+}
