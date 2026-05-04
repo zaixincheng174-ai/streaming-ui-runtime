@@ -15,6 +15,10 @@ Use this map before quoting old documents. The current public claim boundary is 
 | `docs/portfolio/document-status-map.md` | current document-status map | Distinguishes current docs from historical drafts and triage notes. | yes | Use before quoting older files. |
 | `docs/portfolio/evidence-map.md` | current evidence map | Maps portfolio claims to evidence and boundaries. | yes | Use for claim-to-artifact checks. |
 | `docs/portfolio/privacy-and-data.md` | current privacy boundary | Public-release data and trace hygiene policy. | yes | Explains raw/private artifact exclusions. |
+| `docs/portfolio/one-pager.md` | current portfolio explanation | One-page project summary and claim boundary. | yes | Explanation only; not new evidence. |
+| `docs/portfolio/interview-pitch.md` | current portfolio explanation | Interview-ready project pitch and Q&A. | yes | Explanation only; not new evidence. |
+| `docs/portfolio/walkthrough-script.md` | current portfolio explanation | 90-second and 3-minute walkthrough script. | yes | Explanation only; not new evidence. |
+| `docs/portfolio/architecture-diagram.md` | current portfolio explanation | Conceptual diagrams for ownership paths and evidence chain. | yes | Not production implementation diagrams. |
 | `docs/paper/streaming-ui-runtime-related-work-v0.md` | current related-systems positioning | Positions the project against DOM/VDOM, virtualization, editors, terminals, Workers, OffscreenCanvas, WebGPU, and agent traces. | yes | Not a final bibliography-complete related work section. |
 | `docs/paper/streaming-ui-runtime-short-paper-draft-v0.md` | current short paper draft | Main paper-style project argument. | yes | Current v0 draft; not a production-system claim. |
 | `docs/paper/appendix/p5-scheduling-evidence-appendix.md` | current appendix | Paper appendix for P5 scheduling evidence. | yes | Synthetic scheduling-delay proxy only. |
@@ -98,5 +102,6 @@ Must not claim:
 Reader shortcuts:
 
 - **Recruiters:** README, portfolio overview, and evidence map.
-- **Engineers:** evidence map, related systems positioning, and short paper draft.
+- **Engineers:** evidence map, architecture diagrams, related systems positioning, and short paper draft.
 - **Reviewers:** short paper draft, P5 appendix, P5 final reviewer packet, and P5 adversarial audit.
+- **Interview prep:** one-pager, interview pitch, and walkthrough script.

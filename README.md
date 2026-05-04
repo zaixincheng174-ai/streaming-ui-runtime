@@ -192,6 +192,10 @@ Public-facing documentation has been added, and raw product-derived trace CSVs a
 - [Portfolio overview](docs/portfolio/README.md)
 - [Document status map](docs/portfolio/document-status-map.md)
 - [Evidence map](docs/portfolio/evidence-map.md)
+- [One-pager](docs/portfolio/one-pager.md)
+- [Interview pitch](docs/portfolio/interview-pitch.md)
+- [Walkthrough script](docs/portfolio/walkthrough-script.md)
+- [Architecture diagrams](docs/portfolio/architecture-diagram.md)
 - [Results summary](docs/portfolio/results-summary.md)
 - [Privacy and data boundary](docs/portfolio/privacy-and-data.md)
 

@@ -135,6 +135,15 @@ Reader shortcuts:
 - **Engineers:** use the evidence map, related systems positioning, and runtime source layout.
 - **Reviewers:** use the short paper, P5 appendix, final P5 packet, and adversarial audit.
 
+## Tangibility Pack
+
+Use these short docs when a reader needs the project translated quickly:
+
+- [One-pager](one-pager.md): concise project summary and claim boundary.
+- [Interview pitch](interview-pitch.md): 30-second, 60-second, and 3-minute explanations.
+- [Walkthrough script](walkthrough-script.md): spoken walkthrough for portfolio or interview use.
+- [Architecture diagrams](architecture-diagram.md): conceptual diagrams for DOM ownership, Worker direction, and evidence chain.
+
 ## P5 Scheduling Evidence
 
 P5 freezes the current scheduling-mechanism evidence for long-lived AI surfaces. The strongest current signal is P5-X product-trace-shaped synthetic scheduling-delay proxy: B2x `176.1ms` vs R0x `0.1ms` under equal trace/logical invariants.
