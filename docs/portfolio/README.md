@@ -143,6 +143,7 @@ Use these short docs when a reader needs the project translated quickly:
 - [Interview pitch](interview-pitch.md): 30-second, 60-second, and 3-minute explanations.
 - [Walkthrough script](walkthrough-script.md): spoken walkthrough for portfolio or interview use.
 - [Architecture diagrams](architecture-diagram.md): conceptual diagrams for DOM ownership, Worker direction, and evidence chain.
+- [Benchmark suite mini spec](benchmark-suite-spec.md): future-direction planning for a possible Long-Lived AI Surface Benchmark Suite.
 
 ## P5 Scheduling Evidence
 

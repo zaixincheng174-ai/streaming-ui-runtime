@@ -19,6 +19,7 @@ Use this map before quoting old documents. The current public claim boundary is 
 | `docs/portfolio/interview-pitch.md` | current portfolio explanation | Interview-ready project pitch and Q&A. | yes | Explanation only; not new evidence. |
 | `docs/portfolio/walkthrough-script.md` | current portfolio explanation | 90-second and 3-minute walkthrough script. | yes | Explanation only; not new evidence. |
 | `docs/portfolio/architecture-diagram.md` | current portfolio explanation | Conceptual diagrams for ownership paths and evidence chain. | yes | Not production implementation diagrams. |
+| `docs/portfolio/benchmark-suite-spec.md` | future-direction planning | Mini spec for a possible Long-Lived AI Surface Benchmark Suite. | yes | Planning only; benchmark suite is not implemented. |
 | `docs/paper/streaming-ui-runtime-related-work-v0.md` | current related-systems positioning | Positions the project against DOM/VDOM, virtualization, editors, terminals, Workers, OffscreenCanvas, WebGPU, and agent traces. | yes | Not a final bibliography-complete related work section. |
 | `docs/paper/streaming-ui-runtime-short-paper-draft-v0.md` | current short paper draft | Main paper-style project argument. | yes | Current v0 draft; not a production-system claim. |
 | `docs/paper/appendix/p5-scheduling-evidence-appendix.md` | current appendix | Paper appendix for P5 scheduling evidence. | yes | Synthetic scheduling-delay proxy only. |

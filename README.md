@@ -196,6 +196,7 @@ Public-facing documentation has been added, and raw product-derived trace CSVs a
 - [Interview pitch](docs/portfolio/interview-pitch.md)
 - [Walkthrough script](docs/portfolio/walkthrough-script.md)
 - [Architecture diagrams](docs/portfolio/architecture-diagram.md)
+- [Benchmark suite mini spec](docs/portfolio/benchmark-suite-spec.md)
 - [Results summary](docs/portfolio/results-summary.md)
 - [Privacy and data boundary](docs/portfolio/privacy-and-data.md)
 
