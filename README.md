@@ -148,6 +148,12 @@ Serve the controlled P0 target:
 node scripts/p0/serve_controlled_target.mjs --host 127.0.0.1 --port 4317 --default-level L1
 ```
 
+Open the default controlled surface:
+
+```text
+http://127.0.0.1:4317/controlled_append_surface.html?level=L1
+```
+
 Inspect capture CLI usage:
 
 ```bash
@@ -195,6 +201,7 @@ Public-facing documentation has been added, and raw product-derived trace CSVs a
 - [One-pager](docs/portfolio/one-pager.md)
 - [Interview pitch](docs/portfolio/interview-pitch.md)
 - [Walkthrough script](docs/portfolio/walkthrough-script.md)
+- [Application and outreach pack](docs/portfolio/application-outreach-pack.md)
 - [Architecture diagrams](docs/portfolio/architecture-diagram.md)
 - [Benchmark suite mini spec](docs/portfolio/benchmark-suite-spec.md)
 - [Results summary](docs/portfolio/results-summary.md)

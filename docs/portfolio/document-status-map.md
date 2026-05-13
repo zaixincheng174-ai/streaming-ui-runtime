@@ -18,6 +18,7 @@ Use this map before quoting old documents. The current public claim boundary is 
 | `docs/portfolio/one-pager.md` | current portfolio explanation | One-page project summary and claim boundary. | yes | Explanation only; not new evidence. |
 | `docs/portfolio/interview-pitch.md` | current portfolio explanation | Interview-ready project pitch and Q&A. | yes | Explanation only; not new evidence. |
 | `docs/portfolio/walkthrough-script.md` | current portfolio explanation | 90-second and 3-minute walkthrough script. | yes | Explanation only; not new evidence. |
+| `docs/portfolio/application-outreach-pack.md` | current application material | Resume bullets, profile blurbs, outreach notes, and demo path. | yes | Reusable application material only; not new evidence. |
 | `docs/portfolio/architecture-diagram.md` | current portfolio explanation | Conceptual diagrams for ownership paths and evidence chain. | yes | Not production implementation diagrams. |
 | `docs/portfolio/benchmark-suite-spec.md` | future-direction planning | Mini spec for a possible Long-Lived AI Surface Benchmark Suite. | yes | Planning only; benchmark suite is not implemented. |
 | `docs/paper/streaming-ui-runtime-related-work-v0.md` | current related-systems positioning | Positions the project against DOM/VDOM, virtualization, editors, terminals, Workers, OffscreenCanvas, WebGPU, and agent traces. | yes | Not a final bibliography-complete related work section. |
@@ -105,4 +106,4 @@ Reader shortcuts:
 - **Recruiters:** README, portfolio overview, and evidence map.
 - **Engineers:** evidence map, architecture diagrams, related systems positioning, and short paper draft.
 - **Reviewers:** short paper draft, P5 appendix, P5 final reviewer packet, and P5 adversarial audit.
-- **Interview prep:** one-pager, interview pitch, and walkthrough script.
+- **Applications/outreach:** application outreach pack, one-pager, interview pitch, and walkthrough script.

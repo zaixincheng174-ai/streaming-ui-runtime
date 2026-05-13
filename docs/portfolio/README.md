@@ -142,6 +142,7 @@ Use these short docs when a reader needs the project translated quickly:
 - [One-pager](one-pager.md): concise project summary and claim boundary.
 - [Interview pitch](interview-pitch.md): 30-second, 60-second, and 3-minute explanations.
 - [Walkthrough script](walkthrough-script.md): spoken walkthrough for portfolio or interview use.
+- [Application and outreach pack](application-outreach-pack.md): reusable resume bullets, profile blurbs, outreach notes, and demo path.
 - [Architecture diagrams](architecture-diagram.md): conceptual diagrams for DOM ownership, Worker direction, and evidence chain.
 - [Benchmark suite mini spec](benchmark-suite-spec.md): future-direction planning for a possible Long-Lived AI Surface Benchmark Suite.
 
@@ -183,8 +184,10 @@ node scripts/p0/serve_controlled_target.mjs --host 127.0.0.1 --port 4317 --defau
 Open:
 
 ```text
-http://127.0.0.1:4317/
+http://127.0.0.1:4317/controlled_append_surface.html?level=L1
 ```
+
+The root URL `http://127.0.0.1:4317/` is also supported as a browser-friendly redirect alias.
 
 Inspect capture usage:
 
