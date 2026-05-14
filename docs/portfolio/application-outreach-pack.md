@@ -94,6 +94,20 @@ http://127.0.0.1:4317/controlled_append_surface.html?level=L1
 
 The root URL `http://127.0.0.1:4317/` is also supported as a browser-friendly redirect alias.
 
+### Local Streaming Markdown Stability Demo
+
+```bash
+node scripts/p1/serve_p1_streaming_baselines.mjs --host 127.0.0.1 --port 4319
+```
+
+Open:
+
+```text
+http://127.0.0.1:4319/p1_streaming_markdown_stability_demo.html
+```
+
+Use this only as a deterministic browser demo of completed-block stability versus tail mutation. It is not a production Markdown library, not a provider integration, not browser-level INP, and does not compare against external Markdown libraries.
+
 Useful command references:
 
 ```bash

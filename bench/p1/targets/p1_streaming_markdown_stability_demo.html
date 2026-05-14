@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="data:,">
+    <title>P1 Streaming Markdown Stability Demo</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        line-height: 1.45;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background: #f6f7f2;
+        color: #151713;
+      }
+
+      body {
+        display: grid;
+        grid-template-rows: auto auto 1fr;
+      }
+
+      header {
+        padding: 14px 18px 12px;
+        border-bottom: 1px solid #d8ddd0;
+        background: #f6f7f2;
+      }
+
+      h1 {
+        margin: 0 0 6px;
+        font-size: 19px;
+        line-height: 1.25;
+      }
+
+      .boundary {
+        margin: 0;
+        max-width: 980px;
+        color: #4b5745;
+        font-size: 13px;
+      }
+
+      #controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        padding: 10px 18px;
+        border-bottom: 1px solid #d8ddd0;
+        background: #ffffff;
+      }
+
+      button {
+        min-height: 32px;
+        border: 1px solid #aeb9a6;
+        border-radius: 6px;
+        background: #f9faf6;
+        color: #182016;
+        font: inherit;
+        font-size: 13px;
+        cursor: pointer;
+      }
+
+      button.fixture-button {
+        padding: 0 10px;
+      }
+
+      button.action-button {
+        padding: 0 12px;
+        border-color: #263021;
+        background: #263021;
+        color: #ffffff;
+      }
+
+      button[aria-pressed="true"] {
+        border-color: #265f50;
+        background: #e3f1eb;
+      }
+
+      #status-line {
+        margin-left: auto;
+        font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        color: #52604c;
+      }
+
+      main {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        min-height: 0;
+      }
+
+      .renderer-pane {
+        min-width: 0;
+        display: grid;
+        grid-template-rows: auto auto 1fr;
+        border-right: 1px solid #d8ddd0;
+        background: #ffffff;
+      }
+
+      .renderer-pane:last-child {
+        border-right: 0;
+      }
+
+      .pane-heading {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: baseline;
+        padding: 12px 14px;
+        border-bottom: 1px solid #edf0e8;
+      }
+
+      .pane-heading h2 {
+        margin: 0;
+        font-size: 15px;
+      }
+
+      .mode-id {
+        color: #5c6856;
+        font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      }
+
+      .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1px;
+        border-bottom: 1px solid #edf0e8;
+        background: #edf0e8;
+      }
+
+      .metric {
+        display: grid;
+        gap: 2px;
+        min-width: 0;
+        padding: 8px 10px;
+        background: #fbfcf8;
+      }
+
+      .metric-name {
+        color: #62705c;
+        font-size: 11px;
+      }
+
+      .metric-value {
+        color: #11170f;
+        font: 13px/1.35 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .render-output {
+        min-height: 0;
+        overflow: auto;
+        padding: 16px 18px 42px;
+      }
+
+      .render-output h1,
+      .render-output h2,
+      .render-output h3 {
+        margin: 0 0 10px;
+        line-height: 1.25;
+      }
+
+      .render-output p {
+        margin: 0 0 12px;
+      }
+
+      .render-output ul {
+        margin: 0 0 12px 20px;
+        padding: 0;
+      }
+
+      .render-output table {
+        width: 100%;
+        margin: 0 0 14px;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+
+      .render-output th,
+      .render-output td {
+        padding: 6px 7px;
+        border: 1px solid #cfd7c8;
+        text-align: left;
+      }
+
+      .render-output th {
+        background: #eef4e9;
+      }
+
+      pre {
+        margin: 0 0 14px;
+        overflow: auto;
+        border: 1px solid #d0d9c9;
+        border-radius: 6px;
+        background: #172019;
+        color: #edf7ed;
+      }
+
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      }
+
+      pre code {
+        display: block;
+        padding: 10px 12px;
+        white-space: pre;
+      }
+
+      .math-inline {
+        padding: 1px 4px;
+        border-radius: 4px;
+        background: #edf3f6;
+        color: #243b53;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      }
+
+      .math-block {
+        background: #f1f6fa;
+        color: #243b53;
+      }
+
+      .tail-block {
+        outline: 2px solid #d8a31a;
+        outline-offset: 3px;
+      }
+
+      @media (max-width: 880px) {
+        main {
+          grid-template-columns: 1fr;
+        }
+
+        .renderer-pane {
+          min-height: 520px;
+          border-right: 0;
+          border-bottom: 1px solid #d8ddd0;
+        }
+      }
+    </style>
+  </head>
+  <body data-demo-id="P1_STREAMING_MARKDOWN_STABILITY_DEMO">
+    <header>
+      <h1>P1 Streaming Markdown Stability Demo</h1>
+      <p class="boundary">
+        Controlled browser demo comparing full accumulated-source reparse with a stable completed-block plus mutable-tail strategy for simulated AI token streams. This is not a Markdown library, provider integration, or production UI surface.
+      </p>
+    </header>
+
+    <nav id="controls" aria-label="Demo controls">
+      <button id="restart-button" class="action-button" type="button">Restart</button>
+      <span id="fixture-buttons" role="group" aria-label="Fixture"></span>
+      <span id="status-line">demo_state=initializing</span>
+    </nav>
+
+    <main>
+      <section class="renderer-pane" aria-label="Naive full-reparse renderer">
+        <div class="pane-heading">
+          <h2>Naive full reparse</h2>
+          <span class="mode-id">mode=naive-full-reparse</span>
+        </div>
+        <div class="metrics-grid" aria-label="Naive metrics">
+          <div class="metric"><span class="metric-name">render count</span><span id="naive-render-count" class="metric-value">0</span></div>
+          <div class="metric"><span class="metric-name">completed-block re-render count</span><span id="naive-completed-block-rerender-count" class="metric-value">0</span></div>
+          <div class="metric"><span class="metric-name">approximate node churn</span><span id="naive-approximate-node-churn" class="metric-value">0</span></div>
+          <div class="metric"><span class="metric-name">avg / max update ms</span><span id="naive-update-time" class="metric-value">0 / 0</span></div>
+        </div>
+        <div id="naive-output" class="render-output"></div>
+      </section>
+
+      <section class="renderer-pane" aria-label="Stable tail-block renderer">
+        <div class="pane-heading">
+          <h2>Stable tail block</h2>
+          <span class="mode-id">mode=stable-tail-block</span>
+        </div>
+        <div class="metrics-grid" aria-label="Stable metrics">
+          <div class="metric"><span class="metric-name">render count</span><span id="stable-render-count" class="metric-value">0</span></div>
+          <div class="metric"><span class="metric-name">completed-block re-render count</span><span id="stable-completed-block-rerender-count" class="metric-value">0</span></div>
+          <div class="metric"><span class="metric-name">approximate node churn</span><span id="stable-approximate-node-churn" class="metric-value">0</span></div>
+          <div class="metric"><span class="metric-name">avg / max update ms</span><span id="stable-update-time" class="metric-value">0 / 0</span></div>
+        </div>
+        <div id="stable-output" class="render-output"></div>
+      </section>
+    </main>
+
+    <script type="module">
+      import {
+        DEMO_ID,
+        FIXTURES,
+        RENDER_MODES,
+        applyChunkToRun,
+        createRenderRun
+      } from "/p1_streaming_markdown_stability_core.mjs";
+
+      const CHUNK_INTERVAL_MS = 360;
+      const state = {
+        activeFixtureIndex: 0,
+        chunkIndex: -1,
+        timer: null,
+        naiveRun: null,
+        stableRun: null,
+        stableCommittedKeys: new Set(),
+        stableCommittedMount: document.createElement("div"),
+        stableTailMount: document.createElement("div")
+      };
+
+      const nodes = {
+        fixtureButtons: document.getElementById("fixture-buttons"),
+        restartButton: document.getElementById("restart-button"),
+        statusLine: document.getElementById("status-line"),
+        naiveOutput: document.getElementById("naive-output"),
+        stableOutput: document.getElementById("stable-output"),
+        naiveRenderCount: document.getElementById("naive-render-count"),
+        naiveCompletedBlockRerenderCount: document.getElementById("naive-completed-block-rerender-count"),
+        naiveApproximateNodeChurn: document.getElementById("naive-approximate-node-churn"),
+        naiveUpdateTime: document.getElementById("naive-update-time"),
+        stableRenderCount: document.getElementById("stable-render-count"),
+        stableCompletedBlockRerenderCount: document.getElementById("stable-completed-block-rerender-count"),
+        stableApproximateNodeChurn: document.getElementById("stable-approximate-node-churn"),
+        stableUpdateTime: document.getElementById("stable-update-time")
+      };
+
+      function setupFixtureButtons() {
+        nodes.fixtureButtons.replaceChildren();
+        for (let index = 0; index < FIXTURES.length; index += 1) {
+          const fixture = FIXTURES[index];
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "fixture-button";
+          button.textContent = fixture.label;
+          button.setAttribute("aria-pressed", String(index === state.activeFixtureIndex));
+          button.addEventListener("click", () => {
+            state.activeFixtureIndex = index;
+            restart();
+          });
+          nodes.fixtureButtons.appendChild(button);
+        }
+      }
+
+      function restart() {
+        if (state.timer) {
+          clearTimeout(state.timer);
+        }
+
+        const fixture = FIXTURES[state.activeFixtureIndex];
+        state.chunkIndex = -1;
+        state.naiveRun = createRenderRun(RENDER_MODES.naive, fixture.id);
+        state.stableRun = createRenderRun(RENDER_MODES.stable, fixture.id);
+        state.stableCommittedKeys = new Set();
+        state.stableCommittedMount = document.createElement("div");
+        state.stableTailMount = document.createElement("div");
+        nodes.naiveOutput.replaceChildren();
+        nodes.stableOutput.replaceChildren(state.stableCommittedMount, state.stableTailMount);
+        updateFixturePressedState();
+        updateStatus("streaming");
+        paintMetrics();
+        state.timer = setTimeout(step, 120);
+      }
+
+      function step() {
+        const fixture = FIXTURES[state.activeFixtureIndex];
+        state.chunkIndex += 1;
+        if (state.chunkIndex >= fixture.chunks.length) {
+          updateStatus("complete");
+          state.timer = null;
+          publishSummary();
+          return;
+        }
+
+        const isFinal = state.chunkIndex === fixture.chunks.length - 1;
+        const chunk = fixture.chunks[state.chunkIndex];
+        const naiveResult = applyChunkToRun(state.naiveRun, chunk, { isFinal });
+        const stableResult = applyChunkToRun(state.stableRun, chunk, { isFinal });
+
+        paintNaive(naiveResult.blocks);
+        paintStable(stableResult.blocks);
+        paintMetrics();
+        publishSummary();
+        updateStatus(isFinal ? "complete" : "streaming");
+
+        if (!isFinal) {
+          state.timer = setTimeout(step, CHUNK_INTERVAL_MS);
+        } else {
+          state.timer = null;
+        }
+      }
+
+      function paintNaive(blocks) {
+        nodes.naiveOutput.replaceChildren(...blocks.map((block) => renderBlock(block)));
+      }
+
+      function paintStable(blocks) {
+        const tailNodes = [];
+        for (const block of blocks) {
+          if (block.complete) {
+            if (!state.stableCommittedKeys.has(block.key)) {
+              state.stableCommittedKeys.add(block.key);
+              state.stableCommittedMount.appendChild(renderBlock(block));
+            }
+          } else {
+            tailNodes.push(renderBlock(block, { tail: true }));
+          }
+        }
+        state.stableTailMount.replaceChildren(...tailNodes);
+      }
+
+      function renderBlock(block, options = {}) {
+        let element;
+        if (block.type === "heading") {
+          element = document.createElement(`h${block.level}`);
+          appendInline(element, block.text);
+        } else if (block.type === "list") {
+          element = document.createElement("ul");
+          for (const item of block.items) {
+            const li = document.createElement("li");
+            appendInline(li, item);
+            element.appendChild(li);
+          }
+        } else if (block.type === "table") {
+          element = renderTable(block);
+        } else if (block.type === "code") {
+          element = document.createElement("pre");
+          const code = document.createElement("code");
+          code.textContent = block.text;
+          element.appendChild(code);
+        } else if (block.type === "math_block") {
+          element = document.createElement("pre");
+          element.className = "math-block";
+          const code = document.createElement("code");
+          code.textContent = block.text;
+          element.appendChild(code);
+        } else {
+          element = document.createElement("p");
+          appendInline(element, block.text);
+        }
+
+        element.dataset.blockKey = block.key;
+        element.dataset.blockComplete = String(block.complete);
+        if (options.tail || !block.complete) {
+          element.classList.add("tail-block");
+        }
+        return element;
+      }
+
+      function renderTable(block) {
+        const table = document.createElement("table");
+        const thead = document.createElement("thead");
+        const headRow = document.createElement("tr");
+        for (const header of block.headers) {
+          const th = document.createElement("th");
+          appendInline(th, header);
+          headRow.appendChild(th);
+        }
+        thead.appendChild(headRow);
+        table.appendChild(thead);
+
+        const tbody = document.createElement("tbody");
+        for (const row of block.rows) {
+          const tr = document.createElement("tr");
+          for (const cell of row) {
+            const td = document.createElement("td");
+            appendInline(td, cell);
+            tr.appendChild(td);
+          }
+          tbody.appendChild(tr);
+        }
+        table.appendChild(tbody);
+        return table;
+      }
+
+      function appendInline(parent, text) {
+        const source = String(text || "");
+        let cursor = 0;
+        const matcher = /(\$[^$\n]+\$|`[^`\n]+`)/g;
+        let match = matcher.exec(source);
+        while (match) {
+          appendText(parent, source.slice(cursor, match.index));
+          const span = document.createElement("span");
+          span.className = match[0].startsWith("$") ? "math-inline" : "inline-code";
+          span.textContent = match[0];
+          parent.appendChild(span);
+          cursor = match.index + match[0].length;
+          match = matcher.exec(source);
+        }
+        appendText(parent, source.slice(cursor));
+      }
+
+      function appendText(parent, value) {
+        if (value.length > 0) {
+          parent.appendChild(document.createTextNode(value));
+        }
+      }
+
+      function paintMetrics() {
+        paintModeMetrics("naive", state.naiveRun?.metrics);
+        paintModeMetrics("stable", state.stableRun?.metrics);
+      }
+
+      function paintModeMetrics(prefix, metrics) {
+        if (!metrics) {
+          return;
+        }
+        nodes[`${prefix}RenderCount`].textContent = String(metrics.render_count);
+        nodes[`${prefix}CompletedBlockRerenderCount`].textContent = String(metrics.completed_block_rerender_count);
+        nodes[`${prefix}ApproximateNodeChurn`].textContent = String(metrics.approximate_node_churn);
+        nodes[`${prefix}UpdateTime`].textContent = `${metrics.average_update_time_ms.toFixed(3)} / ${metrics.max_update_time_ms.toFixed(3)}`;
+      }
+
+      function updateStatus(demoState) {
+        const fixture = FIXTURES[state.activeFixtureIndex];
+        nodes.statusLine.textContent = [
+          `demo_id=${DEMO_ID}`,
+          `fixture=${fixture.id}`,
+          `chunk=${Math.max(0, state.chunkIndex + 1)}/${fixture.chunks.length}`,
+          `demo_state=${demoState}`
+        ].join(" ");
+      }
+
+      function updateFixturePressedState() {
+        const buttons = nodes.fixtureButtons.querySelectorAll("button");
+        buttons.forEach((button, index) => {
+          button.setAttribute("aria-pressed", String(index === state.activeFixtureIndex));
+        });
+      }
+
+      function publishSummary() {
+        window.__P1_STREAMING_MARKDOWN_STABILITY_SUMMARY__ = {
+          demo_id: DEMO_ID,
+          fixture_id: FIXTURES[state.activeFixtureIndex].id,
+          chunk_index: state.chunkIndex,
+          naive: state.naiveRun?.metrics || null,
+          stable: state.stableRun?.metrics || null
+        };
+      }
+
+      nodes.restartButton.addEventListener("click", restart);
+      setupFixtureButtons();
+      restart();
+    </script>
+  </body>
+</html>

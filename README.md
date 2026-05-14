@@ -50,6 +50,7 @@ The thesis is a workload-architecture mismatch: long-lived AI surfaces increasin
 | F1 worker offload | Can equivalent work leave the main thread? | main-thread max task mean about `2.679ms`; long task count `0` | Worker-offload solution lever, not full runtime |
 | F2 worker scheduling | Does worker scheduling improve controlled urgent projection timing? | controlled urgent projection timing mean about `22.867ms -> 3.333ms` | Urgent projection timing improvement, not throughput or user-perceived latency proof |
 | P2 pure core | What runtime scaffold follows from the evidence? | protocol, validation, scheduler, state-store, projection policy, adapters, and harnesses frozen with `406/406` runtime tests passing | Pure core only, not real Worker/Main integration |
+| P1 streaming Markdown stability demo | What does tail-mutating Markdown churn look like in a browser? | local demo compares naive full reparse against stable completed-block plus mutable-tail rendering across four simulated cases | Demonstration only; not a production Markdown library, not browser-level INP, and not a provider integration |
 
 See [docs/portfolio/evidence-map.md](docs/portfolio/evidence-map.md) for claim-to-evidence mapping.
 Use [docs/portfolio/document-status-map.md](docs/portfolio/document-status-map.md) to distinguish current public-reader documents from historical drafts and process notes.
@@ -101,6 +102,7 @@ See [P5 final reviewer evidence packet](docs/p5/p5y-final-reviewer-evidence-pack
 - in-memory roundtrip and session scenario harnesses
 - runtime guard checks
 - controlled benchmark targets and analysis scripts
+- isolated browser streaming Markdown stability demo
 - paper-style documentation and figure drafts
 
 ## What Is Not Implemented
@@ -154,6 +156,18 @@ Open the default controlled surface:
 http://127.0.0.1:4317/controlled_append_surface.html?level=L1
 ```
 
+Serve the P1 local browser demos:
+
+```bash
+node scripts/p1/serve_p1_streaming_baselines.mjs --host 127.0.0.1 --port 4319
+```
+
+Open the streaming Markdown stability demo:
+
+```text
+http://127.0.0.1:4319/p1_streaming_markdown_stability_demo.html
+```
+
 Inspect capture CLI usage:
 
 ```bash
@@ -204,6 +218,7 @@ Public-facing documentation has been added, and raw product-derived trace CSVs a
 - [Application and outreach pack](docs/portfolio/application-outreach-pack.md)
 - [Architecture diagrams](docs/portfolio/architecture-diagram.md)
 - [Benchmark suite mini spec](docs/portfolio/benchmark-suite-spec.md)
+- [Streaming Markdown stability demo post-audit](docs/portfolio/streaming-markdown-stability-demo-post-audit.md)
 - [Results summary](docs/portfolio/results-summary.md)
 - [Privacy and data boundary](docs/portfolio/privacy-and-data.md)
 

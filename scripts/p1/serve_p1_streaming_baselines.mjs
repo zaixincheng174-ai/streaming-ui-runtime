@@ -19,6 +19,12 @@ const workerFlushFanoutTargetFilePath = fileURLToPath(
 const workerSchedulerProjectionTargetFilePath = fileURLToPath(
   new URL("../../bench/p1/targets/p1_worker_scheduler_projection_baseline.html", import.meta.url)
 );
+const streamingMarkdownStabilityTargetFilePath = fileURLToPath(
+  new URL("../../bench/p1/targets/p1_streaming_markdown_stability_demo.html", import.meta.url)
+);
+const streamingMarkdownStabilityCoreFilePath = fileURLToPath(
+  new URL("../../bench/p1/lib/streaming_markdown_stability_core.mjs", import.meta.url)
+);
 const reactVendorFilePaths = {
   "/vendor/react18/react.production.min.js": fileURLToPath(
     new URL("../../bench/p1/vendor/react18/react.production.min.js", import.meta.url)
@@ -38,6 +44,8 @@ Serves:
   /p1_send_flush_fanout_baseline.html
   /p1_worker_flush_fanout_baseline.html
   /p1_worker_scheduler_projection_baseline.html
+  /p1_streaming_markdown_stability_demo.html
+  /p1_streaming_markdown_stability_core.mjs
   /vendor/react18/react.production.min.js
   /vendor/react18/react-dom.production.min.js
   / as an alias for /p1_streaming_chat_baseline.html`);
@@ -81,6 +89,8 @@ const reactSanityTargetHtml = fs.readFileSync(reactSanityTargetFilePath);
 const sendFlushFanoutTargetHtml = fs.readFileSync(sendFlushFanoutTargetFilePath);
 const workerFlushFanoutTargetHtml = fs.readFileSync(workerFlushFanoutTargetFilePath);
 const workerSchedulerProjectionTargetHtml = fs.readFileSync(workerSchedulerProjectionTargetFilePath);
+const streamingMarkdownStabilityTargetHtml = fs.readFileSync(streamingMarkdownStabilityTargetFilePath);
+const streamingMarkdownStabilityCore = fs.readFileSync(streamingMarkdownStabilityCoreFilePath);
 const reactVendorFiles = Object.fromEntries(
   Object.entries(reactVendorFilePaths).map(([route, filePath]) => [route, fs.readFileSync(filePath)])
 );
@@ -166,6 +176,16 @@ const server = http.createServer((request, response) => {
     return;
   }
 
+  if (requestUrl.pathname === "/p1_streaming_markdown_stability_demo.html") {
+    serveHtml(request, response, streamingMarkdownStabilityTargetHtml);
+    return;
+  }
+
+  if (requestUrl.pathname === "/p1_streaming_markdown_stability_core.mjs") {
+    serveJavaScript(request, response, streamingMarkdownStabilityCore);
+    return;
+  }
+
   if (Object.hasOwn(reactVendorFiles, requestUrl.pathname)) {
     serveJavaScript(request, response, reactVendorFiles[requestUrl.pathname]);
     return;
@@ -182,11 +202,13 @@ server.listen(port, host, () => {
   console.log(`P1-F0 send/flush fanout URL: http://${host}:${port}/p1_send_flush_fanout_baseline.html`);
   console.log(`P1-F1 worker flush fanout URL: http://${host}:${port}/p1_worker_flush_fanout_baseline.html`);
   console.log(`P1-F2 worker scheduler projection URL: http://${host}:${port}/p1_worker_scheduler_projection_baseline.html`);
+  console.log(`P1 streaming Markdown stability demo URL: http://${host}:${port}/p1_streaming_markdown_stability_demo.html`);
   console.log(`P1-A target file: ${streamingTargetFilePath}`);
   console.log(`P1 production-react-sanity target file: ${reactSanityTargetFilePath}`);
   console.log(`P1-F0 send/flush fanout target file: ${sendFlushFanoutTargetFilePath}`);
   console.log(`P1-F1 worker flush fanout target file: ${workerFlushFanoutTargetFilePath}`);
   console.log(`P1-F2 worker scheduler projection target file: ${workerSchedulerProjectionTargetFilePath}`);
+  console.log(`P1 streaming Markdown stability target file: ${streamingMarkdownStabilityTargetFilePath}`);
 });
 
 process.on("SIGINT", () => {

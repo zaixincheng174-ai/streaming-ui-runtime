@@ -21,6 +21,7 @@ Use this map before quoting old documents. The current public claim boundary is 
 | `docs/portfolio/application-outreach-pack.md` | current application material | Resume bullets, profile blurbs, outreach notes, and demo path. | yes | Reusable application material only; not new evidence. |
 | `docs/portfolio/architecture-diagram.md` | current portfolio explanation | Conceptual diagrams for ownership paths and evidence chain. | yes | Not production implementation diagrams. |
 | `docs/portfolio/benchmark-suite-spec.md` | future-direction planning | Mini spec for a possible Long-Lived AI Surface Benchmark Suite. | yes | Planning only; benchmark suite is not implemented. |
+| `docs/portfolio/streaming-markdown-stability-demo-post-audit.md` | current demo audit | Claim boundary for the local browser streaming Markdown stability demo. | yes | Demonstration only; not a production Markdown library, not a provider integration, not browser-level INP, and does not compare against external Markdown libraries. |
 | `docs/paper/streaming-ui-runtime-related-work-v0.md` | current related-systems positioning | Positions the project against DOM/VDOM, virtualization, editors, terminals, Workers, OffscreenCanvas, WebGPU, and agent traces. | yes | Not a final bibliography-complete related work section. |
 | `docs/paper/streaming-ui-runtime-short-paper-draft-v0.md` | current short paper draft | Main paper-style project argument. | yes | Current v0 draft; not a production-system claim. |
 | `docs/paper/appendix/p5-scheduling-evidence-appendix.md` | current appendix | Paper appendix for P5 scheduling evidence. | yes | Synthetic scheduling-delay proxy only. |
@@ -92,6 +93,7 @@ Must not claim:
 | `docs/p5/p5y-final-reviewer-evidence-packet.md` | current P5 evidence packet | Final P5 scheduling-mechanism claim boundary after P5-X. | Browser-level INP, Event Timing, production readiness, P4. |
 | `docs/p5/p5y-reviewer-adversarial-audit.md` | current P5 audit | Strict rejected-claims list and reviewer risk register. | New measurement or proof beyond P5 evidence. |
 | `docs/paper/appendix/p5-scheduling-evidence-appendix.md` | current appendix | Paper-facing P5 evidence chain. | Real product trace superiority or precise speedup. |
+| `docs/portfolio/streaming-markdown-stability-demo-post-audit.md` | current demo audit | Streaming Markdown demo scope and overclaim check. | Production Markdown library, provider integration, browser-level INP, or external-library comparison. |
 
 ## How To Read This Repo
 

@@ -12,6 +12,7 @@ For document status and superseded-draft guidance, see [document-status-map.md](
 - Use the tangibility pack for quick explanation: [one-pager](one-pager.md), [interview pitch](interview-pitch.md), [walkthrough script](walkthrough-script.md), and [architecture diagrams](architecture-diagram.md).
 - Use the [application and outreach pack](application-outreach-pack.md) for resume bullets, public profile blurbs, recruiter notes, engineering-review notes, and demo commands.
 - Use the [benchmark suite mini spec](benchmark-suite-spec.md) only as future-direction planning; it is not an implemented benchmark suite.
+- Use the [streaming Markdown stability demo post-audit](streaming-markdown-stability-demo-post-audit.md) before treating the local browser demo as evidence.
 - Use the [related systems positioning](../paper/streaming-ui-runtime-related-work-v0.md), [short paper draft](../paper/streaming-ui-runtime-short-paper-draft-v0.md), [P5 appendix](../paper/appendix/p5-scheduling-evidence-appendix.md), [P5 final reviewer packet](../p5/p5y-final-reviewer-evidence-packet.md), and [P5 adversarial audit](../p5/p5y-reviewer-adversarial-audit.md) for reviewer-facing evidence.
 
 ## Summary Table
@@ -27,6 +28,7 @@ For document status and superseded-draft guidance, see [document-status-map.md](
 | 68ms to 2.7ms worker offload result | `docs/p1/p1-f1-worker-offload-3x-result.md` | Worker offload reduced main-thread max task mean from `68.633ms` to `2.679ms` | Equivalent controlled workload; not proof all UI work can move off-main-thread |
 | zero long tasks | `docs/p1/p1-f1-worker-offload-3x-result.md` | Worker offload reduced 50ms+ main-thread long tasks from one per F0-D run to zero in F1 runs | Applies to F1 controlled offload experiment |
 | 22.9ms to 3.3ms controlled urgent projection timing | `docs/p1/p1-f2-worker-scheduler-ab-3x-result.md` | Worker scheduling reduced controlled urgent projection timing mean from `22.867ms` to `3.333ms` | Single urgent request per run; not total throughput improvement or full user-perceived latency |
+| streaming Markdown stability demo | `bench/p1/targets/p1_streaming_markdown_stability_demo.html`; `bench/p1/lib/streaming_markdown_stability_core.mjs`; `tests/p1/streaming-markdown-stability-demo-contract.test.mjs`; `docs/portfolio/streaming-markdown-stability-demo-post-audit.md` | Local browser demo shows deterministic simulated Markdown-like streams where stable tail-block rendering reduces completed-block churn versus naive full reparse | Demonstration only; not a production Markdown library, not a provider integration, not browser-level INP, and does not compare against external Markdown libraries |
 | 17-module TypeScript runtime | `docs/p2/p2-pure-core-v0-freeze.md`; `runtime/` | Implemented a TypeScript pure-core runtime across protocol, validation, scheduler, state, projection, adapter, metrics, and harness modules | Current tracked runtime source inventory contains 25 TypeScript files; if using "17-module", define it as capability modules, not source files |
 | 406 passing tests | `docs/p2/p2-pure-core-v0-freeze.md` | Runtime freeze validation recorded `406/406` runtime tests passing | Historical freeze snapshot; rerun current tests before each release |
 | P5 synthetic scheduling-mechanism evidence | `docs/p5/p5y-final-reviewer-evidence-packet.md`; `docs/p5/p5y-reviewer-adversarial-audit.md`; `docs/portfolio/p5-scheduling-evidence-summary.md`; `docs/paper/appendix/p5-scheduling-evidence-appendix.md` | P5 supports that worker-resident logical ownership can reduce and localize main-thread blocking under synthetic long-lived AI-surface workloads | Synthetic scheduling-delay proxy, not browser-level INP, not Event Timing, not production readiness, not real product superiority; P4 remains not authorized |
@@ -122,6 +124,29 @@ Boundary:
 - This is urgent latency, not throughput.
 - F2-B worker total time was higher than F2-A because scheduling pays chunk/yield overhead.
 - Each run injects one urgent request.
+
+### Streaming Markdown Stability Demo
+
+Evidence:
+
+- `bench/p1/targets/p1_streaming_markdown_stability_demo.html`
+- `bench/p1/lib/streaming_markdown_stability_core.mjs`
+- `tests/p1/streaming-markdown-stability-demo-contract.test.mjs`
+- `scripts/p1/audit_streaming_markdown_stability_demo.mjs`
+- `docs/portfolio/streaming-markdown-stability-demo-post-audit.md`
+
+Safe wording:
+
+> Built a local browser streaming Markdown stability demo that compares naive full accumulated-source reparse against stable completed-block reuse plus mutable-tail rendering across deterministic simulated chunks.
+
+Boundary:
+
+- It covers incomplete fenced code, a streamed GFM table, LaTeX/math-like partial input, and a mixed long assistant answer.
+- It reports render count, completed-block re-render count, approximate node churn, and average/max update time.
+- It is not a production Markdown library.
+- It is not a provider integration.
+- It is not browser-level INP or Event Timing evidence.
+- It does not compare against external Markdown libraries.
 
 ### 17-Module TypeScript Runtime
 

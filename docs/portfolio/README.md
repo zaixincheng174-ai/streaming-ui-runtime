@@ -110,6 +110,7 @@ The evidence chain is intentionally staged:
 | Worker offload reduced main-thread max task | `docs/p1/p1-f1-worker-offload-3x-result.md`: `68.633ms -> 2.679ms` mean |
 | Worker offload removed 50ms+ main-thread long tasks | `docs/p1/p1-f1-worker-offload-3x-result.md`: long task count `1/run -> 0` |
 | Worker scheduling reduced controlled urgent projection timing | `docs/p1/p1-f2-worker-scheduler-ab-3x-result.md`: `22.867ms -> 3.333ms` mean |
+| Streaming Markdown stability demo | `bench/p1/targets/p1_streaming_markdown_stability_demo.html`; `docs/portfolio/streaming-markdown-stability-demo-post-audit.md`; local browser demo only, not browser-level INP or production Markdown evidence |
 | Runtime core has a broad TypeScript scaffold | `docs/p2/p2-pure-core-v0-freeze.md` and `runtime/` |
 | Runtime tests passed | `docs/p2/p2-pure-core-v0-freeze.md`: `406/406` runtime tests passed at freeze |
 | P5 scheduling-mechanism evidence | `docs/p5/p5y-final-reviewer-evidence-packet.md`; `docs/portfolio/p5-scheduling-evidence-summary.md`; synthetic scheduling-delay proxy evidence, not browser-level INP or production readiness |
@@ -145,6 +146,7 @@ Use these short docs when a reader needs the project translated quickly:
 - [Application and outreach pack](application-outreach-pack.md): reusable resume bullets, profile blurbs, outreach notes, and demo path.
 - [Architecture diagrams](architecture-diagram.md): conceptual diagrams for DOM ownership, Worker direction, and evidence chain.
 - [Benchmark suite mini spec](benchmark-suite-spec.md): future-direction planning for a possible Long-Lived AI Surface Benchmark Suite.
+- [Streaming Markdown stability demo post-audit](streaming-markdown-stability-demo-post-audit.md): claim boundary for the local browser demo comparing full reparse with stable tail-block rendering.
 
 ## P5 Scheduling Evidence
 
@@ -189,6 +191,18 @@ http://127.0.0.1:4317/controlled_append_surface.html?level=L1
 
 The root URL `http://127.0.0.1:4317/` is also supported as a browser-friendly redirect alias.
 
+Serve the P1 local browser demos:
+
+```bash
+node scripts/p1/serve_p1_streaming_baselines.mjs --host 127.0.0.1 --port 4319
+```
+
+Open the streaming Markdown stability demo:
+
+```text
+http://127.0.0.1:4319/p1_streaming_markdown_stability_demo.html
+```
+
 Inspect capture usage:
 
 ```bash
@@ -210,6 +224,7 @@ Run P1 analysis scripts only with reviewed/sanitized trace inputs. Raw private t
 - Product traces motivate the mechanism family; they are not source replay.
 - F0-D/F1/F2 use controlled workloads and small repeated runs.
 - F2 improves urgent latency but pays worker-side chunk/yield overhead.
+- The streaming Markdown stability demo is deterministic and local only; it is not a production Markdown library, not a provider integration, not browser-level INP, and does not compare against external Markdown libraries.
 - P2 is a pure-core scaffold, not production runtime integration.
 - No real Worker/Main runtime boundary is implemented yet.
 - No DOM/React integration, projection engine, or Canvas/WebGPU backend is implemented.
